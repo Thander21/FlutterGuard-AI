@@ -1,6 +1,10 @@
 # Gates Determinísticos de Clean Code & Análise do Ecossistema ub-mode
 ### Incorporando a Filosofia de Robert C. Martin (Uncle Bob), Métricas Matemáticas (CRAP, Dryer, Mutator) e o Protocolo "Attack the Premise" ao FlutterGuard-AI
 
+> **Nota de escopo (v0):** CRAP, dryer e mutator são **[PLANEJADO]**
+> (ver `docs/plans/PLAN-02-functional-scope-to-working-system.md`, P2);
+> nenhum gate de métrica está implementado.
+
 > **Resumo Executivo:**  
 > A indústria de software vive uma encruzilhada: agentes de inteligência artificial produzem código com alta velocidade sintática, mas com profunda fragilidade arquitetural e complacência em testes (*vibes-based engineering*).  
 > Robert C. Martin ("Uncle Bob"), autor de *Clean Code* e cocriador do Manifesto Ágil, lançou o framework conceitual **[ub-mode](https://github.com/unclebob/ub-mode)**, sustentado por ferramentas determinísticas de auditoria matemática ([crapper](https://github.com/unclebob/crapper), [dryer](https://github.com/unclebob/dryer), [mutator](https://github.com/unclebob/mutator)).  

@@ -25,7 +25,7 @@ O desenvolvimento de cada regra de proteção e auto-recuperação do FlutterGua
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ 1. OPENSPEC CONTRACT (docs/specs/TS-NN-slug.md)                            │
+│ 1. OPENSPEC CONTRACT (specs/TS-NN-slug.md)                            │
 │    - Metadados formais em YAML (Schema OpenSpec-AST)                        │
 │    - Contrato inviolável da AST (Ex: nós MethodInvocation, ClassDeclaration) │
 │    - Invariante formal (Ex: "Todo AnimationController deve ter .dispose()") │
@@ -54,7 +54,7 @@ O desenvolvimento de cada regra de proteção e auto-recuperação do FlutterGua
 
 ## 3. Padrão OpenSpec para AST (Template de Especificação)
 
-Todas as regras técnicas residem em `docs/specs/TS-NN-slug.md` e seguem o padrão **OpenSpec estendido para Invariantes de AST**:
+Todas as regras técnicas residem em `specs/TS-NN-slug.md` e seguem o padrão **OpenSpec estendido para Invariantes de AST**:
 
 ```markdown
 ---
@@ -66,7 +66,7 @@ severity: "error"
 ast_nodes:
   - "MethodInvocation[name='emit']"
   - "AwaitExpression"
-invariant: "Todo 'emit' precedido por 'await' dentro de uma subclasse de BlocBase DEVE possuir a guarda 'if (!isClosed) return;' imediatamente antes da chamada."
+invariant: "Todo 'emit' precedido por 'await' dentro de uma subclasse de BlocBase DEVE possuir a guarda 'if (isClosed) return;' imediatamente antes da chamada."
 golden_vectors:
   failing: "benchmark/vectors/TC-01_bloc.bad.dart"
   passing: "benchmark/vectors/TC-01_bloc.good.dart"
@@ -81,7 +81,7 @@ Emissões de estado após o descarte do Cubit disparam `StateError` silencioso e
 - await repository.saveData();
 - emit(SuccessState());
 + await repository.saveData();
-+ if (!isClosed) return;
++ if (isClosed) return;
 + emit(SuccessState());
 ```
 
@@ -103,13 +103,13 @@ Para cada nova regra de guarda implementada no FlutterGuard-AI:
 [5. Grader & evidence.jsonl] ◄── [4. Autocura via Llama Stack] ┘
 ```
 
-1. **Definição da Spec (`docs/specs/`):**
+1. **Definição da Spec (`specs/`):**
    * Criar a RFC técnica com o schema OpenSpec.
    * Identificar quais nós do `package:analyzer/dart/ast/ast.dart` serão interceptados.
 2. **Criação do Par Golden no Benchmark (`benchmark/vectors/`):**
    * `TC-NN.bad.dart`: Código Dart funcional porém violando o invariante.
    * `TC-NN.good.dart`: Código idêntico após aplicação manual da receita canônica.
-3. **TDD do AstVisitor (`packages/flutterguard_core/test/`):**
+3. **TDD do AstVisitor (`test/`, single package per `docs/Architecture/Architecture.md` §4):**
    * Escrever o teste unitário:
      - Deve acusar violação no `.bad.dart`.
      - NÃO deve acusar violação no `.good.dart` (Zero Falsos Positivos).

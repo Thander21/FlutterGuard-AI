@@ -23,7 +23,7 @@ A metodologia do **FlutterGuard AI** combina o que há de mais rigoroso na engen
 * **Princípio:** Em vez de histórias subjetivas de tela, cada regra é modelada como uma **invariante de compilador e um vetor de benchmark**:
   * `Dado` um Cubit com operações assíncronas (`await`).
   * `Quando` uma nova emissão de estado for disparada (`emit`).
-  * `Então` a AST deve garantir a presença estrita da guarda `if (!isClosed) return;`.
+  * `Então` a AST deve garantir a presença estrita da guarda `if (isClosed) return;`.
 * **Benefício:** Elimina a burocracia de personas e foca diretamente na eliminação de causas-raiz de falhas de runtime e memória.
 
 ### 1.4. XP (Extreme Programming - Práticas Ágeis de Engenharia)

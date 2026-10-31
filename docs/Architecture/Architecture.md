@@ -1,6 +1,11 @@
 # Arquitetura do Sistema: FlutterGuard AI
 ### Engenharia Pragmática, Determinística e Multimodal para o Hackathon Meta
 
+> **Nota de escopo (v0):** somente §2.2 (regras `FG-BLOC-001` e `FG-RIV-001`,
+> via comandos `grade` e `check`) está implementado. MCP (§3), caos (§2.3),
+> visual (§2.4), autocura (§2.5), playground (§6) e instalação (§7) estão
+> **[PLANEJADO]**. `docs/` registra intenção; `specs/` é normativo.
+
 ## 1. Visão Arquitetural
 
 O **FlutterGuard AI** é projetado como uma esteira autônoma e reativa em pacote único (*Single Package*), combinando a velocidade de execução do compilador Dart local com o poder de raciocínio e visão multimodal dos modelos de IA da Meta:
@@ -42,13 +47,13 @@ O **FlutterGuard AI** é projetado como uma esteira autônoma e reativa em pacot
 * **Objetivo:** Auditar a árvore de sintaxe abstrata (AST) do Dart localmente em microssegundos (zero tokens).
 * **Mecanismo:**
   * Uso do pacote oficial `analyzer` do Dart SDK para inspecionar nós sintáticos.
-  * **Motor de Verificação Formal (`FG-FORMAL-001` a `005`):** Integração de Métodos Formais determinísticos (Typestate DFA, Propagação Simbólica de Restrições de Caixa, Program Slicing de `build()`, Análise Happens-Before para Concorrência e Abstract State Lattices). *Para a formulação matemática e algoritmos completos, consulte:* [Formal Verification Algorithms](file:///c:/_Projetos/Agentic%20AI%20Engineer/ferramentas%20de%20estudo/FlutterGuard-AI/docs/Architecture/FormalVerificationAlgorithms.md).
+  * **Motor de Verificação Formal (`FG-FORMAL-001` a `005`):** Integração de Métodos Formais determinísticos (Typestate DFA, Propagação Simbólica de Restrições de Caixa, Program Slicing de `build()`, Análise Happens-Before para Concorrência e Abstract State Lattices). *Para a formulação matemática e algoritmos completos, consulte:* [Formal Verification Algorithms](FormalVerificationAlgorithms.md).
   * **Regras Fundamentais de Ciclo de Vida:**
     * Bloqueio de instanciação de controllers (`AnimationController`, `TextEditingController`) dentro do método `build()`.
     * Exigência de cancelamento de `StreamSubscription` no método `dispose()`.
     * Interceptação de gaps assíncronos (`BuildContext` usado após `await` sem `if (!mounted) return;`).
   * **Regras para os Dois Maiores Gerenciadores de Estado do Mercado:**
-    * **Bloc / Cubit (`FG-BLOC-001`):** Detecta chamadas a `.emit()` após operações assíncronas (`await`) sem a checagem de guarda `if (!isClosed) return;` (prevenindo o fatídico `StateError: Cannot emit new states after calling close`).
+    * **Bloc / Cubit (`FG-BLOC-001`):** Detecta chamadas a `.emit()` após operações assíncronas (`await`) sem a checagem de guarda `if (isClosed) return;` (prevenindo o fatídico `StateError: Cannot emit new states after calling close`).
     * **Riverpod (`FG-RIV-001`):** Detecta o uso indevido de `ref.watch()` dentro de callbacks de eventos (`onPressed`, `onTap`, funções anônimas), forçando a substituição pelo correto `ref.read()`.
 
 ### 2.3. Mutation Chaos Gate (Injeção de Caos em 3 Operadores)
@@ -71,15 +76,13 @@ O **FlutterGuard AI** é projetado como uma esteira autônoma e reativa em pacot
 * **Mecanismo:**
   * **Circuit Breaker com Timeout Nativo:** Toda execução do Dart `Process.run()` possui timeout estrito (`timeout: Duration(seconds: 8)`). Se houver loop infinito no build, o processo é encerrado de forma limpa.
   * **Injeção de Receitas Canônicas:** A falha mapeia o erro para o catálogo (*Before/After*) e despacha para o **Meta Muse Code / Llama 3**.
-  * **Rollback Atômico via Git:** Se após 2 turnos de autocura o código não atingir 100% de aprovação, o harness executa `git restore <arquivo>` e reverte as mutações, mantendo o repositório limpo.
+  * **Rollback Atômico via Git:** Se após 3 tentativas de autocura o código não atingir 100% de aprovação, o harness descarta as alterações da iteração e restaura o snapshot limpo (via `git restore`), mantendo o repositório limpo. (Orçamento unificado com `ForceFieldHarness.md` §3: 3 tentativas + snapshot + Attack-the-Premise.)
 
 ---
 
-## 3. Modelo de Instalação e Integração com Agentes
+## 3. Modelo de Instalação e Servidor MCP Nativo (Model Context Protocol) [PLANEJADO]
 
 Qualquer projeto Flutter pode ser integrado ao FlutterGuard em menos de 1 minuto:
-
-## 3. Modelo de Instalação e Servidor MCP Nativo (Model Context Protocol)
 
 O **FlutterGuard AI** expõe nativamente um **Servidor MCP via stdio (JSON-RPC 2.0)**, permitindo que agentes de IA modernos (Claude Code, Gemini CLI, Cursor, Antigravity) executem as validações como ferramentas tipadas de primeira classe, sem recorrer a comandos de shell soltos:
 
@@ -137,21 +140,23 @@ Para garantir máxima velocidade de desenvolvimento e zero conflitos de links no
 ```
 flutterguard_ai/
 ├── bin/
-│   ├── flutterguard.dart         # CLI executável de terminal (init, check, benchmark)
-│   └── flutterguard_mcp.dart     # Servidor MCP stdio (JSON-RPC 2.0)
+│   ├── flutterguard.dart         # CLI v0 (grade, check)
+│   └── flutterguard_mcp.dart     # [PLANEJADO] Servidor MCP stdio (JSON-RPC 2.0)
 ├── lib/
 │   ├── src/
-│   │   ├── mcp/                  # Protocolo JSON-RPC e registro das 4 tools
-│   │   ├── ast/                  # Regras de AST (Lifecycle, Bloc, Riverpod)
-│   │   ├── chaos/                # Mutation Chaos Injector (3 operadores)
-│   │   ├── testing/              # Headless Runner, Viewport Stressor e Rebuild Budget
-│   │   ├── visual/               # Tier 1 RenderBox check + Tier 2 SAM/Muse Image client
-│   │   └── meta_ai/              # Conector Llama Stack & APIs da Meta
+│   │   ├── ast/                  # Regras v0 (Bloc, Riverpod)
+│   │   ├── cli/                  # Registro de regras + núcleo do check
+│   │   ├── mcp/                  # [PLANEJADO] Protocolo JSON-RPC e registro das tools
+│   │   ├── chaos/                # [PLANEJADO] Mutation Chaos Injector (3 operadores)
+│   │   ├── testing/              # [PLANEJADO] Headless Runner, Viewport Stressor, Rebuild Budget
+│   │   ├── visual/               # [PLANEJADO] Tier 1 RenderBox check + Tier 2 SAM/Muse Image client
+│   │   └── meta_ai/              # [PLANEJADO] Conector Llama Stack & APIs da Meta
 ├── benchmark/
-│   ├── cases/                    # Os 10 códigos corporativos reais com falhas
-│   └── run_benchmark.dart        # Script de execução e pontuação comparativa
+│   ├── vectors/                  # Pares golden .bad/.good por regra (v0)
+│   ├── cases/                    # [PLANEJADO] Os 10 códigos corporativos reais com falhas
+│   └── run_benchmark.dart        # [PLANEJADO] Script de execução e pontuação comparativa
 ├── test/                         # Suíte de testes do próprio FlutterGuard
-├── flutterguard.yaml             # Arquivo de configuração (opcional / zero-config)
+├── flutterguard.yaml             # [PLANEJADO] Arquivo de configuração (opcional / zero-config)
 └── pubspec.yaml                  # 1 único arquivo de dependências limpo
 ```
 
@@ -168,7 +173,7 @@ Cada ciclo executado pelo framework registra um evento atômico estruturado:
   "rule_id": "FG-BLOC-001",
   "file": "lib/features/cart/presentation/cart_cubit.dart",
   "status": "FAILED",
-  "error_message": "emit() called after async gap without !isClosed check",
+  "error_message": "emit() called after async gap without isClosed check",
   "recipe_injected": "RECIPE_SAFE_BLOC_EMIT",
   "iteration": 1,
   "action": "AUTO_HEALING_DISPATCHED"
@@ -177,7 +182,7 @@ Cada ciclo executado pelo framework registra um evento atômico estruturado:
 
 ---
 
-## 6. O Playground Efêmero de Testes (`test_fixtures/`)
+## 6. O Playground Efêmero de Testes (`test_fixtures/`) [PLANEJADO]
 
 Para garantir velocidade nos 10 dias sem colocar código corporativo em risco, o desenvolvimento diário **NÃO roda diretamente no PDV D+**. O repositório contém um playground isolado com **reset atômico em milissegundos**:
 
@@ -200,7 +205,7 @@ test_fixtures/
 
 ---
 
-## 7. Distribuição & Instalação via GitHub
+## 7. Distribuição & Instalação via GitHub [PLANEJADO]
 
 O FlutterGuard-AI oferece três formas de instalação sem atrito:
 

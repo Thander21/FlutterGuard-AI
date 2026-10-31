@@ -1,5 +1,9 @@
 # Campo de Força: A Engine de Bloqueio Fail-Closed
 
+> **Nota de escopo (v0):** `validate-light`, `validate` e `commit-check`
+> são portões de processo ainda sem executor; os portões executáveis hoje
+> são `grade` e `check` (`bin/flutterguard.dart`).
+
 O conceito do **Campo de Força** é derivado diretamente da experiência acumulada no ERP PDV D+, onde a automação por IA exige uma esteira de portões que opera com **tolerância zero** para inconsistências.
 
 ---

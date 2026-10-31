@@ -53,7 +53,7 @@ Modelamos o ciclo de vida do recurso como um Autômato Finito Determinístico (D
    Onde $\sqcap$ é o operador de encontro de semirreticulado (meet operator). Se um nó predecessor puder deixar o recurso em `DEAD` e outro em `ACTIVE`, o estado de entrada é marcado como $\bot$ (potencialmente inválido).
 3. **Verificação de Async Gap (`BuildContext`):**  
    - Ao encontrar uma `AwaitExpression`, o estado do `BuildContext` associado transita imediatamente de $\text{VALID} \to \text{SUSPECT}$.
-   - Se o nó seguinte for uma invocação consumindo `context` (ex: `Navigator.of(context)`, `context.read()`) **sem** que haja um nó de guarda dominante `IfStatement` com predicado `!mounted` ou `!isClosed` que retorne, o analisador acusa violação formal.
+   - Se o nó seguinte for uma invocação consumindo `context` (ex: `Navigator.of(context)`, `context.read()`) **sem** que haja um nó de guarda dominante `IfStatement` com predicado `!mounted` ou `isClosed` que retorne, o analisador acusa violação formal.
 4. **Liveness Check de Descarte:**  
    $$\forall r \in \text{AllocatedResources}, \quad \forall \text{ExitPath} \in \text{CFG}(\text{dispose}), \quad \text{State}_{\text{final}}(r) = \text{DEAD}$$
    Se existir qualquer caminho no método `dispose()` que saia sem invocar `r.dispose()` ou `r.cancel()`, o commit é bloqueado por **Vazamento de Recurso Determinístico**.

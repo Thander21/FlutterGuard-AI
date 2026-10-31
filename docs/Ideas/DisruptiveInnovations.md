@@ -116,7 +116,7 @@ Aqui reside o arsenal massivo de validações que o framework executa localmente
 * **Layer Leak Interceptor:** Analisa a diretiva `import` de cada arquivo; bloqueia importações de infraestrutura/dados dentro da camada de domínio ou apresentação.
 * **Inline Controller Blocker:** Impede a instanciação de `TextEditingController`, `ScrollController`, `AnimationController` ou `FocusNode` dentro do método `build()`.
 * **Hardcoded String Detector:** Identifica textos fixos soltos em widgets de apresentação, forçando a internacionalização (`l10n`) ou injeção por constantes.
-* **Bloc & Cubit Warden (`FG-BLOC-001`):** Detecta chamadas a `.emit()` após operações assíncronas (`await`) sem a checagem `if (!isClosed) return;`, prevenindo o erro em produção `StateError: Cannot emit new states after calling close`.
+* **Bloc & Cubit Warden (`FG-BLOC-001`):** Detecta chamadas a `.emit()` após operações assíncronas (`await`) sem a checagem `if (isClosed) return;`, prevenindo o erro em produção `StateError: Cannot emit new states after calling close`.
 * **Riverpod Scope Warden (`FG-RIV-001`):** Detecta o anti-pattern de usar `ref.watch()` dentro de callbacks de eventos (`onPressed`, `onTap`, funções de clique) em vez de `ref.read()`, evitando recriações anômalas e vazamentos de escopo.
 
 ### 2. Lifecycle & Memory Warden (Guardião de Memória e Ciclo de Vida)

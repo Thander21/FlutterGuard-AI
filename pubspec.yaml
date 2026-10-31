@@ -1,0 +1,12 @@
+name: flutterguard_ai
+description: Autonomous reactive and blocking quality harness for Flutter/Dart.
+version: 0.1.0
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  analyzer: ^6.0.0
+
+dev_dependencies:
+  test: ^1.24.0

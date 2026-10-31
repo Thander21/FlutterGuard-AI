@@ -2,80 +2,100 @@
 
 ### Autonomous Reactive & Blocking Quality Harness for Flutter / Dart
 
-> **Transformando IA de geradora complacente de código em engenheiro de software sênior determinístico através de Spec-Driven Development (SDD), Análise Reativa de AST, Verificação Visual Multimodal e Gates Bloqueantes.**
+> **Turning AI from a complacent code generator into a deterministic senior software engineer through Spec-Driven Development (SDD), Reactive AST Analysis, Multimodal Visual Verification, and Blocking Gates.**
+
+*Leia em português: [LEIAME.md](LEIAME.md)*
+
+> **Scope (v0):** 2 AST rules implemented (`FG-BLOC-001`, `FG-RIV-001`) with
+> `grade` + `check` CLI commands. The MCP server, `init`, pre-commit hook,
+> mutation gate, visual gates, and auto-heal loop are **[PLANNED]**
+> (see `docs/plans/PLAN-01-implementation-to-submission.md` and
+> `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
+> `specs/` is normative; `docs/` records direction and intent.
 
 ---
 
-## 🎯 O Que é o Projeto?
+## 🎯 What Is This Project?
 
-O **FlutterGuard AI** é um framework e orquestrador autônomo (_closed-loop agentic harness_) desenvolvido especificamente para o ecossistema **Flutter/Dart**. Ele resolve o maior gargalo atual do desenvolvimento com IA: a geração de código frágil, poluição de ciclo de vida de widgets, descolamento de estado (_state anti-patterns_), falhas silenciosas de concorrência e quebras visuais (`RenderFlex overflowed`) que linters tradicionais não conseguem detectar.
+**FlutterGuard AI** is an autonomous framework and orchestrator (_closed-loop agentic harness_) built specifically for the **Flutter/Dart** ecosystem. It solves the biggest bottleneck in AI-assisted development today: fragile code generation, widget lifecycle pollution, state detachment (_state anti-patterns_), silent concurrency failures, and visual breakage (`RenderFlex overflowed`) that traditional linters cannot detect.
 
-O projeto funciona como uma barreira física e pedagógica (_fail-closed_): nenhum código gerado por IA é aprovado sem antes passar por um contrato estrito de especificação, validação estática de AST, testes com telemetria determinística e inspeção visual automatizada.
-
----
-
-## 🧠 Arquitetura 100% Meta AI Core + Governança Universal em Tempo de Execução
-
-O **FlutterGuard AI** possui seu motor central e inteligência alimentados 100% pelo ecossistema de modelos e frameworks da **Meta AI**, atuando simultaneamente como um harness de governança para qualquer agente cliente:
-
-1. **[Arquitetura do Sistema & Stack Meta AI](docs/Architecture/Architecture.md)**
-   - **Meta Muse Spark:** Arquiteto SDD que decompõe requisitos em contratos e testes que falham (RED).
-   - **Meta Muse Code / Llama 3:** Agente de implementação mínima e autocura em Dart guiada por AST.
-   - **SAM 3.1 & Meta Muse Image:** Auditoria visual multimodal, segmentação de caixas delimitadoras e detecção de `RenderFlex overflowed`.
-   - **Llama Stack:** Barramento unificado para orquestração, tool calling e memória de contexto.
-   - **Dart SDK Core:** Motor local determinístico de inspeção de AST em microssegundos (zero-token).
-
-2. **[Governança e Rastreamento de Agentes Clientes via MCP](docs/Integrations/ClientAgentsTracking.md)**
-   - Uma vez instalado em qualquer projeto Flutter (`flutterguard init --mcp`), o FlutterGuard atua como um **Harness de Qualidade e Barreira Física** em tempo de execução para os agentes que o desenvolvedor já utiliza: **Claude Code, Gemini CLI, Cursor, Antigravity ou modelos locais**.
-   - As IAs clientes são obrigadas a respeitar os contratos e gates de validação antes de qualquer commit no repositório.
+The project works as a physical and pedagogical barrier (_fail-closed_): no AI-generated code is approved before passing a strict specification contract, static AST validation, tests with deterministic telemetry, and automated visual inspection.
 
 ---
 
-## ⚡ Instalação Rápida & Setup (Opção 1: Padrão Nativo via Git)
+## 🧠 100% Meta AI Core Architecture + Universal Runtime Governance
 
-Instale e ative o FlutterGuard globalmente na sua máquina diretamente do GitHub com **um único comando nativo do Dart SDK** (sem necessidade de clonar o repositório manualmente):
+**FlutterGuard AI** has its core engine and intelligence powered 100% by the **Meta AI** model and framework ecosystem, while simultaneously acting as a governance harness for any client agent:
+
+1. **[System Architecture & Meta AI Stack](docs/Architecture/Architecture.md)**
+   - **Meta Muse Spark:** SDD architect that decomposes requirements into contracts and failing tests (RED).
+   - **Meta Muse Code / Llama 3:** Minimal-implementation and self-healing agent in Dart guided by AST.
+   - **SAM 3.1 & Meta Muse Image:** Multimodal visual audit, bounding-box segmentation, and `RenderFlex overflowed` detection.
+   - **Llama Stack:** Unified bus for orchestration, tool calling, and context memory.
+   - **Dart SDK Core:** Local deterministic AST inspection engine in microseconds (zero-token).
+
+2. **[Client Agent Governance and Tracking via MCP](docs/Integrations/ClientAgentsTracking.md)**
+   - Once installed in any Flutter project (`flutterguard init --mcp`), FlutterGuard acts as a runtime **Quality Harness and Physical Barrier** for the agents the developer already uses: **Claude Code, Gemini CLI, Cursor, Antigravity, or local models**.
+   - Client AIs must respect contracts and validation gates before any commit to the repository.
+
+---
+
+## ⚡ Quick Install & Setup (Option 1: Native Standard via Git)
+
+Install and activate FlutterGuard globally on your machine directly from GitHub with **a single native Dart SDK command** (no need to clone the repository manually):
+
+### What works today (from a repo checkout)
 
 ```bash
-# 1. Ativação global oficial direto do GitHub (Dart SDK)
-dart pub global activate --source git https://github.com/SEU-USER/flutterguard-ai.git
+dart pub get
+dart test
+dart run bin/flutterguard.dart grade
+dart run bin/flutterguard.dart check <path> [--json]
+```
 
-# 2. Inicialização com Servidor MCP e Git Hook no seu projeto Flutter
-cd caminho/para/seu_projeto_flutter
+### [PLANNED] Global install (does not work yet)
+
+```bash
+# 1. Official global activation straight from GitHub (Dart SDK)
+dart pub global activate --source git https://github.com/YOUR-USER/flutterguard-ai.git
+
+# 2. Initialization with MCP Server and Git Hook in your Flutter project
+cd path/to/your_flutter_project
 flutterguard init --mcp
 ```
 
-### O que acontece automaticamente nos bastidores:
+### What will happen automatically behind the scenes:
 
-1. **Servidor MCP Nativo:** Registra o binário `flutterguard_mcp` pronto para conexão com IDEs e agentes (Cursor, Claude Code, Gemini CLI, Antigravity).
-2. **Auto-Configuração:** Escreve a configuração do MCP em `.cursor/mcp.json`, `.agents/mcp_config.json` ou `claude_desktop_config.json`.
-3. **Contrato de Governança no `AGENTS.md`:** Instruções mandatórias para que a IA local use o MCP antes de comitar.
-4. **Git Pre-Commit Hook:** Barreira física que impede código com vazamentos ou quebras visuais de entrar no repositório.
-
----
-
-## 📚 Mapa da Documentação
-
-- 📖 **[Visão Geral e Problema](docs/Ideas/ProjectOverview.md):** Diagnóstico de mercado, dores reais e proposta de valor.
-- 🏆 **[Blueprint Executivo de Submissão](docs/Rules/HackathonSubmissionBlueprint.md):** Pitch oficial, Enterprise Bug Benchmark, One-Command CLI e roteiro do vídeo de 2 minutos.
-- 🚀 **[Inovações Disruptivas & Engenharia Fora da Caixa](docs/Ideas/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport e as falhas invisíveis da IA.
-- 🏛️ **[Arquitetura do Sistema (100% Meta AI)](docs/Architecture/Architecture.md):** Fluxo reativo, AST Engine, loops de feedback e injeção cirúrgica de contexto.
-- 🔬 **[Algoritmos de Verificação Formal (AST Prover)](docs/Architecture/FormalVerificationAlgorithms.md):** Métodos formais, Typestate DFA, Cassowary Constraints, Program Slicing e Análise Causal para Flutter.
-- 🤖 **[Dossiê da Stack Meta AI](docs/Architecture/MetaAi/Readme.md):** Guia técnico de estudo e integração com Muse Spark, Muse Code, SAM 3.1, Muse Image e Llama Stack.
-- 🔌 **[Governança de Agentes Clientes em Execução](docs/Integrations/ClientAgentsTracking.md):** Rastreamento de Claude Code, Cursor, Gemini CLI e Antigravity via MCP.
-- 🛡️ **[Campo de Força & Gates](docs/Methodology/ForceFieldHarness.md):** Princípios da esteira determinística e bloqueio _fail-closed_.
-- 📐 **[Gates Determinísticos & Validação Clean Code (ub-mode)](docs/Methodology/CleanCodeDeterministicGates.md):** Adaptação do framework de Robert C. Martin (Uncle Bob), CRAP Score (< 10), detector de duplicação e quebra de alucinação.
-- 🔄 **[Metodologia SDD + TDD + EDD + XP](docs/Methodology/SpecDrivenDevelopment.md):** O ciclo de vida determinístico que elimina alucinações e testes complacentes.
-- ⚙️ **[Fluxo Operacional SDD + EDD](docs/Methodology/SddEddWorkflow.md):** Metodologia de engenharia determinística com OpenSpec AST, Eval Benchmarks e Llama Stack.
-- 💡 **[Catálogo de Receitas Canônicas](docs/Methodology/CanonicalRecipesCatalog.md):** Biblioteca de padrões de correção (_Before/After_) para auto-recuperação da IA.
-- 🔗 **[Ponte de Referência ERP PDV D+](docs/Ideas/ReferencePdvDMais.md):** Mapeamento e consulta das regras reais testadas em produção no PDV D+.
-- 🎯 **[Trilha do Hackathon Meta](docs/Rules/MetaHackathonTrack.md):** Planejamento e textos oficiais de submissão do evento.
-- 📢 **[Divulgação & Build in Public](docs/SelfPromotion/SelfPromotion.md):** Diretrizes de compliance da Meta e calendário de posts no LinkedIn.
+1. **[PLANNED] Native MCP Server:** Registers the `flutterguard_mcp` binary ready to connect with IDEs and agents (Cursor, Claude Code, Gemini CLI, Antigravity).
+2. **[PLANNED] Auto-Configuration:** Writes the MCP configuration to `.cursor/mcp.json`, `.agents/mcp_config.json`, or `claude_desktop_config.json`.
+3. **[PLANNED] Governance Contract in `AGENTS.md`:** Mandatory instructions so the local AI uses the MCP before committing.
+4. **[PLANNED] Git Pre-Commit Hook:** Physical barrier that prevents code with leaks or visual breakage from entering the repository.
 
 ---
 
-## ⚡ Pilares Fundamentais
+## 📚 Documentation Map
 
-1. **Reativo:** Monitora a AST e as mutações de código no instante em que ocorrem.
-2. **Bloqueante (_Fail-Closed_):** Código não aprovado em 100% dos gates é sumariamente revertido.
-3. **Didático / Pedagógico:** Não apenas aponta o erro, mas injeta a receita canônica (_Just-in-Time Canonical Recipe_) para a IA corrigir em 1 turno.
-4. **Multimodal:** Não confia apenas em texto e compiladores; inspeciona a tela renderizada contra quebras de layout.
+- 📖 **[Overview and Problem](docs/Ideas/ProjectOverview.md):** Market diagnosis, real pain points, and value proposition.
+- 🏆 **[Executive Submission Blueprint](docs/Rules/HackathonSubmissionBlueprint.md):** Official pitch, Enterprise Bug Benchmark, One-Command CLI, and 2-minute video script.
+- 🚀 **[Disruptive Innovations & Out-of-the-Box Engineering](docs/Ideas/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport, and AI's invisible failures.
+- 🏛️ **[System Architecture (100% Meta AI)](docs/Architecture/Architecture.md):** Reactive flow, AST Engine, feedback loops, and surgical context injection.
+- 🔬 **[Formal Verification Algorithms (AST Prover)](docs/Architecture/FormalVerificationAlgorithms.md):** Formal methods, Typestate DFA, Cassowary Constraints, Program Slicing, and Causal Analysis for Flutter.
+- 🤖 **[Meta AI Stack Dossier](docs/Architecture/MetaAi/Readme.md):** Technical study and integration guide for Muse Spark, Muse Code, SAM 3.1, Muse Image, and Llama Stack.
+- 🔌 **[Runtime Client Agent Governance](docs/Integrations/ClientAgentsTracking.md):** Tracking of Claude Code, Cursor, Gemini CLI, and Antigravity via MCP.
+- 🛡️ **[Force Field & Gates](docs/Methodology/ForceFieldHarness.md):** Deterministic pipeline principles and _fail-closed_ blocking.
+- 📐 **[Deterministic Gates & Clean Code Validation (ub-mode)](docs/Methodology/CleanCodeDeterministicGates.md):** Adaptation of Robert C. Martin's (Uncle Bob) framework, CRAP Score (< 10), duplication detector, and hallucination breaking.
+- 🔄 **[SDD + TDD + EDD + XP Methodology](docs/Methodology/SpecDrivenDevelopment.md):** The deterministic lifecycle that eliminates hallucinations and complacent tests.
+- ⚙️ **[SDD + EDD Operational Flow](docs/Methodology/SddEddWorkflow.md):** Deterministic engineering methodology with OpenSpec AST, Eval Benchmarks, and Llama Stack.
+- 💡 **[Canonical Recipes Catalog](docs/Methodology/CanonicalRecipesCatalog.md):** Correction pattern library (_Before/After_) for AI self-recovery.
+- 🔗 **[ERP PDV D+ Reference Bridge](docs/Ideas/ReferencePdvDMais.md):** Mapping and lookup of real rules tested in production on PDV D+.
+- 🎯 **[Meta Hackathon Track](docs/Rules/MetaHackathonTrack.md):** Event planning and official submission texts.
+- 📢 **[Outreach & Build in Public](docs/SelfPromotion/SelfPromotion.md):** Meta compliance guidelines and LinkedIn posting calendar.
+
+---
+
+## ⚡ Core Pillars
+
+1. **Reactive:** Monitors the AST and code mutations the instant they occur.
+2. **Blocking (_Fail-Closed_):** Code not approved by 100% of the gates is summarily reverted.
+3. **Didactic / Pedagogical:** Not only points out the error but injects the canonical recipe (_Just-in-Time Canonical Recipe_) so the AI fixes it in 1 turn.
+4. **Multimodal:** Does not rely only on text and compilers; inspects the rendered screen for layout breakage.
