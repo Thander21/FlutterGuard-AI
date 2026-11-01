@@ -4,6 +4,7 @@
 // visitor that enforces it. Both `grade` and `check` run this registry,
 // so adding a rule means adding one entry here.
 import '../ast/bloc_emit_guard.dart';
+import '../ast/controller_build_guard.dart';
 import '../ast/riverpod_watch_guard.dart';
 import '../ast/rule_violation.dart';
 
@@ -25,7 +26,7 @@ class RuleAnalyzer {
   final List<RuleViolation> Function(String path) analyze;
 }
 
-/// Every rule the CLI can run. v0 ships two rules.
+/// Every rule the CLI can run. v0 ships three rules.
 final ruleAnalyzers = <RuleAnalyzer>[
   RuleAnalyzer(
     id: 'FG-BLOC-001',
@@ -36,5 +37,10 @@ final ruleAnalyzers = <RuleAnalyzer>[
     id: 'FG-RIV-001',
     spec: 'specs/TS-02-riverpod-watch-guard.md',
     analyze: analyzeRiverpodFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-ST-001',
+    spec: 'specs/TS-03-controller-in-build-guard.md',
+    analyze: analyzeControllerBuildFile,
   ),
 ];

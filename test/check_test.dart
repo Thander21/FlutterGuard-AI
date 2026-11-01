@@ -12,6 +12,7 @@ void main() {
         containsAll([
           'benchmark/vectors/TC-01_bloc.bad.dart',
           'benchmark/vectors/TC-02_riverpod.bad.dart',
+          'benchmark/vectors/TC-03_controller.bad.dart',
         ]),
       );
       expect(
