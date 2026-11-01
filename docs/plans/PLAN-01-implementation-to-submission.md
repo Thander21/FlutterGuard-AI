@@ -9,13 +9,13 @@ source_docs:
   - "docs/_origem/FormalVerificationAlgorithms.md"
   - "docs/_origem/ProjectOverview.md"
   - "docs/_origem/DisruptiveInnovations.md"
-  - "docs/Rules/HackathonSubmissionBlueprint.md"
-  - "docs/Rules/MetaHackathonTrack.md"
-  - "docs/Methodology/SddEddWorkflow.md"
-  - "docs/Methodology/SpecDrivenDevelopment.md"
-  - "docs/Methodology/ForceFieldHarness.md"
-  - "docs/Methodology/CleanCodeDeterministicGates.md"
-  - "docs/Methodology/CanonicalRecipesCatalog.md"
+  - "docs/_rulesHackathon/HackathonSubmissionBlueprint.md"
+  - "docs/_rulesHackathon/MetaHackathonTrack.md"
+  - "docs/_origem/SddEddWorkflow.md"
+  - "docs/_origem/SpecDrivenDevelopment.md"
+  - "docs/_origem/ForceFieldHarness.md"
+  - "docs/_origem/CleanCodeDeterministicGates.md"
+  - "docs/_origem/CanonicalRecipesCatalog.md"
   - "docs/Integrations/ClientAgentsTracking.md"
   - "docs/plans/PLAN-02-functional-scope-to-working-system.md"
   - "docs/plans/REVIEW-01-viability-assessment.md"
@@ -48,7 +48,8 @@ Docs were read as a starting point, not truth. Binding resolutions:
   `stage/test_file/result` variant in `SpecDrivenDevelopment.md` is superseded.
 - CLI surface follows `HackathonSubmissionBlueprint.md` §4 (`init`, `check
   --json`, pre-commit hook, `.flutterguard/`); `fg run`,
-  `bin/ast_guardian.dart`, and `crap`/`dryer` command names are superseded.
+  `bin/ast_guardian.dart`, `flutterguard analyze` (folded into `check`),
+  and `crap`/`dryer` command names are superseded.
 - Gates follow `ForceFieldHarness.md` (light → test → full → commit-check),
   mapped onto the tiered runner: parse-only AST first, resolved/compiled
   checks later.
@@ -75,7 +76,7 @@ Docs were read as a starting point, not truth. Binding resolutions:
 
 EDD loop per rule (spec → vectors → visitor → test → grade), cheapest gate
 first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
-(`docs/_origem/DisruptiveInnovations.md` Part 3.1), and `CanonicalRecipesCatalog.md`.
+(`docs/_origem/DisruptiveInnovations.md` Part 3.1), and `docs/_origem/CanonicalRecipesCatalog.md` (archived; live recipes live in each spec's §2).
 
 ## Steps
 

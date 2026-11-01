@@ -16,17 +16,17 @@ source_docs:
   - "docs/_origem/DisruptiveInnovations.md"
   - "docs/_origem/ReferencePdvDMais.md"
   - "docs/Integrations/ClientAgentsTracking.md"
-  - "docs/Methodology/SddEddWorkflow.md"
-  - "docs/Methodology/SpecDrivenDevelopment.md"
-  - "docs/Methodology/ForceFieldHarness.md"
-  - "docs/Methodology/CleanCodeDeterministicGates.md"
-  - "docs/Methodology/CanonicalRecipesCatalog.md"
+  - "docs/_origem/SddEddWorkflow.md"
+  - "docs/_origem/SpecDrivenDevelopment.md"
+  - "docs/_origem/ForceFieldHarness.md"
+  - "docs/_origem/CleanCodeDeterministicGates.md"
+  - "docs/_origem/CanonicalRecipesCatalog.md"
   - "docs/plans/PLAN-01-implementation-to-submission.md"
   - "docs/plans/PLAN-03-architecture-conformance-and-distribution.md"
   - "docs/plans/REVIEW-01-viability-assessment.md"
 excluded_docs:
-  - "docs/Rules/* (hackathon track; stays in PLAN-01)"
-  - "docs/SelfPromotion/* (outreach; out of functional scope)"
+  - "docs/_rulesHackathon/* (hackathon track; stays in PLAN-01)"
+  - "docs/_rulesHackathon/SelfPromotion/* (outreach; out of functional scope)"
 ---
 
 # PLAN-02: Functional Scope Closure to Working System
@@ -75,7 +75,7 @@ Two spec kinds, two placements, one loop each:
   Tier-1 keyboard inset = 320px; benchmark layout = `benchmark/vectors/` wins
   (`cases/` + `run_benchmark.dart` deferred); MCP = one reconciled contract
   decided inside SYS-MCP-001; Llama = deferred unless MCP proves insufficient;
-  scope boundary = hackathon Rules/submission artifacts stay in PLAN-01, out
+  scope boundary = hackathon rules/submission artifacts stay in PLAN-01, out
   of this functional plan.
 - Priority order is loop-closure-first: deterministic loop (P0) → detection
   breadth (P1) → dynamic gates (P2) → AI/multimodal/research (P3).
@@ -105,7 +105,12 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   existing `_analyzers` registry (adds `args` dep). Must include the
   **gate-mapping section**: `validate-light`/`validate`/`test`/`commit-check`
   definitions, rule→gate assignment (incl. formal light/full mapping),
-  evidence-presence enforcement. Notes: `ast_guardian` superseded by `check`.
+  evidence-presence enforcement. Gate contents and latency budgets come
+  from ForceField §2 (imports/format/syntax → light; changed-file unit
+  tests → test; full `analyze` + cross-regression → validate;
+  evidence/temp-files/clean-diff → commit-check); budgets validated by
+  measurement per REVIEW-01 §3.9. Notes: `ast_guardian` superseded by
+  `check`.
   Validate: flags every `.bad`, spares every `.good` in `benchmark/vectors/`.
 - `FG-ST-001` (rule, recipe exists): controllers in `build()`. EDD:
   `specs/TS-03` → `TC-03` pair →
@@ -155,12 +160,14 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   advisory findings until `SYS-CAL-001` calibration exists (blocking on
   uncalibrated thresholds is barred per REVIEW-01 §3.9); Semantic Ratio 15%
   becomes a spike — drop if no node classifier is defined.
-- `SYS-RECIPE-001` (system, missing): recipe-per-rule coverage — add
-  `FG-BLOC-001`/`FG-RIV-001` + every new rule to
-  `CanonicalRecipesCatalog.md`; lookup key = rule id; the wrong catalog
-  path cited in MuseCode.md is already fixed (points at
-  `CanonicalRecipesCatalog.md`). Consultation sources: the 7 PDV D+ rule
-  files mapped in `docs/_origem/ReferencePdvDMais.md` §1.
+- `SYS-RECIPE-001` (system, missing): recipe-per-rule coverage — every rule
+  spec carries its §2 Canonical Auto-Heal Recipe (`specs/_template.md`
+  mandates it; proven in TS-01/02/03); lookup key = rule id. The
+  methodology catalog is archived at
+  `docs/_origem/CanonicalRecipesCatalog.md` (frozen reference, do not
+  extend); MuseCode.md points injection at the spec §2. Consultation
+  sources: the 7 PDV D+ rule files mapped in
+  `docs/_origem/ReferencePdvDMais.md` §1.
 
 **Step 3 — P2: dynamic gates (all system specs; contracts-only pre-submission).**
 - `SYS-MUT-001`: mutation runner — sandbox layout (records the
@@ -190,7 +197,8 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   contract; JSON-RPC schemas; `bin/flutterguard_mcp.dart` + `lib/src/mcp/`
   (+ `json_rpc_2`/`stream_channel` deps); `init --mcp` writes; **chat-skills
   reconciliation** (`*spec/*vector/*visitor/*grade` ↔ MCP tools ↔ CLI mapping
-  table). Validate: stdio smoke test per tool.
+  table) + author the 4 `SKILL.md` files under `.agents/skills/` per the
+  AGENTS.md placement convention. Validate: stdio smoke test per tool.
 - `SYS-VIEW-002` (blocked on verified endpoints): Tier-2 contract — real
   SAM/Vision endpoints + auth, mask→widget identity mapping (render-tree
   dump/debug keys — SAM labels as documented are invalid), overlap/tap-target

@@ -76,20 +76,20 @@ flutterguard init --mcp
 ## 📚 Documentation Map
 
 - 📖 **[Overview and Problem](docs/_origem/ProjectOverview.md):** Market diagnosis, real pain points, and value proposition.
-- 🏆 **[Executive Submission Blueprint](docs/Rules/HackathonSubmissionBlueprint.md):** Official pitch, Enterprise Bug Benchmark, One-Command CLI, and 2-minute video script.
+- 🏆 **[Executive Submission Blueprint](docs/_rulesHackathon/HackathonSubmissionBlueprint.md):** Official pitch, Enterprise Bug Benchmark, One-Command CLI, and 2-minute video script.
 - 🚀 **[Disruptive Innovations & Out-of-the-Box Engineering](docs/_origem/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport, and AI's invisible failures.
 - 🏛️ **[System Architecture (100% Meta AI)](docs/_origem/Architecture.md):** Reactive flow, AST Engine, feedback loops, and surgical context injection.
 - 🔬 **[Formal Verification Algorithms (AST Prover)](docs/_origem/FormalVerificationAlgorithms.md):** Formal methods, Typestate DFA, Cassowary Constraints, Program Slicing, and Causal Analysis for Flutter.
 - 🤖 **[Meta AI Stack Dossier](.agents/metaai/Readme.md):** Technical study and integration guide for Muse Spark, Muse Code, SAM 3.1, Muse Image, and Llama Stack.
 - 🔌 **[Runtime Client Agent Governance](docs/Integrations/ClientAgentsTracking.md):** Tracking of Claude Code, Cursor, Gemini CLI, and Antigravity via MCP.
-- 🛡️ **[Force Field & Gates](docs/Methodology/ForceFieldHarness.md):** Deterministic pipeline principles and _fail-closed_ blocking.
-- 📐 **[Deterministic Gates & Clean Code Validation (ub-mode)](docs/Methodology/CleanCodeDeterministicGates.md):** Adaptation of Robert C. Martin's (Uncle Bob) framework, CRAP Score (< 10), duplication detector, and hallucination breaking.
-- 🔄 **[SDD + TDD + EDD + XP Methodology](docs/Methodology/SpecDrivenDevelopment.md):** The deterministic lifecycle that eliminates hallucinations and complacent tests.
-- ⚙️ **[SDD + EDD Operational Flow](docs/Methodology/SddEddWorkflow.md):** Deterministic engineering methodology with OpenSpec AST, Eval Benchmarks, and Llama Stack.
-- 💡 **[Canonical Recipes Catalog](docs/Methodology/CanonicalRecipesCatalog.md):** Correction pattern library (_Before/After_) for AI self-recovery.
+- 🛡️ **[Force Field & Gates](docs/_origem/ForceFieldHarness.md):** Deterministic pipeline principles and _fail-closed_ blocking.
+- 📐 **[Deterministic Gates & Clean Code Validation (ub-mode)](docs/_origem/CleanCodeDeterministicGates.md):** Adaptation of Robert C. Martin's (Uncle Bob) framework, CRAP Score (< 10), duplication detector, and hallucination breaking.
+- 🔄 **[SDD + TDD + EDD + XP Methodology](docs/_origem/SpecDrivenDevelopment.md):** The deterministic lifecycle that eliminates hallucinations and complacent tests.
+- ⚙️ **[SDD + EDD Operational Flow](docs/_origem/SddEddWorkflow.md):** Deterministic engineering methodology with OpenSpec AST, Eval Benchmarks, and Llama Stack.
+- 💡 **[Canonical Recipes Catalog](docs/_origem/CanonicalRecipesCatalog.md):** Correction pattern library (_Before/After_) for AI self-recovery.
 - 🔗 **[ERP PDV D+ Reference Bridge](docs/_origem/ReferencePdvDMais.md):** Mapping and lookup of real rules tested in production on PDV D+.
-- 🎯 **[Meta Hackathon Track](docs/Rules/MetaHackathonTrack.md):** Event planning and official submission texts.
-- 📢 **[Outreach & Build in Public](docs/SelfPromotion/SelfPromotion.md):** Meta compliance guidelines and LinkedIn posting calendar.
+- 🎯 **[Meta Hackathon Track](docs/_rulesHackathon/MetaHackathonTrack.md):** Event planning and official submission texts.
+- 📢 **[Outreach & Build in Public](docs/_rulesHackathon/SelfPromotion/SelfPromotion.md):** Meta compliance guidelines and LinkedIn posting calendar.
 
 ---
 

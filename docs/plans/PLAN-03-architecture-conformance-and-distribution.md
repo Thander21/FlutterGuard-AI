@@ -6,7 +6,7 @@ status: "proposed"
 source_docs:
   - "docs/_origem/Architecture.md"
   - "docs/_origem/FormalVerificationAlgorithms.md"
-  - "docs/Methodology/ForceFieldHarness.md"
+  - "docs/_origem/ForceFieldHarness.md"
   - "docs/plans/PLAN-01-implementation-to-submission.md"
   - "docs/plans/PLAN-02-functional-scope-to-working-system.md"
 ---

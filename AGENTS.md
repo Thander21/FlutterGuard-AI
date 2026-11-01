@@ -4,6 +4,7 @@
 
 - docs/ - project documentation
 - docs/_origem/ - archived origin docs (already reconciled into plans; read-only)
+- docs/_rulesHackathon/ - hackathon event rules and outreach (out of scope; deadline/disclosure reference only, do not read during implementation)
 - benchmark/ - golden eval vectors (.bad/.good pairs)
 - lib/ - application source
 - test/ - automated tests
@@ -19,6 +20,14 @@
 - Place saved workflows in .agents/workflows/<name>.js.
 - Keep the Meta AI dossier in .agents/metaai/; map changes there back into the Meta AI Stack section below.
 
+## Commits
+
+- Write commit messages in English: one logical unit per commit, small
+  ordered commits stating motive and proof.
+- Model-assisted commits carry a trailer naming the acting model:
+  `Assisted-by: Muse Spark` (specs/plans) or `Assisted-by: Muse Code`
+  (implementation).
+
 ## Language
 
 - Chat with the user in Portuguese.
@@ -29,6 +38,7 @@
 - Treat docs/ as a starting point, not absolute truth: it records initial direction and intent.
 - Validate each documented claim against the repository before implementing it.
 - Treat docs/_origem/ as a frozen archive: reconciled into plans, never edited in place.
+- Treat docs/_rulesHackathon/ as out of scope: hackathon event rules for deadline/disclosure consultation only. Do not read it during implementation tasks, and never treat it as project requirements.
 
 ## Meta AI Stack (which model does what, and where to use it)
 
@@ -44,7 +54,7 @@ Full dossier: [.agents/metaai/Readme.md](.agents/metaai/Readme.md).
 - Muse Code ([MuseCode.md](.agents/metaai/MuseCode.md)) - Dart executor.
   Writes the minimal lib/ implementation to turn RED tests GREEN, respects
   layer guardrails, and applies one-turn Before/After refactors from the
-  canonical recipe catalog when the AST gate reports a violation.
+  rule spec's §2 canonical recipe when the AST gate reports a violation.
   Use for: implementation, `*visitor` implementation, `*grade` heal dispatch.
 - SAM 3.1 ([SamSegmentAnything.md](.agents/metaai/SamSegmentAnything.md)) -
   geometric segmentation. Converts headless screenshots into masks and
