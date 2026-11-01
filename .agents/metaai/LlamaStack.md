@@ -1,52 +1,51 @@
 # 05. Llama Stack
-### Padronização de Agentes, Tool Calling, Memória e Orquestração
+### Agent Standardization, Tool Calling, Memory, and Orchestration
 
 ---
 
-## 1. O que é o Llama Stack?
-O **Llama Stack** é o conjunto oficial de especificações e APIs padronizadas da Meta para o ecossistema de Inteligência Artificial generativa. Ele resolve o problema da fragmentação de código de IA fornecendo uma interface unificada para:
-* **Inferência de Modelos:** Abstração agnóstica para rodar modelos Llama/Muse localmente ou via provedores em nuvem.
-* **Tool Calling (Execução de Ferramentas):** Padronização de chamadas de funções determinísticas.
-* **Memória & RAG:** Gerenciamento de vetores e recuperação de contexto.
-* **Segurança & Guardrails:** Camada nativa com Llama Guard para filtrar alucinações e respostas inseguras.
+## 1. What Is Llama Stack?
+**Llama Stack** is Meta's official set of specifications and standardized APIs for the generative-AI ecosystem. It solves AI code fragmentation with a unified interface for:
+* **Model Inference:** Provider-agnostic abstraction for running Llama/Muse models locally or via cloud providers.
+* **Tool Calling:** Standardized deterministic function calls.
+* **Memory & RAG:** Vector and context-retrieval management.
+* **Safety & Guardrails:** Native layer with Llama Guard to filter hallucinations and unsafe responses.
 
 ---
 
-## 2. Papel Específico no FlutterGuard-AI
-No FlutterGuard-AI, o Llama Stack atua como o **Barramento Central de Conectividade Agêntica**:
-1. **Padronização das Ferramentas do Harness:** Em vez de escrever integrações proprietárias ad-hoc, as ferramentas do FlutterGuard (ex: `run_flutter_test`, `analyze_dart_ast`, `capture_widget_screenshot`) são expostas como ferramentas formais no padrão Llama Stack Tool Calling.
-2. **Integração Agnóstica de Provedores:** Permite que o FlutterGuard rode tanto com as APIs em nuvem fornecidas pela Meta durante o Hackathon, quanto com instâncias locais do Llama 3 rodando via Ollama ou vLLM no ambiente de desenvolvimento local.
-3. **Guardrails de Segurança (Llama Guard):** Impede que o modelo gere código vulnerável com injeção de dados inseguros ou manipulação inadequada de credenciais de clientes no Flutter.
+## 2. Specific Role in FlutterGuard-AI
+In FlutterGuard-AI, Llama Stack acts as the **Central Agentic Connectivity Bus**:
+1. **Harness Tool Standardization:** Instead of ad-hoc proprietary integrations, FlutterGuard tools (e.g. `run_flutter_test`, `analyze_dart_ast`, `capture_widget_screenshot`) are exposed as formal tools under the Llama Stack Tool Calling standard.
+2. **Provider-Agnostic Integration:** Lets FlutterGuard run both against Meta cloud APIs provided during the Hackathon and against local Llama 3 instances via Ollama or vLLM in the local dev environment.
+3. **Safety Guardrails (Llama Guard):** Stops the model from generating vulnerable code with unsafe data injection or mishandled client credentials in Flutter.
 
 ---
 
-## 3. Arquitetura do Llama Stack no FlutterGuard-AI
+## 3. Llama Stack Architecture in FlutterGuard-AI
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    FLUTTERGUARD CLI (ORQUESTRADOR)          │
+│                    FLUTTERGUARD CLI (ORCHESTRATOR)          │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                LLAMA STACK CLIENT / RUNTIME                 │
 │  ├── Tool Calling: run_flutter_test(), check_ast()          │
-│  ├── Memory: Histórico de falhas e receitas canônicas       │
+│  ├── Memory: failure history and canonical recipes          │
 │  └── Safety: Llama Guard                                    │
 └──────────────┬───────────────────────────────┬──────────────┘
                │                               │
                ▼                               ▼
-    [ Modelos em Nuvem Meta ]        [ Modelos Locais (Llama 3) ]
+    [ Meta Cloud Models ]        [ Local Models (Llama 3) ]
 ```
 
 ---
 
-## 4. Roteiro Prático de Estudos
+## 4. Hands-On Study Roadmap
 
-1. **Conceitos do Llama Stack:**
-   * Leia a documentação oficial da Meta sobre o Llama Stack e a especificação de tool calling.
-2. **Implementação de Ferramentas (Tool Calling):**
-   * Estude como declarar schemas de funções em JSON para que os modelos da Meta saibam exatamente quando acionar a execução de um teste no terminal.
-3. **Fallback Híbrido (Nuvem ➔ Local):**
-   * Prepare o ambiente para caso a latência da API de nuvem esteja alta durante o hackathon, você possa chavear a execução do FlutterGuard para um endpoint local com o mesmo contrato de chamada.
-
+1. **Llama Stack Concepts:**
+   * Read Meta's official Llama Stack docs and the tool-calling specification.
+2. **Tool Implementation (Tool Calling):**
+   * Study how to declare function schemas in JSON so Meta models know exactly when to trigger a terminal test run.
+3. **Hybrid Fallback (Cloud ➔ Local):**
+   * Prepare the environment so that if cloud API latency spikes during the hackathon, you can switch FlutterGuard to a local endpoint under the same call contract.

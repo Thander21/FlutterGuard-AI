@@ -1,26 +1,29 @@
 ---
-plan_version: "2.0"
+plan_version: "2.2"
 id: "PLAN-02"
 title: "Functional scope closure to working system"
 status: "proposed"
 source_docs:
-  - "docs/Architecture/Architecture.md"
-  - "docs/Architecture/FormalVerificationAlgorithms.md"
-  - "docs/Architecture/MetaAi/Readme.md"
-  - "docs/Architecture/MetaAi/MuseSpark.md"
-  - "docs/Architecture/MetaAi/MuseCode.md"
-  - "docs/Architecture/MetaAi/SamSegmentAnything.md"
-  - "docs/Architecture/MetaAi/MuseImageVision.md"
-  - "docs/Architecture/MetaAi/LlamaStack.md"
-  - "docs/Ideas/ProjectOverview.md"
-  - "docs/Ideas/DisruptiveInnovations.md"
-  - "docs/Ideas/ReferencePdvDMais.md"
+  - "docs/_origem/Architecture.md"
+  - "docs/_origem/FormalVerificationAlgorithms.md"
+  - ".agents/metaai/Readme.md"
+  - ".agents/metaai/MuseSpark.md"
+  - ".agents/metaai/MuseCode.md"
+  - ".agents/metaai/SamSegmentAnything.md"
+  - ".agents/metaai/MuseImageVision.md"
+  - ".agents/metaai/LlamaStack.md"
+  - "docs/_origem/ProjectOverview.md"
+  - "docs/_origem/DisruptiveInnovations.md"
+  - "docs/_origem/ReferencePdvDMais.md"
   - "docs/Integrations/ClientAgentsTracking.md"
   - "docs/Methodology/SddEddWorkflow.md"
   - "docs/Methodology/SpecDrivenDevelopment.md"
   - "docs/Methodology/ForceFieldHarness.md"
   - "docs/Methodology/CleanCodeDeterministicGates.md"
   - "docs/Methodology/CanonicalRecipesCatalog.md"
+  - "docs/plans/PLAN-01-implementation-to-submission.md"
+  - "docs/plans/PLAN-03-architecture-conformance-and-distribution.md"
+  - "docs/plans/REVIEW-01-viability-assessment.md"
 excluded_docs:
   - "docs/Rules/* (hackathon track; stays in PLAN-01)"
   - "docs/SelfPromotion/* (outreach; out of functional scope)"
@@ -52,9 +55,9 @@ implementation starts.
 Two spec kinds, two placements, one loop each:
 
 - **RULE specs** follow the proven EDD pattern (verified in `specs/TS-01`,
-  `TS-02`, `TC-01`/`TC-02` pairs, `test/`, `lib/src/ast/`, `grade` registry):
-  spec → vectors → visitor → test → grade registration. Next numbers:
-  `TS-03`/`TC-03` onward.
+  `TS-02`, `TS-03`, `TC-01`/`TC-02`/`TC-03` pairs, `test/`, `lib/src/ast/`,
+  `grade` registry): spec → vectors → visitor → test → grade registration.
+  Next numbers: `TS-04`/`TC-04` onward.
 - **SYSTEM specs** (CLI, heal, MCP, runners, telemetry) are interface/protocol
   contracts. They must NOT land as top-level `specs/*.md`:
   `bin/flutterguard.dart` `_readSpec` throws on any `.md` without
@@ -76,13 +79,20 @@ Two spec kinds, two placements, one loop each:
   of this functional plan.
 - Priority order is loop-closure-first: deterministic loop (P0) → detection
   breadth (P1) → dynamic gates (P2) → AI/multimodal/research (P3).
+- Build freeze (reconciles PLAN-01 non-goals with this plan's P2/P3):
+  PLAN-01 non-goals stand for pre-submission *build*; this plan's P2/P3
+  are contracts-only pre-submission (specs may land, implementations wait).
+  Pre-submission build order is v0-first (3 rules + `grade` + `check` +
+  Tier-1-lite per REVIEW-01 §4); remaining P0/P1 builds are ordered stretch.
 
 ## Steps
 
 **Step 0 — Ground rules (do first, unblocks everything).** Harden `grade`:
-skip `kind: system`, per-file parse-error handling so one bad vector can't
-kill the run. Update `specs/_template.md` (add `analysis` + FP-limits
-fields), create `specs/system/_template.md` (problem, interface/schema, file
+skip `kind: system` (DONE in `bin/flutterguard.dart`), per-file parse-error
+handling so one bad vector can't kill the run (TODO). Update
+`specs/_template.md`: `analysis` field (DONE via PLAN-03 D3), FP-limits
+fields (TODO; §3 prose covers them today). Create
+`specs/system/_template.md` (TODO; problem, interface/schema, file
 placement, evidence wiring, errors/edges, contradictions resolved). Add
 `mocktail` dev-dep when contract tests need mocks. Validate: `dart test` +
 `dart run bin/flutterguard.dart grade` green, exit 0.
@@ -99,14 +109,15 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   Validate: flags every `.bad`, spares every `.good` in `benchmark/vectors/`.
 - `FG-ST-001` (rule, recipe exists): controllers in `build()`. EDD:
   `specs/TS-03` → `TC-03` pair →
-  `lib/src/ast/controller_in_build_guard.dart` (parse-only, controller
+  `lib/src/ast/controller_build_guard.dart` (parse-only, controller
   type-name allowlist) → test → register. Validate: unit test + `grade`
-  green.
+  green. — DONE (grade 6/6; implemented filename kept per PLAN-03 D5).
 - `FG-LIFE-001` (rule, missing, **widened scope**): resource symmetry —
-  `StreamSubscription`/`Timer`/controllers/`FocusNode` without release in
-  `dispose()`, with per-type table (keeps the Timer Leak Slicer covered).
+  `StreamSubscription`/`Timer`/controllers/`FocusNode`/listener-add without
+  release in `dispose()`, with per-type table (keeps the Timer Leak Slicer
+  covered; listener row = `addListener` without paired `removeListener`).
   EDD, parse-only per-class field map; FP-limits must cover `deactivate`,
-  composite subscriptions, delegated ownership.
+  composite subscriptions, delegated ownership, removeListener pairing.
 - `SYS-HEAL-001` (system, missing — highest-risk spec): heal dispatcher. §1
   declares the **agent-vs-harness boundary** (from the traced agent-assumed
   list); decides `auto_heal_strategy` semantics (`insert_before_invocation`,
@@ -116,7 +127,8 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   on rollback. Validate: contract test red→patch→green on a BLOC-001 fixture.
 - `SYS-CLI-001b` `init` + hook (system, missing): scaffold `.flutterguard/`,
   write `flutterguard.yaml` (schema in spec), install pre-commit hook running
-  `grade`, inject AGENTS.md/CLAUDE.md/GEMINI.md mandate text, add
+  `check` (not `grade`, per PLAN-01 Phase 2 + PLAN-03), inject
+  AGENTS.md/CLAUDE.md/GEMINI.md mandate text, add
   `sandbox load/reset/check` commands, ship install scripts. Notes: hook
   blocks, human commits (no-auto-commit). Validate: hook blocks a planted
   violation commit in a scratch clone.
@@ -139,14 +151,18 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   widgets built via `.map()`/`itemBuilder` without `key` +
   `ReorderableListView`; the "mutable collection" dataflow version is dropped
   as unimplementable.
-- `FG-MET-007` (partial): widget depth ≤ 5 + constructor params > 7 now;
-  Semantic Ratio 15% becomes a spike — drop if no node classifier is defined.
+- `FG-MET-007` (partial): widget depth ≤ 5 + constructor params > 7 ship as
+  advisory findings until `SYS-CAL-001` calibration exists (blocking on
+  uncalibrated thresholds is barred per REVIEW-01 §3.9); Semantic Ratio 15%
+  becomes a spike — drop if no node classifier is defined.
 - `SYS-RECIPE-001` (system, missing): recipe-per-rule coverage — add
   `FG-BLOC-001`/`FG-RIV-001` + every new rule to
-  `CanonicalRecipesCatalog.md`; lookup key = rule id; fix the wrong catalog
-  path cited in MuseCode.md.
+  `CanonicalRecipesCatalog.md`; lookup key = rule id; the wrong catalog
+  path cited in MuseCode.md is already fixed (points at
+  `CanonicalRecipesCatalog.md`). Consultation sources: the 7 PDV D+ rule
+  files mapped in `docs/_origem/ReferencePdvDMais.md` §1.
 
-**Step 3 — P2: dynamic gates (all system specs).**
+**Step 3 — P2: dynamic gates (all system specs; contracts-only pre-submission).**
 - `SYS-MUT-001`: mutation runner — sandbox layout (records the
   `test_fixtures/` resolution: `vectors/` = golden evals, `fixtures/` =
   agent playground), source-rewriter API, test invocation with 8s
@@ -154,11 +170,14 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   canary-mutant test. Validate: catches a planted complacent test; honest
   tests pass.
 - `SYS-VIEW-001`: Tier-1 viewport runner — harness file/API (resolves
-  `takeScreenshot` vs `golden_toolkit`), fixed matrix config, screenshot path
-  `build/test_snapshots/`, `FlutterError.onError` wiring, evidence entries,
-  8s timeout; includes the Flutter-SDK dependency decision; v0 fallback =
-  Tier-1-lite AST heuristic. Validate: `flutter test` red on bad layout,
-  green after fix (conditional on SDK presence).
+  `takeScreenshot` vs `golden_toolkit`), fixed matrix config (Compact
+  320x480 POS, keyboard inset 320px, accessibility zoom textScaleFactor
+  2.0, landscape split ratio — unioned with the PDV D+ adversarial
+  resolutions 1024x768 / 800x600 from uilayout.md; membership decided
+  here), screenshot path `build/test_snapshots/`, `FlutterError.onError`
+  wiring, evidence entries, 8s timeout; includes the Flutter-SDK dependency
+  decision; v0 fallback = Tier-1-lite AST heuristic. Validate: `flutter
+  test` red on bad layout, green after fix (conditional on SDK presence).
 - `SYS-COV-001`: coverage pipeline (`test --coverage` → lcov → `cov(m)`)
   enabling the CRAP gate — or record an explicit deferral of CRAP. Note: CC
   counter is parse-only; only `cov` needs the pipeline.
@@ -166,7 +185,7 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   subtree enumeration, hashing, complexity strategy; thresholds ≥0.8
   similarity / >15 lines from docs.
 
-**Step 4 — P3: AI / multimodal / research (all conditional or spike-first).**
+**Step 4 — P3: AI / multimodal / research (all conditional or spike-first; contracts-only pre-submission).**
 - `SYS-MCP-001`: reconcile the three documented tool contracts into one wire
   contract; JSON-RPC schemas; `bin/flutterguard_mcp.dart` + `lib/src/mcp/`
   (+ `json_rpc_2`/`stream_channel` deps); `init --mcp` writes; **chat-skills
@@ -175,17 +194,31 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
 - `SYS-VIEW-002` (blocked on verified endpoints): Tier-2 contract — real
   SAM/Vision endpoints + auth, mask→widget identity mapping (render-tree
   dump/debug keys — SAM labels as documented are invalid), overlap/tap-target
-  thresholds, offline behavior, local-vision (OpenCV) fallback note.
+  thresholds, margin-drift-vs-grid scope-or-defer, IoU-heatmap scope-or-defer,
+  offline behavior, local-vision (OpenCV) fallback note.
 - `SYS-LLAMA-001` (deferred by default): Llama binding only if MCP proves
   insufficient.
 - `SYS-PROF-001` (spike, no code): research a real per-Element
-  rebuild-counter API before any profiler spec exists.
+  rebuild-counter API before any profiler spec exists. Spike acceptance:
+  either a defined budget contract (per-flow limits, Element counting
+  points, evidence keys) feeding a future `SYS-PROF-002` gate, or a
+  recorded drop with reason.
 - `FG-FORMAL-001..005` (research): decompose each prover into EDD rule
   spec(s) following the Step 0 template, or drop; none is directly
-  implementable as documented. Backlog includes reserved `FG-MEM-011`
-  (retained closures) under the FORMAL-001 decomposition.
+  implementable as documented. Backlog reserves: `FG-MEM-011` (retained
+  closures, FORMAL-001), `FG-FSM-012` (sealed-class/FSM enforcement,
+  spike-first, FORMAL-005), `FG-RACE-013` (stale async race / request-id /
+  cancellation tokens, spike-first, FORMAL-004). Named subsets: ST-001
+  (FORMAL-003 purity, done), ASYNC-002 + LIFE-001 (FORMAL-001), LAY-004
+  (FORMAL-002); remaining FORMAL-004/005 subsets and the FORMAL-003
+  waste-index get IDs at decomposition time.
 - `FG-PERF-010` (new ID, spike-first): Main Isolate Starve — define "heavy
   sync work" detection criteria before speccing.
+- `SYS-CAL-001` (backlog, post-submission): threshold calibration corpus —
+  real Dart/Flutter corpus with published precision/recall per blocking
+  threshold (depth, params, similarity, ratio, tap-target); gates the
+  MET-007 advisory→blocking flip (calibration itself is a PLAN-03
+  non-goal).
 
 **Step 5 — Traceability audit.** Map each of the 17 docs' named ideas to its
 spec ID, deferral, or non-goal. The 6 contradictions each cite their owning
@@ -194,8 +227,10 @@ spec (`SYS-TELE-001`, `SYS-HEAL-001`, `SYS-MCP-001`, `SYS-RECIPE-001`,
 layout). Validate: zero orphans.
 Non-goals recorded: `uml-viewer`-style viz (deferred), PDV domain rules —
 tenancy/fiscal (reference only, never ported), `FG-I18N` + `FG-YAGNI`
-(deferred with reason), MetaAi study checklists (not spec material),
-hackathon submission artifacts (stay in PLAN-01).
+(deferred with reason), framework-mixing detection (deferred: needs a
+package-dependency graph + cross-file framework census; low precision
+parse-only), MetaAi study checklists (not spec material), hackathon
+submission artifacts (stay in PLAN-01).
 
 ## Validation Plan
 
@@ -206,9 +241,10 @@ hackathon submission artifacts (stay in PLAN-01).
   hook block test, or matrix red/green as specified above).
 - Phase exits: P0 = `check` works, heal path decided, 4 rules green (2
   existing + ST-001 + LIFE-001), canon recorded; P1 = 13 rules green with
-  full recipe coverage; P2 = mutation + Tier-1 + coverage + dryer each proven
-  on fixtures; P3 = MCP smoke-tested, Tier-2/Llama either contracted or
-  explicitly deferred, formal provers decomposed or dropped.
+  full recipe coverage; P2 = each specced (Tier-1-lite heuristic builds as
+  the v0 exception; fixture proofs post-submission); P3 = MCP contracted
+  (smoke test post-submission), Tier-2/Llama either contracted or explicitly
+  deferred, formal provers decomposed or dropped.
 - Highest-risk validation: `SYS-HEAL-001` patch-apply semantics (defines
   whether the loop is autonomous or agent-assisted) and `SYS-VIEW-002`
   endpoint verification (may force Tier-2 to a declared manual step).
@@ -237,8 +273,8 @@ hackathon submission artifacts (stay in PLAN-01).
 - **Prerequisites re-verified this run:** `grade` throws on non-conforming
   `specs/*.md` (placement rule stands); `specs/system/` is ignored by
   grade's non-recursive listing; `specs/_template.md` exists (update, don't
-  create); `pubspec.yaml` carries only `analyzer` + `test`; BLOC/RIV +
-  vectors + tests are green-ready pending a first `grade` run.
+  create); `pubspec.yaml` carries only `analyzer` + `test`; BLOC/RIV/ST-001
+  + vectors + tests are green (`grade` 6/6, `dart test` 9/9).
 - **Residual risks (ranked):** (1) HEAL-001 fork decides the system's
   autonomy claim — wrong call here re-scopes P3; (2) VIEW-002 endpoints may
   not exist as documented — Tier-2 could collapse to manual; (3)

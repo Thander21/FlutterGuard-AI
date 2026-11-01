@@ -4,7 +4,7 @@
 
 > **Transformando IA de geradora complacente de código em engenheiro de software sênior determinístico através de Spec-Driven Development (SDD), Análise Reativa de AST, Verificação Visual Multimodal e Gates Bloqueantes.**
 
-> **Escopo (v0):** 2 regras AST implementadas (`FG-BLOC-001`, `FG-RIV-001`)
+> **Escopo (v0):** 3 regras AST implementadas (`FG-BLOC-001`, `FG-RIV-001`, `FG-ST-001`)
 > com comandos CLI `grade` + `check`. Servidor MCP, `init`, hook
 > pre-commit, mutation gate, visual gates e loop de autocura estão
 > **[PLANEJADO]** (ver `docs/plans/PLAN-01-implementation-to-submission.md`
@@ -25,7 +25,7 @@ O projeto funciona como uma barreira física e pedagógica (_fail-closed_): nenh
 
 O **FlutterGuard AI** possui seu motor central e inteligência alimentados 100% pelo ecossistema de modelos e frameworks da **Meta AI**, atuando simultaneamente como um harness de governança para qualquer agente cliente:
 
-1. **[Arquitetura do Sistema & Stack Meta AI](docs/Architecture/Architecture.md)**
+1. **[Arquitetura do Sistema & Stack Meta AI](docs/_origem/Architecture.md)**
    - **Meta Muse Spark:** Arquiteto SDD que decompõe requisitos em contratos e testes que falham (RED).
    - **Meta Muse Code / Llama 3:** Agente de implementação mínima e autocura em Dart guiada por AST.
    - **SAM 3.1 & Meta Muse Image:** Auditoria visual multimodal, segmentação de caixas delimitadoras e detecção de `RenderFlex overflowed`.
@@ -73,19 +73,19 @@ flutterguard init --mcp
 
 ## 📚 Mapa da Documentação
 
-- 📖 **[Visão Geral e Problema](docs/Ideas/ProjectOverview.md):** Diagnóstico de mercado, dores reais e proposta de valor.
+- 📖 **[Visão Geral e Problema](docs/_origem/ProjectOverview.md):** Diagnóstico de mercado, dores reais e proposta de valor.
 - 🏆 **[Blueprint Executivo de Submissão](docs/Rules/HackathonSubmissionBlueprint.md):** Pitch oficial, Enterprise Bug Benchmark, One-Command CLI e roteiro do vídeo de 2 minutos.
-- 🚀 **[Inovações Disruptivas & Engenharia Fora da Caixa](docs/Ideas/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport e as falhas invisíveis da IA.
-- 🏛️ **[Arquitetura do Sistema (100% Meta AI)](docs/Architecture/Architecture.md):** Fluxo reativo, AST Engine, loops de feedback e injeção cirúrgica de contexto.
-- 🔬 **[Algoritmos de Verificação Formal (AST Prover)](docs/Architecture/FormalVerificationAlgorithms.md):** Métodos formais, Typestate DFA, Cassowary Constraints, Program Slicing e Análise Causal para Flutter.
-- 🤖 **[Dossiê da Stack Meta AI](docs/Architecture/MetaAi/Readme.md):** Guia técnico de estudo e integração com Muse Spark, Muse Code, SAM 3.1, Muse Image e Llama Stack.
+- 🚀 **[Inovações Disruptivas & Engenharia Fora da Caixa](docs/_origem/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport e as falhas invisíveis da IA.
+- 🏛️ **[Arquitetura do Sistema (100% Meta AI)](docs/_origem/Architecture.md):** Fluxo reativo, AST Engine, loops de feedback e injeção cirúrgica de contexto.
+- 🔬 **[Algoritmos de Verificação Formal (AST Prover)](docs/_origem/FormalVerificationAlgorithms.md):** Métodos formais, Typestate DFA, Cassowary Constraints, Program Slicing e Análise Causal para Flutter.
+- 🤖 **[Dossiê da Stack Meta AI](.agents/metaai/Readme.md):** Guia técnico de estudo e integração com Muse Spark, Muse Code, SAM 3.1, Muse Image e Llama Stack.
 - 🔌 **[Governança de Agentes Clientes em Execução](docs/Integrations/ClientAgentsTracking.md):** Rastreamento de Claude Code, Cursor, Gemini CLI e Antigravity via MCP.
 - 🛡️ **[Campo de Força & Gates](docs/Methodology/ForceFieldHarness.md):** Princípios da esteira determinística e bloqueio _fail-closed_.
 - 📐 **[Gates Determinísticos & Validação Clean Code (ub-mode)](docs/Methodology/CleanCodeDeterministicGates.md):** Adaptação do framework de Robert C. Martin (Uncle Bob), CRAP Score (< 10), detector de duplicação e quebra de alucinação.
 - 🔄 **[Metodologia SDD + TDD + EDD + XP](docs/Methodology/SpecDrivenDevelopment.md):** O ciclo de vida determinístico que elimina alucinações e testes complacentes.
 - ⚙️ **[Fluxo Operacional SDD + EDD](docs/Methodology/SddEddWorkflow.md):** Metodologia de engenharia determinística com OpenSpec AST, Eval Benchmarks e Llama Stack.
 - 💡 **[Catálogo de Receitas Canônicas](docs/Methodology/CanonicalRecipesCatalog.md):** Biblioteca de padrões de correção (_Before/After_) para auto-recuperação da IA.
-- 🔗 **[Ponte de Referência ERP PDV D+](docs/Ideas/ReferencePdvDMais.md):** Mapeamento e consulta das regras reais testadas em produção no PDV D+.
+- 🔗 **[Ponte de Referência ERP PDV D+](docs/_origem/ReferencePdvDMais.md):** Mapeamento e consulta das regras reais testadas em produção no PDV D+.
 - 🎯 **[Trilha do Hackathon Meta](docs/Rules/MetaHackathonTrack.md):** Planejamento e textos oficiais de submissão do evento.
 - 📢 **[Divulgação & Build in Public](docs/SelfPromotion/SelfPromotion.md):** Diretrizes de compliance da Meta e calendário de posts no LinkedIn.
 

@@ -6,7 +6,7 @@
 
 *Leia em português: [LEIAME.md](LEIAME.md)*
 
-> **Scope (v0):** 2 AST rules implemented (`FG-BLOC-001`, `FG-RIV-001`) with
+> **Scope (v0):** 3 AST rules implemented (`FG-BLOC-001`, `FG-RIV-001`, `FG-ST-001`) with
 > `grade` + `check` CLI commands. The MCP server, `init`, pre-commit hook,
 > mutation gate, visual gates, and auto-heal loop are **[PLANNED]**
 > (see `docs/plans/PLAN-01-implementation-to-submission.md` and
@@ -27,7 +27,7 @@ The project works as a physical and pedagogical barrier (_fail-closed_): no AI-g
 
 **FlutterGuard AI** has its core engine and intelligence powered 100% by the **Meta AI** model and framework ecosystem, while simultaneously acting as a governance harness for any client agent:
 
-1. **[System Architecture & Meta AI Stack](docs/Architecture/Architecture.md)**
+1. **[System Architecture & Meta AI Stack](docs/_origem/Architecture.md)**
    - **Meta Muse Spark:** SDD architect that decomposes requirements into contracts and failing tests (RED).
    - **Meta Muse Code / Llama 3:** Minimal-implementation and self-healing agent in Dart guided by AST.
    - **SAM 3.1 & Meta Muse Image:** Multimodal visual audit, bounding-box segmentation, and `RenderFlex overflowed` detection.
@@ -75,19 +75,19 @@ flutterguard init --mcp
 
 ## 📚 Documentation Map
 
-- 📖 **[Overview and Problem](docs/Ideas/ProjectOverview.md):** Market diagnosis, real pain points, and value proposition.
+- 📖 **[Overview and Problem](docs/_origem/ProjectOverview.md):** Market diagnosis, real pain points, and value proposition.
 - 🏆 **[Executive Submission Blueprint](docs/Rules/HackathonSubmissionBlueprint.md):** Official pitch, Enterprise Bug Benchmark, One-Command CLI, and 2-minute video script.
-- 🚀 **[Disruptive Innovations & Out-of-the-Box Engineering](docs/Ideas/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport, and AI's invisible failures.
-- 🏛️ **[System Architecture (100% Meta AI)](docs/Architecture/Architecture.md):** Reactive flow, AST Engine, feedback loops, and surgical context injection.
-- 🔬 **[Formal Verification Algorithms (AST Prover)](docs/Architecture/FormalVerificationAlgorithms.md):** Formal methods, Typestate DFA, Cassowary Constraints, Program Slicing, and Causal Analysis for Flutter.
-- 🤖 **[Meta AI Stack Dossier](docs/Architecture/MetaAi/Readme.md):** Technical study and integration guide for Muse Spark, Muse Code, SAM 3.1, Muse Image, and Llama Stack.
+- 🚀 **[Disruptive Innovations & Out-of-the-Box Engineering](docs/_origem/DisruptiveInnovations.md):** Rebuild Budget, Mutation Testing, Matrix Viewport, and AI's invisible failures.
+- 🏛️ **[System Architecture (100% Meta AI)](docs/_origem/Architecture.md):** Reactive flow, AST Engine, feedback loops, and surgical context injection.
+- 🔬 **[Formal Verification Algorithms (AST Prover)](docs/_origem/FormalVerificationAlgorithms.md):** Formal methods, Typestate DFA, Cassowary Constraints, Program Slicing, and Causal Analysis for Flutter.
+- 🤖 **[Meta AI Stack Dossier](.agents/metaai/Readme.md):** Technical study and integration guide for Muse Spark, Muse Code, SAM 3.1, Muse Image, and Llama Stack.
 - 🔌 **[Runtime Client Agent Governance](docs/Integrations/ClientAgentsTracking.md):** Tracking of Claude Code, Cursor, Gemini CLI, and Antigravity via MCP.
 - 🛡️ **[Force Field & Gates](docs/Methodology/ForceFieldHarness.md):** Deterministic pipeline principles and _fail-closed_ blocking.
 - 📐 **[Deterministic Gates & Clean Code Validation (ub-mode)](docs/Methodology/CleanCodeDeterministicGates.md):** Adaptation of Robert C. Martin's (Uncle Bob) framework, CRAP Score (< 10), duplication detector, and hallucination breaking.
 - 🔄 **[SDD + TDD + EDD + XP Methodology](docs/Methodology/SpecDrivenDevelopment.md):** The deterministic lifecycle that eliminates hallucinations and complacent tests.
 - ⚙️ **[SDD + EDD Operational Flow](docs/Methodology/SddEddWorkflow.md):** Deterministic engineering methodology with OpenSpec AST, Eval Benchmarks, and Llama Stack.
 - 💡 **[Canonical Recipes Catalog](docs/Methodology/CanonicalRecipesCatalog.md):** Correction pattern library (_Before/After_) for AI self-recovery.
-- 🔗 **[ERP PDV D+ Reference Bridge](docs/Ideas/ReferencePdvDMais.md):** Mapping and lookup of real rules tested in production on PDV D+.
+- 🔗 **[ERP PDV D+ Reference Bridge](docs/_origem/ReferencePdvDMais.md):** Mapping and lookup of real rules tested in production on PDV D+.
 - 🎯 **[Meta Hackathon Track](docs/Rules/MetaHackathonTrack.md):** Event planning and official submission texts.
 - 📢 **[Outreach & Build in Public](docs/SelfPromotion/SelfPromotion.md):** Meta compliance guidelines and LinkedIn posting calendar.
 

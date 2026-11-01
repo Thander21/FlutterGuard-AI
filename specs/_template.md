@@ -4,6 +4,7 @@ id: "FG-XXX-000"
 title: "Short rule title"
 status: "draft"
 severity: "error"
+analysis: "parse-only"
 ast_nodes:
   - "MethodInvocation[name='example']"
 invariant: "State the inviolable AST invariant in one sentence."
@@ -29,3 +30,5 @@ why it is harmful, and where it typically appears.
 
 - List borderline constructs the visitor must handle.
 - List constructs that must NOT be flagged.
+- Tag every normative bullet: `[eval: TC-XX]` (covered), `[partial: reason]`
+  (partly covered), `[unevaluated]` (documented, no eval).

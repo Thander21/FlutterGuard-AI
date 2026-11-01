@@ -1,10 +1,11 @@
 # Arquitetura do Sistema: FlutterGuard AI
 ### Engenharia Pragmática, Determinística e Multimodal para o Hackathon Meta
 
-> **Nota de escopo (v0):** somente §2.2 (regras `FG-BLOC-001` e `FG-RIV-001`,
-> via comandos `grade` e `check`) está implementado. MCP (§3), caos (§2.3),
-> visual (§2.4), autocura (§2.5), playground (§6) e instalação (§7) estão
-> **[PLANEJADO]**. `docs/` registra intenção; `specs/` é normativo.
+> **Nota de escopo (v0):** somente §2.2 (regras `FG-BLOC-001`, `FG-RIV-001` e
+> `FG-ST-001`, via comandos `grade` e `check`) está implementado. MCP (§3),
+> caos (§2.3), visual (§2.4), autocura (§2.5), playground (§6) e instalação
+> (§7) estão **[PLANEJADO]**. `docs/` registra intenção; `specs/` é normativo.
+> `grade` avalia este repo (dev-loop local); `check` é o gate portátil.
 
 ## 1. Visão Arquitetural
 
@@ -49,7 +50,7 @@ O **FlutterGuard AI** é projetado como uma esteira autônoma e reativa em pacot
   * Uso do pacote oficial `analyzer` do Dart SDK para inspecionar nós sintáticos.
   * **Motor de Verificação Formal (`FG-FORMAL-001` a `005`):** Integração de Métodos Formais determinísticos (Typestate DFA, Propagação Simbólica de Restrições de Caixa, Program Slicing de `build()`, Análise Happens-Before para Concorrência e Abstract State Lattices). *Para a formulação matemática e algoritmos completos, consulte:* [Formal Verification Algorithms](FormalVerificationAlgorithms.md).
   * **Regras Fundamentais de Ciclo de Vida:**
-    * Bloqueio de instanciação de controllers (`AnimationController`, `TextEditingController`) dentro do método `build()`.
+    * Bloqueio de instanciação de controllers (`AnimationController`, `TextEditingController`) dentro do método `build()` (`FG-ST-001`, implementada).
     * Exigência de cancelamento de `StreamSubscription` no método `dispose()`.
     * Interceptação de gaps assíncronos (`BuildContext` usado após `await` sem `if (!mounted) return;`).
   * **Regras para os Dois Maiores Gerenciadores de Estado do Mercado:**
@@ -102,15 +103,14 @@ flutterguard init --mcp
    {
      "mcpServers": {
        "flutterguard": {
-         "command": "dart",
-         "args": ["run", "flutterguard:mcp"]
+         "command": "flutterguard_mcp"
        }
      }
    }
    ```
-3. **Cria a pasta local `.flutterguard/`:** Com scripts de suporte, cache de receitas e telemetria determinística.
+3. **Cria a pasta local `.flutterguard/` (opt-in, só com flag explícita):** Com scripts de suporte, cache de receitas e telemetria determinística.
 4. **Instala o Git Pre-Commit Hook (`.git/hooks/pre-commit`):** Barreira física fail-closed que impede commits defeituosos.
-5. **Injeta o Contrato Mandatório no Agente do Projeto (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md`):**
+5. **Propõe o Contrato Mandatório do Agente (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md`, opt-in):** Imprime o bloco abaixo para colar; escreve no arquivo só com flag explícita:
    ```markdown
    <!-- FLUTTERGUARD MCP HARNESS CONTRACT -->
    ## 🛡️ Diretrizes de Engenharia FlutterGuard (MCP Mandatório)
@@ -121,6 +121,8 @@ flutterguard init --mcp
    4. **Anti-Fraude de Testes:** Execute `flutterguard.run_mutation_check`. Testes complacentes com mocks falsos serão rejeitados.
    5. **Critério de Aceite:** Nenhuma tarefa é considerada concluída sem que as ferramentas do MCP retornem status 'PASSED'.
    ```
+
+   > **Orçamento de poluição:** o `init` nunca escreve arquivos rastreados no projeto por padrão — só o hook em `.git/` e a config MCP no IDE; `.flutterguard/` (item 3) e a escrita no arquivo do agente (item 5) exigem flag explícita.
 
 ### 3.2. As 4 Ferramentas Tipadas do Servidor MCP
 
@@ -228,11 +230,12 @@ Ideal para desenvolvedores que desejam inicializar em 1 comando no terminal:
   ```
 
 ### Opção C: Clonagem para Desenvolvimento & Jurados
-Para quem deseja inspecionar o código-fonte e testar o playground localmente:
+Para quem deseja inspecionar o código-fonte e rodar os gates localmente:
 ```bash
 git clone https://github.com/SEU-USER/flutterguard-ai.git
 cd flutterguard-ai
 dart pub get
-dart run bin/flutterguard.dart sandbox reset
+dart test
+dart run bin/flutterguard.dart grade
 ```
 

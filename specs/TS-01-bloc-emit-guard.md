@@ -4,6 +4,7 @@ id: "FG-BLOC-001"
 title: "Mandatory isClosed guard on async emissions in Cubit/Bloc"
 status: "approved"
 severity: "error"
+analysis: "parse-only"
 ast_nodes:
   - "MethodInvocation[name='emit']"
   - "AwaitExpression"
@@ -37,12 +38,15 @@ the happy path never closes the Cubit mid-await.
 - `await` inside `try` blocks: an unguarded `emit` after the `try` is still
   flagged. v0 limitation: only top-level statements are tracked, so a guard
   nested inside the `try` does not disarm the gate (may false-positive).
+  [unevaluated]
 - Private helper methods invoked from within the handler: out of scope for
-  v0, call targets are NOT traced.
+  v0, call targets are NOT traced. [unevaluated]
 - `emit` with no preceding `await` in the method: MUST NOT be flagged.
+  [eval: TC-01.good]
 - `emit` already guarded by a top-level `isClosed` check: MUST NOT be flagged.
+  [eval: TC-01.good]
 - Other `BlocBase` subclasses beyond `Cubit`/`Bloc`: out of scope for v0,
-  NOT checked.
+  NOT checked. [unevaluated]
 
 `auto_heal_strategy` is declarative in v0 (no code consumes it); its
 semantics will be decided by a future heal-dispatcher spec.

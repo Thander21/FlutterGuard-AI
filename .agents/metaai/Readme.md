@@ -1,64 +1,63 @@
-# Meta AI Stack: Guia de Modelos & Frameworks
-### Mapeamento Tecnológico e Diretrizes de Integração para o FlutterGuard-AI
+# Meta AI Stack: Models & Frameworks Guide
+### Technology Mapping and Integration Guidelines for FlutterGuard-AI
 
-Este diretório reúne a documentação técnica aprofundada de cada modelo, ferramenta e framework de Inteligência Artificial da **Meta** selecionados para a arquitetura do **FlutterGuard-AI** no Hackathon Global da Meta.
+This directory gathers in-depth technical documentation for each **Meta** AI model, tool, and framework selected for the **FlutterGuard-AI** architecture in the Meta Global Hackathon.
 
 ---
 
-## 🏛️ Visão Geral da Arquitetura Integrada
+## 🏛️ Integrated Architecture Overview
 
-O **FlutterGuard-AI** opera sob uma esteira de ciclo fechado (*closed-loop agentic harness*) onde cada modelo da Meta assume uma responsabilidade técnica cirúrgica, eliminando alucinações e garantindo que nenhum código de UI ou lógica seja aprovado sem verificação determinística e visual.
+**FlutterGuard-AI** runs as a closed-loop agentic harness where each Meta model owns a surgical technical responsibility, eliminating hallucinations and guaranteeing that no UI code or logic ships without deterministic and visual verification.
 
 ```
                               ┌──────────────────────────────────┐
-                              │     USUÁRIO / REQUISITO DO APP   │
+                              │     USER / APP REQUIREMENT       │
                               └────────────────┬─────────────────┘
                                                │
                                                ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │ 1. META MUSE SPARK (MuseSpark.md)                                                           │
-│    * Arquiteto SDD & Engenheiro de Contratos                                                │
-│    * Gera especificações formais, classes seladas e testes TDD [RED]                        │
+│    * SDD Architect & Contract Engineer                                                      │
+│    * Generates formal specs, sealed classes, and TDD [RED] tests                             │
 └──────────────────────────────────────────────┬──────────────────────────────────────────────┘
                                                │
                                                ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │ 2. META MUSE CODE / LLAMA 3.1 (MuseCode.md)                                                 │
-│    * Engenheiro Executor de Código em Dart                                                  │
-│    * Implementação mínima para transformar testes em [GREEN]                                │
-│    * Correção de anti-patterns da AST através de receitas canônicas                         │
+│    * Dart Code Implementation Engineer                                                      │
+│    * Minimal implementation to turn tests [GREEN]                                           │
+│    * Fixes AST anti-patterns via canonical recipes                                          │
 └──────────────────────────────────────────────┬──────────────────────────────────────────────┘
                                                │
                                                ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │ 3. SAM 3.1 & META MUSE IMAGE / VISION (SamSegmentAnything.md & MuseImageVision.md)          │
-│    * SAM 3.1: Segmenta botões, caixas e componentes no screenshot renderizado headless      │
-│    * Muse Image / Vision: Audita se há 'RenderFlex overflowed', quebras de texto e margens   │
+│    * SAM 3.1: Segments buttons, boxes, and components in the headless-rendered screenshot   │
+│    * Muse Image / Vision: Audits 'RenderFlex overflowed', text breaks, and margins          │
 └──────────────────────────────────────────────┬──────────────────────────────────────────────┘
                                                │
                                                ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │ 4. LLAMA STACK (LlamaStack.md)                                                              │
-│    * Barramento padronizado da Meta para agentes, tool calling e memória                    │
+│    * Meta's standardized bus for agents, tool calling, and memory                           │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📚 Índice dos Documentos de Estudo
+## 📚 Study Documents Index
 
-1. **[01. Meta Muse Spark](MuseSpark.md):** Especificação Dirigida por Contratos (SDD), raciocínio arquitetural e geração do estágio RED do TDD.
-2. **[02. Meta Muse Code](MuseCode.md):** Sintaxe avançada de Dart 3, implementação mínima e autocura assistida por análise de AST.
-3. **[03. SAM 3.1 (Segment Anything)](SamSegmentAnything.md):** Segmentação de componentes de interface gráfica, detecção de caixas delimitadoras (*bounding boxes*) e colisões de layout.
-4. **[04. Meta Muse Image & Vision](MuseImageVision.md):** Auditoria multimodal de telas, detecção de *RenderFlex overflowed* e validação estética de widgets.
-5. **[05. Llama Stack](LlamaStack.md):** Protocolo unificado de orquestração de agentes, chamadas de ferramentas e integração cliente/servidor.
+1. **[01. Meta Muse Spark](MuseSpark.md):** Contract-driven specification (SDD), architectural reasoning, and TDD RED-stage generation.
+2. **[02. Meta Muse Code](MuseCode.md):** Advanced Dart 3 syntax, minimal implementation, and AST-assisted self-healing.
+3. **[03. SAM 3.1 (Segment Anything)](SamSegmentAnything.md):** GUI component segmentation, bounding boxes, and layout collision detection.
+4. **[04. Meta Muse Image & Vision](MuseImageVision.md):** Multimodal screen audit, `RenderFlex overflowed` detection, and widget aesthetic validation.
+5. **[05. Llama Stack](LlamaStack.md):** Unified agent orchestration protocol, tool calling, and client/server integration.
 
 ---
 
-## 🎯 Roteiro Rápido de Preparação (Pré-Hackathon)
+## 🎯 Quick Prep Roadmap (Pre-Hackathon)
 
-* [ ] Compreender o formato de prompt estruturado em JSON para o **Muse Spark**.
-* [ ] Testar scripts locais com o analisador de AST do Dart (`analyzer` package) para municiar o **Muse Code**.
-* [ ] Praticar o envio de imagens via API para o **SAM** e extração de máscaras de segmentação.
-* [ ] Configurar testes headless no Flutter que salvam prints de tela em PNG via `WidgetTester`.
-
+* [ ] Understand the structured JSON prompt format for **Muse Spark**.
+* [ ] Test local scripts with the Dart AST analyzer (`analyzer` package) to feed **Muse Code**.
+* [ ] Practice sending images via API to **SAM** and extracting segmentation masks.
+* [ ] Set up headless Flutter tests that save screenshots as PNG via `WidgetTester`.

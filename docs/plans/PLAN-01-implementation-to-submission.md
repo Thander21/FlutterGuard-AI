@@ -1,14 +1,14 @@
 ---
-plan_version: "1.0"
+plan_version: "1.2"
 id: "PLAN-01"
 title: "First implementation plan to hackathon submission"
 status: "proposed"
 deadline: "2026-11-04T21:00:00-04:00"
 source_docs:
-  - "docs/Architecture/Architecture.md"
-  - "docs/Architecture/FormalVerificationAlgorithms.md"
-  - "docs/Ideas/ProjectOverview.md"
-  - "docs/Ideas/DisruptiveInnovations.md"
+  - "docs/_origem/Architecture.md"
+  - "docs/_origem/FormalVerificationAlgorithms.md"
+  - "docs/_origem/ProjectOverview.md"
+  - "docs/_origem/DisruptiveInnovations.md"
   - "docs/Rules/HackathonSubmissionBlueprint.md"
   - "docs/Rules/MetaHackathonTrack.md"
   - "docs/Methodology/SddEddWorkflow.md"
@@ -17,6 +17,8 @@ source_docs:
   - "docs/Methodology/CleanCodeDeterministicGates.md"
   - "docs/Methodology/CanonicalRecipesCatalog.md"
   - "docs/Integrations/ClientAgentsTracking.md"
+  - "docs/plans/PLAN-02-functional-scope-to-working-system.md"
+  - "docs/plans/REVIEW-01-viability-assessment.md"
 ---
 
 # PLAN-01: First Implementation Plan to Hackathon Submission
@@ -32,7 +34,8 @@ evals, a minimal CLI, one headless visual gate, and submission artifacts.
 - `dart test` passes for every rule visitor (zero false positives on `.good`).
 - `dart run bin/flutterguard.dart grade` exits 0 and appends `evidence.jsonl`.
 - `flutterguard check` audits a target directory and reports violations as JSON.
-- One headless viewport case (keyboard-open RenderFlex) fails closed on `.bad`.
+- One headless viewport case (keyboard-open RenderFlex) fails closed on `.bad`
+  (stretch; v0 fallback is the Tier-1-lite AST heuristic, PLAN-02 SYS-VIEW-001).
 - Submission texts (Blueprint §2, Track §2) and demo inputs are ready in English.
 
 ## Doc Validation Decisions
@@ -58,23 +61,34 @@ Docs were read as a starting point, not truth. Binding resolutions:
 - `SEU-USER` URLs are placeholders; replacing them is a release gate, not code.
 - Rule contracts live in `specs/` (normative, grader-read); `docs/` is the
   thinking repository (prose, plans, analyses).
+- Non-goals reconciliation (PLAN-02 + REVIEW-01 §4): the non-goals below
+  stand for pre-submission *build*; PLAN-02 P2/P3 *contracts* (specs) may
+  still land. v0 freeze: 3 rules + `grade` + `check` + Tier-1-lite build
+  first; Phases 3–4 are stretch.
+- Heal budget: 3 attempts + snapshot + Attack-the-Premise (ForceField §3)
+  wins; ProjectOverview's "1–2 turns" is stale (kept: Portuguese doc
+  rewrites are a non-goal).
+- Language: `AGENTS.md` (new docs in English) wins over ProjectOverview §5
+  (Portuguese internal docs); old PT docs kept as-is.
 
 ## Approach
 
 EDD loop per rule (spec → vectors → visitor → test → grade), cheapest gate
 first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
-(`DisruptiveInnovations.md` Part 3.1), and `CanonicalRecipesCatalog.md`.
+(`docs/_origem/DisruptiveInnovations.md` Part 3.1), and `CanonicalRecipesCatalog.md`.
 
 ## Steps
 
 ### Phase 1 — AST rule core (EDD loop, highest value first)
 
-1. `FG-ST-001`: controllers instantiated in `build()` (Recipes §1).
+1. `FG-ST-001`: controllers instantiated in `build()` (Recipes §1). — DONE (`specs/TS-03-controller-in-build-guard.md`, `TC-03` pair, 9/9 tests, grade 6/6).
 2. `FG-ASYNC-002`: `BuildContext` after `await` without `mounted` guard
    (Recipes §2).
 3. `FG-LIFE-001`: `StreamSubscription` without `cancel()` in `dispose()`
    (Blueprint bug 01).
-4. `FG-KEY-001`: mutable widget collections without `ValueKey` (Blueprint 02).
+4. `FG-KEY-001`: mutable widget collections without `ValueKey` (Blueprint 02;
+   see the PLAN-02 rescope `FG-KEY-001r`: only `.map()`/`itemBuilder`
+   without `key` + `ReorderableListView`; the dataflow version is dropped).
 - Validation per rule: new spec in `specs/`, new pair in
   `benchmark/vectors/`, `dart test` green, `grade` exit 0.
 
@@ -82,19 +96,20 @@ first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
 
 1. `flutterguard check <path> [--json]`: run all visitors over a target,
    JSON output per Blueprint §4.
-2. `flutterguard init`: scaffold `.flutterguard/` + install pre-commit hook
-   running `grade`.
+2. `flutterguard init`: scaffold `.flutterguard/` (opt-in) + install
+   pre-commit hook running `check`. (Hook audits the target; `grade` is a
+   repo-local dev-loop.)
 3. Fold `grade` output into the same JSON evidence shape; keep both commands.
 - Validation: `check` on `benchmark/vectors/` flags every `.bad`, spares
   every `.good`; hook blocks a planted violation commit in a scratch clone.
 
-### Phase 3 — Mutation gate v0
+### Phase 3 — Mutation gate v0 (stretch, see v0 freeze)
 
 1. Rewrite 3 operators (`>`, `==`, `true`) in a sandbox copy (no in-place).
 2. Fail closed when the suite stays green on mutated code.
 - Validation: a deliberately complacent test is caught; honest tests pass.
 
-### Phase 4 — Viewport Tier 1 (needs Flutter SDK)
+### Phase 4 — Viewport Tier 1 (stretch; needs Flutter SDK)
 
 1. Headless `WidgetTester` case: keyboard inset 320px over a checkout form.
 2. Fail closed on `FlutterError` (`RenderFlex overflowed`); record evidence.
@@ -105,9 +120,9 @@ first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
 
 1. Freeze Blueprint §2 + Track §2 texts; replace `SEU-USER` placeholders.
 2. Record inputs for the 120-second script (terminal runs, screenshots).
-3. Keep `README.md` (English) and `leiame.md` (Portuguese) in sync.
+3. Keep `README.md` (English) and `LEIAME.md` (Portuguese) in sync.
 - Validation: checklist against Blueprint §6 scoring map; repo installs via
-  `dart pub global activate --source git <real-url>`.
+  `dart install <real-url>` (`dart pub global activate --source git` fallback).
 
 ## Validation Plan
 
@@ -126,4 +141,5 @@ first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
 - `test_fixtures/` playground (Architecture §6) is deferred; golden vectors
   cover the eval need.
 - Non-goals: MCP server, auto-heal loop, CRAP/dryer metrics, formal provers,
-  Portuguese doc rewrites.
+  Portuguese doc rewrites (build-scope; P2/P3 contracts may still land per
+  the reconciliation above).

@@ -64,6 +64,6 @@ when the gate reports `FAILED` for it; a `.good.dart` vector passes only
 when the gate reports `PASSED`.
 
 `recipe_injected` is empty on eval lines because `grade` injects nothing;
-heal-dispatch lines (future, per `docs/Architecture/Architecture.md` §5)
+heal-dispatch lines (future, per `docs/_origem/Architecture.md` §5)
 reuse this schema with `action: AUTO_HEALING_DISPATCHED` and the injected
 recipe id.

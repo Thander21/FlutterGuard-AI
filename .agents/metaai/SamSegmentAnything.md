@@ -1,54 +1,53 @@
 # 03. SAM 3.1 (Segment Anything Model)
-### Segmentação Geométrica de Telas, Bounding Boxes e Detecção de Colisões
+### Screen Geometric Segmentation, Bounding Boxes, and Collision Detection
 
 ---
 
-## 1. O que é o SAM (Segment Anything)?
-O **SAM (Segment Anything Model)** é o modelo fundacional de visão computacional da Meta que estabeleceu o estado da arte mundial em segmentação de imagens. Ele é capaz de segmentar qualquer objeto, fronteira visual ou região contígua com precisão de contorno de pixel a partir de prompts visuais (pontos, caixas delimitadoras) ou em modo de segmentação automática completa (*everything mode*), sem necessidade de treinamento específico para a classe do objeto.
+## 1. What Is SAM (Segment Anything)?
+**SAM (Segment Anything Model)** is Meta's foundational computer-vision model that set the world state of the art in image segmentation. It can segment any object, visual boundary, or contiguous region with pixel-outline precision from visual prompts (points, bounding boxes) or in full automatic (*everything*) mode, with no class-specific training.
 
 ---
 
-## 2. Papel Específico no FlutterGuard-AI
-O SAM é a peça-chave do **Auditor Visual Multimodal do FlutterGuard-AI**:
-1. **O Problema Resolvido:** Testes tradicionais do Flutter (`flutter test`) validam a árvore de widgets em código, mas **são cegos para a geometria renderizada**. Uma tela pode passar com 100% de sucesso nos testes de lógica enquanto um botão flutuante está cobrindo o botão de finalizar compra, ou um card está empurrando um texto para fora da tela.
-2. **Execução Headless:** Durante a suíte de testes de widgets, o Flutter renderiza a tela em memória e gera um screenshot PNG em alta fidelidade.
-3. **Segmentação Automática:** O screenshot é enviado para o SAM 3.1, que extrai as coordenadas espaciais (`x, y, width, height`) e as máscaras de contorno de cada componente gráfico desenhado.
-4. **Cálculo de Colisão e Oclusão:** O FlutterGuard compara as caixas delimitadoras (*bounding boxes*):
-   * Se `Box(A)` intercepta `Box(B)` sem que haja um widget `Stack` intencional na spec, um **erro de colisão de layout** é disparado.
+## 2. Specific Role in FlutterGuard-AI
+SAM is the key piece of the **FlutterGuard-AI Multimodal Visual Auditor**:
+1. **Problem Solved:** Traditional Flutter tests (`flutter test`) validate the widget tree in code but **are blind to rendered geometry**. A screen can pass 100% of logic tests while a floating button covers the checkout button, or a card pushes text off-screen.
+2. **Headless Execution:** During the widget test suite, Flutter renders the screen in memory and produces a high-fidelity PNG screenshot.
+3. **Automatic Segmentation:** The screenshot goes to SAM 3.1, which extracts spatial coordinates (`x, y, width, height`) and outline masks for each drawn graphic component.
+4. **Collision and Occlusion Math:** FlutterGuard compares bounding boxes:
+   * If `Box(A)` intersects `Box(B)` without an intentional `Stack` widget in the spec, a **layout collision error** fires.
 
 ---
 
-## 3. Fluxo de Trabalho e Integração Técnica
+## 3. Workflow and Technical Integration
 
 ```
 [ WidgetTester ]
-      │  (renderiza headless a 800x600)
+      │  (renders headless at 800x600)
       ▼
 [ screenshot.png ]
       │
       ▼
-[ API SAM 3.1: Segment Everything ]
+[ SAM 3.1 API: Segment Everything ]
       │
       ▼
-[ JSON de Máscaras & Bounding Boxes ]
+[ Masks & Bounding Boxes JSON ]
    { "id": 1, "label": "button", "bbox": [120, 450, 200, 48] },
    { "id": 2, "label": "card",   "bbox": [100, 400, 300, 150] }
       │
       ▼
-[ Validador Geométrico do FlutterGuard ]
+[ FlutterGuard Geometric Validator ]
       │
-      ├──> Aprovado: Layout limpo sem sobreposição
-      └──> Reprovado: Colisão detectada! Aciona Gate Bloqueante
+      ├──> Approved: clean layout, no overlap
+      └──> Rejected: collision detected! Blocking gate fires
 ```
 
 ---
 
-## 4. Roteiro Prático de Estudos
+## 4. Hands-On Study Roadmap
 
-1. **Captura de Tela em Testes Flutter:**
-   * Estude como usar `WidgetTester` com `tester.binding.takeScreenshot('screenshot_test.png')` ou o pacote `golden_toolkit`.
-2. **API do SAM:**
-   * Explore a documentação do SAM da Meta e como invocar o modelo passando uma imagem e recebendo o array de máscaras e coordenadas.
-3. **Algoritmos Simples de Colisão de Retângulos (AABB):**
-   * Estude a fórmula básica de colisão de caixas orientadas aos eixos (*Axis-Aligned Bounding Box*) para comparar as saídas do SAM diretamente no código do harness.
-
+1. **Screenshotting in Flutter Tests:**
+   * Study `WidgetTester` with `tester.binding.takeScreenshot('screenshot_test.png')` or the `golden_toolkit` package.
+2. **SAM API:**
+   * Explore Meta's SAM docs and how to invoke the model with an image and receive the masks-and-coordinates array.
+3. **Simple Rectangle Collision Algorithms (AABB):**
+   * Study the basic axis-aligned bounding box collision formula to compare SAM outputs directly in harness code.

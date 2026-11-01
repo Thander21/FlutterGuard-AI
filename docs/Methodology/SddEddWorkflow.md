@@ -109,7 +109,7 @@ Para cada nova regra de guarda implementada no FlutterGuard-AI:
 2. **Criação do Par Golden no Benchmark (`benchmark/vectors/`):**
    * `TC-NN.bad.dart`: Código Dart funcional porém violando o invariante.
    * `TC-NN.good.dart`: Código idêntico após aplicação manual da receita canônica.
-3. **TDD do AstVisitor (`test/`, single package per `docs/Architecture/Architecture.md` §4):**
+3. **TDD do AstVisitor (`test/`, single package per `docs/_origem/Architecture.md` §4):**
    * Escrever o teste unitário:
      - Deve acusar violação no `.bad.dart`.
      - NÃO deve acusar violação no `.good.dart` (Zero Falsos Positivos).
