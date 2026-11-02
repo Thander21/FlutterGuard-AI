@@ -15,7 +15,7 @@ source_docs:
   - "docs/_origem/ProjectOverview.md"
   - "docs/_origem/DisruptiveInnovations.md"
   - "docs/_origem/ReferencePdvDMais.md"
-  - "docs/Integrations/ClientAgentsTracking.md"
+  - "docs/_origem/ClientAgentsTracking.md"
   - "docs/_origem/SddEddWorkflow.md"
   - "docs/_origem/SpecDrivenDevelopment.md"
   - "docs/_origem/ForceFieldHarness.md"
@@ -109,8 +109,9 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   from ForceField §2 (imports/format/syntax → light; changed-file unit
   tests → test; full `analyze` + cross-regression → validate;
   evidence/temp-files/clean-diff → commit-check); budgets validated by
-  measurement per REVIEW-01 §3.9. Notes: `ast_guardian` superseded by
-  `check`.
+  measurement per REVIEW-01 §3.9. Test invocation is deterministic
+  (concurrency/seed flags per ClientAgents §2 Gate 3). Notes:
+  `ast_guardian` superseded by `check`.
   Validate: flags every `.bad`, spares every `.good` in `benchmark/vectors/`.
 - `FG-ST-001` (rule, recipe exists): controllers in `build()`. EDD:
   `specs/TS-03` → `TC-03` pair →
