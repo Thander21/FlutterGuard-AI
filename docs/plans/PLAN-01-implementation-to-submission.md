@@ -9,14 +9,12 @@ source_docs:
   - "docs/_origem/FormalVerificationAlgorithms.md"
   - "docs/_origem/ProjectOverview.md"
   - "docs/_origem/DisruptiveInnovations.md"
-  - "docs/_rulesHackathon/HackathonSubmissionBlueprint.md"
-  - "docs/_rulesHackathon/MetaHackathonTrack.md"
   - "docs/_origem/SddEddWorkflow.md"
   - "docs/_origem/SpecDrivenDevelopment.md"
   - "docs/_origem/ForceFieldHarness.md"
   - "docs/_origem/CleanCodeDeterministicGates.md"
   - "docs/_origem/CanonicalRecipesCatalog.md"
-  - "docs/Integrations/ClientAgentsTracking.md"
+  - "docs/_origem/ClientAgentsTracking.md"
   - "docs/plans/PLAN-02-functional-scope-to-working-system.md"
   - "docs/plans/REVIEW-01-viability-assessment.md"
 ---
@@ -46,10 +44,17 @@ Docs were read as a starting point, not truth. Binding resolutions:
   in `SddEddWorkflow.md` was stale and is now fixed.
 - `evidence.jsonl` follows the `Architecture.md` schema (implemented); the
   `stage/test_file/result` variant in `SpecDrivenDevelopment.md` is superseded.
-- CLI surface follows `HackathonSubmissionBlueprint.md` §4 (`init`, `check
-  --json`, pre-commit hook, `.flutterguard/`); `fg run`,
-  `bin/ast_guardian.dart`, `flutterguard analyze` (folded into `check`),
-  and `crap`/`dryer` command names are superseded.
+- CLI surface follows `Architecture.md` §3–§5 (`flutterguard init` with
+  opt-in `.flutterguard/` + pre-commit hook and pollution budget, §3.1;
+  `check` as the portable AST gate sibling of repo-local `grade`,
+  `bin/flutterguard.dart`, §4; `--json` output shaped by the
+  `evidence.jsonl` schema, §5); `fg run`, `bin/ast_guardian.dart`,
+  `flutterguard analyze` (folded into `check`), and `crap`/`dryer`
+  command names are superseded.
+- `docs/_rulesHackathon/` is consulted for deadline/disclosure only
+  (deadline, §2 submission texts, §5 demo script, §6 scoring checklist)
+  per `AGENTS.md`; every functional requirement in this plan (CLI
+  surface, rule backlog, JSON shape) is sourced from `docs/_origem/`.
 - Gates follow `ForceFieldHarness.md` (light → test → full → commit-check),
   mapped onto the tiered runner: parse-only AST first, resolved/compiled
   checks later.
@@ -75,8 +80,10 @@ Docs were read as a starting point, not truth. Binding resolutions:
 ## Approach
 
 EDD loop per rule (spec → vectors → visitor → test → grade), cheapest gate
-first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
-(`docs/_origem/DisruptiveInnovations.md` Part 3.1), and `docs/_origem/CanonicalRecipesCatalog.md` (archived; live recipes live in each spec's §2).
+first. Rule backlog comes from `docs/_origem/CanonicalRecipesCatalog.md`
+(§1–§2: FG-ST-001, FG-ASYNC-002) and `docs/_origem/DisruptiveInnovations.md`
+(Part 2 §2 item 4 missing-`ValueKey`, Part 3 §1 AST suite + §2 Lifecycle &
+Memory Warden); live recipes live in each spec's §2.
 
 ## Steps
 
@@ -86,8 +93,9 @@ first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
 2. `FG-ASYNC-002`: `BuildContext` after `await` without `mounted` guard
    (Recipes §2).
 3. `FG-LIFE-001`: `StreamSubscription` without `cancel()` in `dispose()`
-   (Blueprint bug 01).
-4. `FG-KEY-001`: mutable widget collections without `ValueKey` (Blueprint 02;
+   (DisruptiveInnovations Part 3 §2, Zombie Stream Detector).
+4. `FG-KEY-001`: mutable widget collections without `ValueKey`
+   (DisruptiveInnovations Part 2 §2 item 4, missing-`ValueKey` transpose;
    see the PLAN-02 rescope `FG-KEY-001r`: only `.map()`/`itemBuilder`
    without `key` + `ReorderableListView`; the dataflow version is dropped).
 - Validation per rule: new spec in `specs/`, new pair in
@@ -96,7 +104,7 @@ first. Rule backlog comes from the Blueprint 10-bug table (§3), the AST suite
 ### Phase 2 — CLI completion
 
 1. `flutterguard check <path> [--json]`: run all visitors over a target,
-   JSON output per Blueprint §4.
+   JSON output per the `Architecture.md` §5 `evidence.jsonl` schema.
 2. `flutterguard init`: scaffold `.flutterguard/` (opt-in) + install
    pre-commit hook running `check`. (Hook audits the target; `grade` is a
    repo-local dev-loop.)

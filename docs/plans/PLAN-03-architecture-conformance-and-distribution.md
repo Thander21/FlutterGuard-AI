@@ -37,13 +37,15 @@ plans, and specs only.
 
 Docs follow verified code (PLAN-01 precedent: docs as starting point, not
 truth). Reconciliation keeps the Architecture doc's single-package layout,
-MCP target, distribution options, evidence schema, and gate ladder; adds
+MCP target, distribution options, evidence schema, and gate ladder; records
 the grade-vs-check doctrine (`grade` = repo-local dev-loop, `check` =
 portable gate), the read-only shipped-gates principle with an explicit
 pollution budget (zero tracked files in the target by default), and a
-scope-note maintenance rule (every new rule updates the notes). Doc rot
-fixed: MCP config snippet, `.flutterguard/` + agent-file injection made
-opt-in, `sandbox reset` reference, stale "2 rules" notes.
+scope-note maintenance rule (every new rule updates the notes) in
+working-tree-owned docs (README/LEIAME, specs) — `docs/_origem/` is frozen
+per `AGENTS.md` and is never edited. Doc rot fixed: MCP config snippet,
+`.flutterguard/` + agent-file injection made opt-in, `sandbox reset`
+reference, stale "2 rules" notes.
 
 Decisions: D0 implementation frozen, docs-only; D5 docs follow verified
 code (applied to the PLAN-02 prescribed visitor filename); D1–D4 recorded
@@ -57,16 +59,21 @@ under Deferred.
 does not run: it would append to `evidence.jsonl` and dirty the tree
 pre-publish; grade state is cited as last-verified.
 
-### D1 — Architecture.md
+### D1 — Conformance notes (frozen-archive safe)
 
-Scope note (3 rules + grade/check doctrine line), `FG-ST-001` ID on the
-lifecycle bullet, corrected MCP snippet (`flutterguard_mcp` global exe),
-opt-in flags + pollution-budget note for `.flutterguard/` and agent-file
-injection, §7-C commands fixed.
+`docs/_origem/Architecture.md` is frozen per `AGENTS.md`: no edits there.
+Its reconciliation content lands in working-tree-owned docs instead: scope
+note (3 rules + grade/check doctrine line), corrected MCP snippet
+(`flutterguard_mcp` global exe), opt-in flags + pollution-budget note for
+`.flutterguard/` and agent-file injection, and fixed §7-C install commands
+all go to README/LEIAME (D2). The `FG-ST-001` lifecycle ID is already
+normative in `specs/TS-03-controller-in-build-guard.md` (no change needed).
 
 ### D2 — README/LEIAME
 
-Scope notes 2→3 rules, mirrored in both languages. Install stays
+Scope notes 2→3 rules + grade/check doctrine line, mirrored in both
+languages; corrected MCP snippet, opt-in flags + pollution-budget note,
+and fixed §7-C install commands folded in from D1. Install stays
 [PLANNED] (packaging deferred); URL placeholders kept (release gate).
 
 ### D3 — Specs
