@@ -34,7 +34,7 @@ The project works as a physical and pedagogical barrier (_fail-closed_): no AI-g
    - **Llama Stack:** Unified bus for orchestration, tool calling, and context memory.
    - **Dart SDK Core:** Local deterministic AST inspection engine in microseconds (zero-token).
 
-2. **[Client Agent Governance and Tracking via MCP](docs/Integrations/ClientAgentsTracking.md)**
+2. **[Client Agent Governance and Tracking via MCP](docs/_origem/ClientAgentsTracking.md)**
    - Once installed in any Flutter project (`flutterguard init --mcp`), FlutterGuard acts as a runtime **Quality Harness and Physical Barrier** for the agents the developer already uses: **Claude Code, Gemini CLI, Cursor, Antigravity, or local models**.
    - Client AIs must respect contracts and validation gates before any commit to the repository.
 
@@ -81,7 +81,7 @@ flutterguard init --mcp
 - 🏛️ **[System Architecture (100% Meta AI)](docs/_origem/Architecture.md):** Reactive flow, AST Engine, feedback loops, and surgical context injection.
 - 🔬 **[Formal Verification Algorithms (AST Prover)](docs/_origem/FormalVerificationAlgorithms.md):** Formal methods, Typestate DFA, Cassowary Constraints, Program Slicing, and Causal Analysis for Flutter.
 - 🤖 **[Meta AI Stack Dossier](.agents/metaai/Readme.md):** Technical study and integration guide for Muse Spark, Muse Code, SAM 3.1, Muse Image, and Llama Stack.
-- 🔌 **[Runtime Client Agent Governance](docs/Integrations/ClientAgentsTracking.md):** Tracking of Claude Code, Cursor, Gemini CLI, and Antigravity via MCP.
+- 🔌 **[Runtime Client Agent Governance](docs/_origem/ClientAgentsTracking.md):** Tracking of Claude Code, Cursor, Gemini CLI, and Antigravity via MCP.
 - 🛡️ **[Force Field & Gates](docs/_origem/ForceFieldHarness.md):** Deterministic pipeline principles and _fail-closed_ blocking.
 - 📐 **[Deterministic Gates & Clean Code Validation (ub-mode)](docs/_origem/CleanCodeDeterministicGates.md):** Adaptation of Robert C. Martin's (Uncle Bob) framework, CRAP Score (< 10), duplication detector, and hallucination breaking.
 - 🔄 **[SDD + TDD + EDD + XP Methodology](docs/_origem/SpecDrivenDevelopment.md):** The deterministic lifecycle that eliminates hallucinations and complacent tests.

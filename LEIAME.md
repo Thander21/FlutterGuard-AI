@@ -32,7 +32,7 @@ O **FlutterGuard AI** possui seu motor central e inteligência alimentados 100% 
    - **Llama Stack:** Barramento unificado para orquestração, tool calling e memória de contexto.
    - **Dart SDK Core:** Motor local determinístico de inspeção de AST em microssegundos (zero-token).
 
-2. **[Governança e Rastreamento de Agentes Clientes via MCP](docs/Integrations/ClientAgentsTracking.md)**
+2. **[Governança e Rastreamento de Agentes Clientes via MCP](docs/_origem/ClientAgentsTracking.md)**
    - Uma vez instalado em qualquer projeto Flutter (`flutterguard init --mcp`), o FlutterGuard atua como um **Harness de Qualidade e Barreira Física** em tempo de execução para os agentes que o desenvolvedor já utiliza: **Claude Code, Gemini CLI, Cursor, Antigravity ou modelos locais**.
    - As IAs clientes são obrigadas a respeitar os contratos e gates de validação antes de qualquer commit no repositório.
 
@@ -79,7 +79,7 @@ flutterguard init --mcp
 - 🏛️ **[Arquitetura do Sistema (100% Meta AI)](docs/_origem/Architecture.md):** Fluxo reativo, AST Engine, loops de feedback e injeção cirúrgica de contexto.
 - 🔬 **[Algoritmos de Verificação Formal (AST Prover)](docs/_origem/FormalVerificationAlgorithms.md):** Métodos formais, Typestate DFA, Cassowary Constraints, Program Slicing e Análise Causal para Flutter.
 - 🤖 **[Dossiê da Stack Meta AI](.agents/metaai/Readme.md):** Guia técnico de estudo e integração com Muse Spark, Muse Code, SAM 3.1, Muse Image e Llama Stack.
-- 🔌 **[Governança de Agentes Clientes em Execução](docs/Integrations/ClientAgentsTracking.md):** Rastreamento de Claude Code, Cursor, Gemini CLI e Antigravity via MCP.
+- 🔌 **[Governança de Agentes Clientes em Execução](docs/_origem/ClientAgentsTracking.md):** Rastreamento de Claude Code, Cursor, Gemini CLI e Antigravity via MCP.
 - 🛡️ **[Campo de Força & Gates](docs/_origem/ForceFieldHarness.md):** Princípios da esteira determinística e bloqueio _fail-closed_.
 - 📐 **[Gates Determinísticos & Validação Clean Code (ub-mode)](docs/_origem/CleanCodeDeterministicGates.md):** Adaptação do framework de Robert C. Martin (Uncle Bob), CRAP Score (< 10), detector de duplicação e quebra de alucinação.
 - 🔄 **[Metodologia SDD + TDD + EDD + XP](docs/_origem/SpecDrivenDevelopment.md):** O ciclo de vida determinístico que elimina alucinações e testes complacentes.
