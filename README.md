@@ -8,8 +8,10 @@
 
 > **Scope:** 13 AST rules implemented (12 blocking + `FG-MET-007`
 > advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
-> a pre-commit hook, and a heal dispatcher. The MCP server, mutation
-> gate, and visual gates are **[PLANNED]**
+> a pre-commit hook, a heal dispatcher, a mutation runner, a
+> Tier-1 viewport runner (with Tier-1-lite AST fallback), a
+> coverage/CRAP pipeline, and a structural duplication detector.
+> The MCP server and the Tier-2 visual gate are **[PLANNED]**
 > (see `docs/plans/PLAN-01-implementation-to-submission.md` and
 > `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
 > `specs/` is normative; `docs/` records direction and intent.

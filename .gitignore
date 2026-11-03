@@ -4,5 +4,6 @@
 .packages
 build/
 # FlutterGuard volatile areas: agent playground + local cache/telemetry.
-fixtures/
-.flutterguard/
+# Anchored to root: test rigs may carry committed `fixtures/` dirs below.
+/fixtures/
+/.flutterguard/

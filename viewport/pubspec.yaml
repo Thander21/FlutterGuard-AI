@@ -1,0 +1,12 @@
+# Tier-1 proof rig (SYS-VIEW-001). Never published, never distributed:
+# the harness reference implementation plus its red/green contract test.
+# Setup: `flutter pub get` with cwd `viewport/` (Flutter 3.47.9 verified).
+name: tier1_rig
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

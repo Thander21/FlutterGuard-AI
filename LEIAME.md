@@ -6,8 +6,10 @@
 
 > **Escopo:** 13 regras AST implementadas (12 bloqueantes + `FG-MET-007`
 > consultiva) com comandos CLI `grade` + `check` + `init` + `sandbox`,
-> hook pre-commit e dispatcher de autocura. Servidor MCP, mutation
-> gate e visual gates estão **[PLANEJADO]** (ver
+> hook pre-commit, dispatcher de autocura, mutation runner, Tier-1
+> viewport runner (com fallback AST Tier-1-lite), pipeline de
+> cobertura/CRAP e detector de duplicação estrutural. Servidor MCP
+> e visual gate Tier-2 estão **[PLANEJADO]** (ver
 > `docs/plans/PLAN-01-implementation-to-submission.md` e
 > `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
 > `specs/` é normativo; `docs/` registra direção e intenção.
