@@ -14,6 +14,7 @@ class CheckFinding {
     required this.file,
     required this.line,
     required this.message,
+    this.severity = 'error',
   });
 
   final String ruleId;
@@ -21,6 +22,10 @@ class CheckFinding {
   final String file;
   final int line;
   final String message;
+
+  /// Gate impact: `error` fails the gate, `warning` is advisory-only
+  /// (reported but never fails; FG-MET-007 until SYS-CAL-001).
+  final String severity;
 
   /// Pointer to the Before/After recipe (§2 of the spec contract).
   String get recipe => '$spec (§2)';
@@ -32,6 +37,7 @@ class CheckFinding {
         'file': file,
         'line': line,
         'message': message,
+        'severity': severity,
       };
 }
 
@@ -61,8 +67,9 @@ class CheckResult {
 /// Runs every registered visitor over [target] (one `.dart` file or a
 /// directory scanned recursively for `.dart` files, sorted).
 ///
-/// One bad file never kills the run: per-file failures are collected in
-/// [CheckResult.errors]. Throws [ArgumentError] when [target] is missing.
+/// One bad file never kills the run: per-file failures are collected once
+/// per file in [CheckResult.errors]. Throws [ArgumentError] when [target]
+/// is missing.
 /// Results are sorted by file, then rule id, then line for determinism.
 CheckResult checkPath(String target) {
   final type = FileSystemEntity.typeSync(target);
@@ -83,6 +90,7 @@ CheckResult checkPath(String target) {
 
   final findings = <CheckFinding>[];
   final errors = <CheckError>[];
+  final seenErrors = <(String, String)>{};
   for (final file in files) {
     for (final rule in ruleAnalyzers) {
       try {
@@ -93,10 +101,14 @@ CheckResult checkPath(String target) {
             file: file,
             line: violation.line,
             message: violation.message,
+            severity: rule.severity,
           ));
         }
       } catch (error) {
-        errors.add(CheckError(file: file, error: '$error'));
+        // One broken file fails every visitor the same way; record it once.
+        if (seenErrors.add((file, '$error'))) {
+          errors.add(CheckError(file: file, error: '$error'));
+        }
       }
     }
   }

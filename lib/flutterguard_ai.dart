@@ -1,7 +1,18 @@
 /// FlutterGuard AI: autonomous reactive quality harness for Flutter/Dart.
+export 'src/ast/arch_layer_guard.dart';
+export 'src/ast/async_context_guard.dart';
 export 'src/ast/bloc_emit_guard.dart';
+export 'src/ast/context_scope_guard.dart';
 export 'src/ast/controller_build_guard.dart';
+export 'src/ast/lifecycle_guard.dart';
+export 'src/ast/lint_suppression_guard.dart';
+export 'src/ast/metric_guard.dart';
+export 'src/ast/list_key_guard.dart';
+export 'src/ast/list_viewport_guard.dart';
 export 'src/ast/riverpod_watch_guard.dart';
+export 'src/ast/state_mutation_guard.dart';
+export 'src/ast/widget_immutable_guard.dart';
 export 'src/ast/rule_violation.dart';
 export 'src/cli/check.dart';
 export 'src/cli/rules.dart';
+export 'src/heal/dispatcher.dart';

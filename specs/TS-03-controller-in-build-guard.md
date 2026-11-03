@@ -10,6 +10,9 @@ ast_nodes:
   - "InstanceCreationExpression"
   - "MethodInvocation[target=null]"
 invariant: "No instance creation of a stateful controller type (AnimationController, FocusNode, PageController, ScrollController, TabController, TextEditingController) MUST appear lexically inside a method named 'build'; controllers MUST be created once in initState (or as state fields) and released in dispose()."
+fp_limits:
+  - "mere uses of a controller in build() (reads, arguments, method calls)"
+  - "creations in initState, field initializers, helper methods, or dispose"
 golden_vectors:
   failing: "benchmark/vectors/TC-03_controller.bad.dart"
   passing: "benchmark/vectors/TC-03_controller.good.dart"
@@ -85,5 +88,6 @@ and never rebuilds.
 - Other disposables (`SearchController`, `TransformationController`,
   `StreamSubscription`, ...): out of scope for v0, NOT flagged. [unevaluated]
 
-`auto_heal_strategy` is declarative in v0 (no code consumes it); its
-semantics will be decided by a future heal-dispatcher spec.
+`hoist_to_init_state` is model-owned per the SYS-HEAL-001 closed
+fast-path list (multi-hunk: field + initState + dispose + use); recipe
+lookup by rule id per SYS-RECIPE-001.

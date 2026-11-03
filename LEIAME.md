@@ -4,11 +4,12 @@
 
 > **Transformando IA de geradora complacente de código em engenheiro de software sênior determinístico através de Spec-Driven Development (SDD), Análise Reativa de AST, Verificação Visual Multimodal e Gates Bloqueantes.**
 
-> **Escopo (v0):** 3 regras AST implementadas (`FG-BLOC-001`, `FG-RIV-001`, `FG-ST-001`)
-> com comandos CLI `grade` + `check`. Servidor MCP, `init`, hook
-> pre-commit, mutation gate, visual gates e loop de autocura estão
-> **[PLANEJADO]** (ver `docs/plans/PLAN-01-implementation-to-submission.md`
-> e `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
+> **Escopo:** 13 regras AST implementadas (12 bloqueantes + `FG-MET-007`
+> consultiva) com comandos CLI `grade` + `check` + `init` + `sandbox`,
+> hook pre-commit e dispatcher de autocura. Servidor MCP, mutation
+> gate e visual gates estão **[PLANEJADO]** (ver
+> `docs/plans/PLAN-01-implementation-to-submission.md` e
+> `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
 > `specs/` é normativo; `docs/` registra direção e intenção.
 
 ---

@@ -6,9 +6,10 @@
 
 *Leia em português: [LEIAME.md](LEIAME.md)*
 
-> **Scope (v0):** 3 AST rules implemented (`FG-BLOC-001`, `FG-RIV-001`, `FG-ST-001`) with
-> `grade` + `check` CLI commands. The MCP server, `init`, pre-commit hook,
-> mutation gate, visual gates, and auto-heal loop are **[PLANNED]**
+> **Scope:** 13 AST rules implemented (12 blocking + `FG-MET-007`
+> advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
+> a pre-commit hook, and a heal dispatcher. The MCP server, mutation
+> gate, and visual gates are **[PLANNED]**
 > (see `docs/plans/PLAN-01-implementation-to-submission.md` and
 > `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
 > `specs/` is normative; `docs/` records direction and intent.

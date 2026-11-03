@@ -3,3 +3,6 @@
 .dart_tool/
 .packages
 build/
+# FlutterGuard volatile areas: agent playground + local cache/telemetry.
+fixtures/
+.flutterguard/

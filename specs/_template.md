@@ -8,6 +8,9 @@ analysis: "parse-only"
 ast_nodes:
   - "MethodInvocation[name='example']"
 invariant: "State the inviolable AST invariant in one sentence."
+fp_limits:
+  - "name one construct that must never be flagged"
+  - "name another; mirror the MUST NOT bullets in §3"
 golden_vectors:
   failing: "benchmark/vectors/TC-00_slug.bad.dart"
   passing: "benchmark/vectors/TC-00_slug.good.dart"
@@ -32,3 +35,4 @@ why it is harmful, and where it typically appears.
 - List constructs that must NOT be flagged.
 - Tag every normative bullet: `[eval: TC-XX]` (covered), `[partial: reason]`
   (partly covered), `[unevaluated]` (documented, no eval).
+- Mirror every MUST NOT bullet in the `fp_limits` front-matter above.

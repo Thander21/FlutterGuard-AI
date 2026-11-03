@@ -9,6 +9,9 @@ ast_nodes:
   - "MethodInvocation[target='ref',name='watch']"
   - "FunctionExpression"
 invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead."
+fp_limits:
+  - "ref.watch directly in build()"
+  - "ref.read anywhere, including callbacks"
 golden_vectors:
   failing: "benchmark/vectors/TC-02_riverpod.bad.dart"
   passing: "benchmark/vectors/TC-02_riverpod.good.dart"
@@ -48,5 +51,6 @@ callback.
   counts as a callback, including non-event cases such as `.map(...)`
   (may false-positive). [unevaluated]
 
-`auto_heal_strategy` is declarative in v0 (no code consumes it); its
-semantics will be decided by a future heal-dispatcher spec.
+`replace_invocation` semantics live in SYS-HEAL-001 §2
+(fast-path mechanical); the strategy value stays declarative until recipe
+lookup wires it (SYS-RECIPE-001).

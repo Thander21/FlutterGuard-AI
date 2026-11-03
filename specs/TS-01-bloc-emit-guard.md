@@ -9,6 +9,9 @@ ast_nodes:
   - "MethodInvocation[name='emit']"
   - "AwaitExpression"
 invariant: "Every 'emit' preceded by 'await' inside a class extending 'Cubit' or 'Bloc' (matched by superclass name, no type resolution) MUST have the guard 'if (isClosed) return;' as a preceding top-level statement."
+fp_limits:
+  - "emit with no preceding await in the method"
+  - "emit already guarded by a top-level isClosed check"
 golden_vectors:
   failing: "benchmark/vectors/TC-01_bloc.bad.dart"
   passing: "benchmark/vectors/TC-01_bloc.good.dart"
@@ -48,5 +51,6 @@ the happy path never closes the Cubit mid-await.
 - Other `BlocBase` subclasses beyond `Cubit`/`Bloc`: out of scope for v0,
   NOT checked. [unevaluated]
 
-`auto_heal_strategy` is declarative in v0 (no code consumes it); its
-semantics will be decided by a future heal-dispatcher spec.
+`insert_before_invocation` semantics live in SYS-HEAL-001 §2
+(fast-path mechanical); the strategy value stays declarative until recipe
+lookup wires it (SYS-RECIPE-001).

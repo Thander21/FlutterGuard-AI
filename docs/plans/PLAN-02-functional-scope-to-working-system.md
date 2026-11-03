@@ -1,5 +1,5 @@
 ---
-plan_version: "2.2"
+plan_version: "3.0"
 id: "PLAN-02"
 title: "Functional scope closure to working system"
 status: "proposed"
@@ -25,7 +25,7 @@ source_docs:
   - "docs/plans/PLAN-03-architecture-conformance-and-distribution.md"
   - "docs/plans/REVIEW-01-viability-assessment.md"
 excluded_docs:
-  - "docs/_rulesHackathon/* (hackathon track; stays in PLAN-01)"
+  - "docs/_rulesHackathon/* (hackathon track; dropped project-wide — PLAN-01 v2.0)"
   - "docs/_rulesHackathon/SelfPromotion/* (outreach; out of functional scope)"
 ---
 
@@ -34,10 +34,10 @@ excluded_docs:
 ## Goal
 
 Close the functional-scope gaps so the documented ideas are sufficient for the
-project to really work in code: every subsystem gets an identified spec (rule
-or system contract), all doc contradictions get a recorded resolution,
-non-goals are explicit — so the plan is complete and validated before
-implementation starts.
+project to really work in code for production use: every subsystem gets an
+identified spec (rule or system contract), all doc contradictions get a
+recorded resolution, non-goals are explicit — so the plan is complete and
+validated before implementation starts.
 
 ## Success Criteria
 
@@ -75,15 +75,15 @@ Two spec kinds, two placements, one loop each:
   Tier-1 keyboard inset = 320px; benchmark layout = `benchmark/vectors/` wins
   (`cases/` + `run_benchmark.dart` deferred); MCP = one reconciled contract
   decided inside SYS-MCP-001; Llama = deferred unless MCP proves insufficient;
-  scope boundary = hackathon rules/submission artifacts stay in PLAN-01, out
-  of this functional plan.
+  scope boundary = hackathon scope dropped entirely (deadline missed;
+  production use only — PLAN-01).
 - Priority order is loop-closure-first: deterministic loop (P0) → detection
   breadth (P1) → dynamic gates (P2) → AI/multimodal/research (P3).
-- Build freeze (reconciles PLAN-01 non-goals with this plan's P2/P3):
-  PLAN-01 non-goals stand for pre-submission *build*; this plan's P2/P3
-  are contracts-only pre-submission (specs may land, implementations wait).
-  Pre-submission build order is v0-first (3 rules + `grade` + `check` +
-  Tier-1-lite per REVIEW-01 §4); remaining P0/P1 builds are ordered stretch.
+- Build order (no freeze; full product for real use): Step 0 → P0 → P1 →
+  P2 → P3 build in dependency order. P2 builds fully; P3 builds MCP +
+  distribution while Tier-2 stays endpoint-gated, Llama stays deferred, and
+  profiler/perf/formal items stay spike-first (spec or recorded drop).
+  REVIEW-01 §4 cuts are superseded.
 
 ## Steps
 
@@ -170,11 +170,11 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   sources: the 7 PDV D+ rule files mapped in
   `docs/_origem/ReferencePdvDMais.md` §1.
 
-**Step 3 — P2: dynamic gates (all system specs; contracts-only pre-submission).**
+**Step 3 — P2: dynamic gates (all system specs; full build).**
 - `SYS-MUT-001`: mutation runner — sandbox layout (records the
   `test_fixtures/` resolution: `vectors/` = golden evals, `fixtures/` =
   agent playground), source-rewriter API, test invocation with 8s
-  circuit-breaker timeout, green-on-mutant comparator; v0 milestone =
+  circuit-breaker timeout, green-on-mutant comparator; first milestone =
   canary-mutant test. Validate: catches a planted complacent test; honest
   tests pass.
 - `SYS-VIEW-001`: Tier-1 viewport runner — harness file/API (resolves
@@ -183,9 +183,9 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   2.0, landscape split ratio — unioned with the PDV D+ adversarial
   resolutions 1024x768 / 800x600 from uilayout.md; membership decided
   here), screenshot path `build/test_snapshots/`, `FlutterError.onError`
-  wiring, evidence entries, 8s timeout; includes the Flutter-SDK dependency
-  decision; v0 fallback = Tier-1-lite AST heuristic. Validate: `flutter
-  test` red on bad layout, green after fix (conditional on SDK presence).
+  wiring, evidence entries, 8s timeout; Flutter-SDK dependency confirmed
+  (3.47.9 present); fallback = Tier-1-lite AST heuristic where the SDK is
+  absent (CI). Validate: `flutter test` red on bad layout, green after fix.
 - `SYS-COV-001`: coverage pipeline (`test --coverage` → lcov → `cov(m)`)
   enabling the CRAP gate — or record an explicit deferral of CRAP. Note: CC
   counter is parse-only; only `cov` needs the pipeline.
@@ -193,7 +193,7 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   subtree enumeration, hashing, complexity strategy; thresholds ≥0.8
   similarity / >15 lines from docs.
 
-**Step 4 — P3: AI / multimodal / research (all conditional or spike-first; contracts-only pre-submission).**
+**Step 4 — P3: distribution + gated completion (MCP builds; Tier-2/Llama conditional; profiler/perf/formal spike-first).**
 - `SYS-MCP-001`: reconcile the three documented tool contracts into one wire
   contract; JSON-RPC schemas; `bin/flutterguard_mcp.dart` + `lib/src/mcp/`
   (+ `json_rpc_2`/`stream_channel` deps); `init --mcp` writes; **chat-skills
@@ -223,11 +223,10 @@ placement, evidence wiring, errors/edges, contradictions resolved). Add
   waste-index get IDs at decomposition time.
 - `FG-PERF-010` (new ID, spike-first): Main Isolate Starve — define "heavy
   sync work" detection criteria before speccing.
-- `SYS-CAL-001` (backlog, post-submission): threshold calibration corpus —
+- `SYS-CAL-001` (backlog, scheduled after P1): threshold calibration corpus —
   real Dart/Flutter corpus with published precision/recall per blocking
   threshold (depth, params, similarity, ratio, tap-target); gates the
-  MET-007 advisory→blocking flip (calibration itself is a PLAN-03
-  non-goal).
+  MET-007 advisory→blocking flip.
 
 **Step 5 — Traceability audit.** Map each of the 17 docs' named ideas to its
 spec ID, deferral, or non-goal. The 6 contradictions each cite their owning
@@ -238,8 +237,8 @@ Non-goals recorded: `uml-viewer`-style viz (deferred), PDV domain rules —
 tenancy/fiscal (reference only, never ported), `FG-I18N` + `FG-YAGNI`
 (deferred with reason), framework-mixing detection (deferred: needs a
 package-dependency graph + cross-file framework census; low precision
-parse-only), MetaAi study checklists (not spec material), hackathon
-submission artifacts (stay in PLAN-01).
+parse-only), MetaAi study checklists (not spec material). Hackathon
+submission artifacts are dropped (deadline missed), not deferred.
 
 ## Validation Plan
 
@@ -250,10 +249,10 @@ submission artifacts (stay in PLAN-01).
   hook block test, or matrix red/green as specified above).
 - Phase exits: P0 = `check` works, heal path decided, 4 rules green (2
   existing + ST-001 + LIFE-001), canon recorded; P1 = 13 rules green with
-  full recipe coverage; P2 = each specced (Tier-1-lite heuristic builds as
-  the v0 exception; fixture proofs post-submission); P3 = MCP contracted
-  (smoke test post-submission), Tier-2/Llama either contracted or explicitly
-  deferred, formal provers decomposed or dropped.
+  full recipe coverage; P2 = mutation + Tier-1 + coverage/duplication built
+  with fixture proofs; P3 = MCP built (stdio smoke green), Tier-2
+  built-or-deferred with recorded reason, calibration corpus built, formal
+  provers decomposed-or-dropped.
 - Highest-risk validation: `SYS-HEAL-001` patch-apply semantics (defines
   whether the loop is autonomous or agent-assisted) and `SYS-VIEW-002`
   endpoint verification (may force Tier-2 to a declared manual step).
@@ -303,9 +302,9 @@ submission artifacts (stay in PLAN-01).
 - `SYS-HEAL-001` is the architectural fork: code-owned dispatcher
   (recommended assumption) vs agent-following-instructions (current reality).
   Either is acceptable if specified; the risk is leaving it ambiguous.
-- Tier-1 requires a Flutter SDK the repo doesn't have (pure-Dart `pubspec`);
-  Tier-2 endpoints are unverified. Both specs carry explicit go/no-go
-  decisions.
+- Tier-1 SDK confirmed present (Flutter 3.47.9; otherwise pure-Dart
+  `pubspec`); Tier-2 endpoints are unverified. Tier-2 carries an explicit
+  go/no-go decision.
 - Open questions: none blocking P0 — the two forks above (heal ownership,
   MCP-vs-Llama) carry reversible defaults and are decided inside their own
   specs.

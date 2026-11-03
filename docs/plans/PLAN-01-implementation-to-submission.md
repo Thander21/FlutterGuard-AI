@@ -1,9 +1,8 @@
 ---
-plan_version: "1.2"
+plan_version: "2.0"
 id: "PLAN-01"
-title: "First implementation plan to hackathon submission"
+title: "Full implementation plan to production use"
 status: "proposed"
-deadline: "2026-11-04T21:00:00-04:00"
 source_docs:
   - "docs/_origem/Architecture.md"
   - "docs/_origem/FormalVerificationAlgorithms.md"
@@ -19,22 +18,35 @@ source_docs:
   - "docs/plans/REVIEW-01-viability-assessment.md"
 ---
 
-# PLAN-01: First Implementation Plan to Hackathon Submission
+# PLAN-01: Full Implementation Plan to Production Use
 
 ## Goal
 
-Ship a working, demoable FlutterGuard AI prototype before the Meta hackathon
-deadline (Nov 4, 2026, 21:00 ET): a deterministic Dart AST core with golden
-evals, a minimal CLI, one headless visual gate, and submission artifacts.
+Ship a complete, production-usable FlutterGuard AI: a deterministic Dart AST
+core with golden evals, a full CLI (`check`, `init`, pre-commit hook), an
+auto-heal loop, dynamic gates (mutation + Tier-1 viewport), an MCP server,
+and installable distribution. No hackathon deadline applies (missed; dropped
+from scope) — delivery is ordered by dependency (Step 0 → P0 → P1 → P2 →
+P3), not by date.
 
 ## Success Criteria
 
 - `dart test` passes for every rule visitor (zero false positives on `.good`).
-- `dart run bin/flutterguard.dart grade` exits 0 and appends `evidence.jsonl`.
+- `dart run bin/flutterguard.dart grade` exits 0 and appends canon-keyed
+  `evidence.jsonl`.
 - `flutterguard check` audits a target directory and reports violations as JSON.
-- One headless viewport case (keyboard-open RenderFlex) fails closed on `.bad`
-  (stretch; v0 fallback is the Tier-1-lite AST heuristic, PLAN-02 SYS-VIEW-001).
-- Submission texts (Blueprint §2, Track §2) and demo inputs are ready in English.
+- `flutterguard init` scaffolds `.flutterguard/` and installs the pre-commit
+  hook; the hook blocks planted violations.
+- Heal loop: fixture red → patch → green within budget, rollback on failure
+  with a diagnostic report.
+- Mutation gate catches a planted complacent test; honest tests pass.
+- Tier-1 viewport: `flutter test` red on `.bad` layout, green after fix
+  (Flutter SDK verified present).
+- MCP server: stdio smoke test green per tool; `init --mcp` registers clients.
+- Install from the git URL works; `flutterguard check` runs from a foreign
+  directory.
+- Tier-2 (SAM/Vision) verdict recorded: built if endpoints verify, otherwise
+  explicitly deferred with Tier-1 standing.
 
 ## Doc Validation Decisions
 
@@ -51,26 +63,31 @@ Docs were read as a starting point, not truth. Binding resolutions:
   `evidence.jsonl` schema, §5); `fg run`, `bin/ast_guardian.dart`,
   `flutterguard analyze` (folded into `check`), and `crap`/`dryer`
   command names are superseded.
-- `docs/_rulesHackathon/` is consulted for deadline/disclosure only
-  (deadline, §2 submission texts, §5 demo script, §6 scoring checklist)
-  per `AGENTS.md`; every functional requirement in this plan (CLI
-  surface, rule backlog, JSON shape) is sourced from `docs/_origem/`.
+- Hackathon scope dropped: deadline missed, `docs/_rulesHackathon/` is not
+  consulted, and submission artifacts (texts, demo script, scoring
+  checklist) are deleted from scope, not deferred.
+- REVIEW-01 §4 cuts are superseded by the full-product direction: `init` +
+  hook, P2/P3 builds, and MCP are all scheduled (the review itself stays
+  frozen as a historical record).
 - Gates follow `ForceFieldHarness.md` (light → test → full → commit-check),
   mapped onto the tiered runner: parse-only AST first, resolved/compiled
   checks later.
 - New docs and code stay in English per `AGENTS.md`; old Portuguese docs are
   kept as-is, no rewrite.
-- `FG-FORMAL-001..005` (DFA/CFG provers) are research-grade; only their
-  practical subsets (async-gap guard, dispose symmetry) enter this plan.
+- `FG-FORMAL-001..005` (DFA/CFG provers) are research-grade: each decomposes
+  into EDD rule specs or drops with a recorded reason; none builds as
+  documented.
 - Meta endpoints (SAM 3.1, Muse Image, Llama Stack) are unverified; Tier 2
-  stays conditional behind interfaces. Tier 1 native gates must demo standalone.
-- `SEU-USER` URLs are placeholders; replacing them is a release gate, not code.
+  builds only after endpoint verification. Tier 1 native gates must work
+  standalone regardless.
+- Repo URL placeholders are replaced with the real URL at release time.
 - Rule contracts live in `specs/` (normative, grader-read); `docs/` is the
   thinking repository (prose, plans, analyses).
-- Non-goals reconciliation (PLAN-02 + REVIEW-01 §4): the non-goals below
-  stand for pre-submission *build*; PLAN-02 P2/P3 *contracts* (specs) may
-  still land. v0 freeze: 3 rules + `grade` + `check` + Tier-1-lite build
-  first; Phases 3–4 are stretch.
+- Standing non-goals: PDV fiscal/tenancy rules (reference only, never
+  ported), Llama binding (deferred unless MCP proves insufficient),
+  framework-mixing detection (deferred: needs a package-dependency graph),
+  `FG-I18N` + `FG-YAGNI` (deferred with reason). Former stretches (P2/P3
+  builds, MCP, distribution) are scheduled, not cut.
 - Heal budget: 3 attempts + snapshot + Attack-the-Premise (ForceField §3)
   wins; ProjectOverview's "1–2 turns" is stale (kept: Portuguese doc
   rewrites are a non-goal).
@@ -83,72 +100,110 @@ EDD loop per rule (spec → vectors → visitor → test → grade), cheapest ga
 first. Rule backlog comes from `docs/_origem/CanonicalRecipesCatalog.md`
 (§1–§2: FG-ST-001, FG-ASYNC-002) and `docs/_origem/DisruptiveInnovations.md`
 (Part 2 §2 item 4 missing-`ValueKey`, Part 3 §1 AST suite + §2 Lifecycle &
-Memory Warden); live recipes live in each spec's §2.
+Memory Warden); live recipes live in each spec's §2. System backlog follows
+PLAN-02 P0 → P3 in dependency order; research items are spike-first (spec
+or recorded drop).
 
 ## Steps
 
-### Phase 1 — AST rule core (EDD loop, highest value first)
+### Phase 1 — Deterministic core (PLAN-02 Step 0 + P0)
 
-1. `FG-ST-001`: controllers instantiated in `build()` (Recipes §1). — DONE (`specs/TS-03-controller-in-build-guard.md`, `TC-03` pair, 9/9 tests, grade 6/6).
-2. `FG-ASYNC-002`: `BuildContext` after `await` without `mounted` guard
-   (Recipes §2).
-3. `FG-LIFE-001`: `StreamSubscription` without `cancel()` in `dispose()`
+1. Step 0: harden `grade` (per-file parse errors), FP-limit fields,
+   `specs/system/_template.md`. (Kind-skip + `analysis` field DONE.)
+2. `SYS-TELE-001` telemetry canon; `SYS-CLI-001a` `check <path> [--json]`
+   with gate mapping over the `_analyzers` registry.
+3. `FG-ST-001`: controllers instantiated in `build()` (Recipes §1). — DONE
+   (`specs/TS-03-controller-in-build-guard.md`, `TC-03` pair, 9/9 tests,
+   grade 6/6).
+4. `FG-LIFE-001`: resource symmetry — `StreamSubscription`/`Timer`/
+   controllers/`FocusNode`/listener-add without release in `dispose()`
    (DisruptiveInnovations Part 3 §2, Zombie Stream Detector).
-4. `FG-KEY-001`: mutable widget collections without `ValueKey`
-   (DisruptiveInnovations Part 2 §2 item 4, missing-`ValueKey` transpose;
-   see the PLAN-02 rescope `FG-KEY-001r`: only `.map()`/`itemBuilder`
-   without `key` + `ReorderableListView`; the dataflow version is dropped).
+5. `SYS-HEAL-001`: heal dispatcher (highest-risk spec — decides the
+   agent-vs-harness boundary).
+6. `SYS-CLI-001b`: `init` + pre-commit hook (running `check`) + `sandbox`
+   commands + install scripts.
 - Validation per rule: new spec in `specs/`, new pair in
-  `benchmark/vectors/`, `dart test` green, `grade` exit 0.
+  `benchmark/vectors/`, `dart test` green, `grade` exit 0. P0 exit: `check`
+  works, heal path decided, 4 rules green, canon recorded.
 
-### Phase 2 — CLI completion
+### Phase 2 — Detection breadth (P1 rules + recipes)
 
-1. `flutterguard check <path> [--json]`: run all visitors over a target,
-   JSON output per the `Architecture.md` §5 `evidence.jsonl` schema.
-2. `flutterguard init`: scaffold `.flutterguard/` (opt-in) + install
-   pre-commit hook running `check`. (Hook audits the target; `grade` is a
-   repo-local dev-loop.)
-3. Fold `grade` output into the same JSON evidence shape; keep both commands.
-- Validation: `check` on `benchmark/vectors/` flags every `.bad`, spares
-  every `.good`; hook blocks a planted violation commit in a scratch clone.
+1. `FG-ARCH-003`: layer-leak import scan (Recipes §3).
+2. `FG-ASYNC-002`: `BuildContext` after `await` without `mounted` guard
+   (Recipes §2), incl. the `setState`-after-unmount sub-case.
+3. `FG-LAY-004`: unbounded `ListView` in `Column` (Recipes §4).
+4. `FG-ST-005`: direct state mutation in Riverpod/Bloc (Recipes §5).
+5. `FG-CTX-006`: no `BuildContext` outside `Widget`/`State` signatures.
+6. `FG-WID-008`: StatelessWidget immutability (no `var`/non-final fields).
+7. `FG-LINT-009`: no-suppression (`// ignore:`, empty `catch`).
+8. `FG-KEY-001r`: stateful widgets via `.map()`/`itemBuilder` without `key`
+   + `ReorderableListView` (DisruptiveInnovations Part 2 §2 item 4;
+   the dataflow version is dropped as unimplementable).
+9. `FG-MET-007`: depth/params advisories until `SYS-CAL-001` calibration
+   (blocking on uncalibrated thresholds is barred).
+10. `SYS-RECIPE-001`: every rule spec carries its §2 Canonical Auto-Heal
+    Recipe; lookup key = rule id.
+- Validation: 13 rules green with full recipe coverage; per-rule validation
+  as in Phase 1.
 
-### Phase 3 — Mutation gate v0 (stretch, see v0 freeze)
+### Phase 3 — Dynamic gates (P2)
 
-1. Rewrite 3 operators (`>`, `==`, `true`) in a sandbox copy (no in-place).
-2. Fail closed when the suite stays green on mutated code.
-- Validation: a deliberately complacent test is caught; honest tests pass.
+1. `SYS-MUT-001`: mutation runner — sandbox copy (no in-place), 3 operators,
+   8s circuit-breaker, canary-mutant milestone.
+2. `SYS-VIEW-001`: Tier-1 viewport runner — fixed adversarial matrix,
+   `FlutterError` wiring, evidence entries, 8s timeout.
+3. `SYS-COV-001`: coverage pipeline enabling the CRAP gate (or an explicit
+   CRAP deferral with reason).
+4. `SYS-DRY-001`: structural duplication detector (AST normalization,
+   ≥0.8 similarity / >15 lines).
+- Validation: a planted complacent test is caught and honest tests pass;
+  `flutter test` red on `.bad` layout, green after fix.
 
-### Phase 4 — Viewport Tier 1 (stretch; needs Flutter SDK)
+### Phase 4 — Distribution + MCP (P3 build subset)
 
-1. Headless `WidgetTester` case: keyboard inset 320px over a checkout form.
-2. Fail closed on `FlutterError` (`RenderFlex overflowed`); record evidence.
-- Validation: `flutter test` red on `.bad` layout, green after
-  `SingleChildScrollView` fix. This is the video demo anchor (Blueprint §5).
+1. `SYS-MCP-001`: reconciled wire contract, `bin/flutterguard_mcp.dart` +
+   `lib/src/mcp/`, the 4 `SKILL.md` files, `init --mcp` client registration.
+2. Packaging: `executables` stanza, `dart install <git URL>` (+ `pub global`
+   fallback), install proof from a foreign directory.
+3. Dogfood L0: self-`check` over `lib`/`bin`/`test` exits 0 (vectors
+   excluded by design) + non-pollution properties.
+- Validation: stdio smoke test green per MCP tool; install + hook e2e in a
+  scratch clone; `grade` never distributed (install docs cover `check` only).
 
-### Phase 5 — Submission artifacts
+### Phase 5 — Conditional completion (P3 gated items)
 
-1. Freeze Blueprint §2 + Track §2 texts; replace `SEU-USER` placeholders.
-2. Record inputs for the 120-second script (terminal runs, screenshots).
-3. Keep `README.md` (English) and `LEIAME.md` (Portuguese) in sync.
-- Validation: checklist against Blueprint §6 scoring map; repo installs via
-  `dart install <real-url>` (`dart pub global activate --source git` fallback).
+1. `SYS-VIEW-002`: Tier-2 contract — build iff SAM/Vision endpoints verify
+   (auth, mask→widget mapping, thresholds); otherwise a recorded deferral.
+2. `SYS-CAL-001`: calibration corpus with published precision/recall per
+   blocking threshold; flips MET-007 advisory → blocking.
+3. Formal decompose-or-drop: `FG-MEM-011`, `FG-FSM-012`, `FG-RACE-013` each
+   become EDD specs or recorded drops; remaining FORMAL-004/005 subsets and
+   the FORMAL-003 waste-index get IDs at decomposition time.
+4. Spikes: `SYS-PROF-001` (rebuild-counter API), `FG-PERF-010` (Main Isolate
+   criteria) — each ends in a spec or a recorded drop with reason.
+- Validation: every item ends built or explicitly deferred/dropped with
+  reason; PLAN-02 Step 5 traceability audit shows zero orphans.
 
 ## Validation Plan
 
 - Fast loop: `dart pub get && dart test` after every visitor change.
-- Eval gate: `dart run bin/flutterguard.dart grade` (exit 0, evidence appended).
+- Eval gate: `dart run bin/flutterguard.dart grade` (exit 0, evidence appended
+  in canon keys).
 - Full gate: `dart analyze --fatal-infos` before each phase closes.
-- UI gate: `flutter test` for Phase 4 only.
-- Highest-risk step: Phase 4 without a local Flutter SDK; verify SDK presence
-  before starting it (`flutter --version`).
+- UI gate: `flutter test` for Tier-1 work (Flutter SDK verified present).
+- Contract tests for every system spec per PLAN-02 (fixture red→green, stdio
+  smoke, hook block, matrix red/green).
+- Highest-risk step: `SYS-HEAL-001` patch-apply semantics (defines whether
+  the loop is autonomous or agent-assisted).
 
 ## Risks / Open Questions
 
-- Only 4 days to submission: if Phase 4 slips, demo Tier 1 with a recorded
-  run and keep the AST + mutation story live.
-- Meta Tier 2 APIs stay out of the graded path until endpoints are verified.
-- `test_fixtures/` playground (Architecture §6) is deferred; golden vectors
-  cover the eval need.
-- Non-goals: MCP server, auto-heal loop, CRAP/dryer metrics, formal provers,
-  Portuguese doc rewrites (build-scope; P2/P3 contracts may still land per
-  the reconciliation above).
+- Heal fork decides the autonomy claim; either side is acceptable if
+  specified inside `SYS-HEAL-001` — the risk is leaving it ambiguous.
+- Tier-2 endpoints may not exist as documented → recorded deferral with
+  Tier-1 standing; no schedule impact since nothing depends on Tier-2.
+- Parse-only ceiling: FP rates may force `resolved` analysis per rule; the
+  `analysis` front-matter field surfaces this early by design.
+- No date pressure: phases exit on validation gates, not the calendar.
+- Non-goals: PDV fiscal/tenancy, Llama binding, framework-mixing detection,
+  `FG-I18N`/`FG-YAGNI` (see decisions above).

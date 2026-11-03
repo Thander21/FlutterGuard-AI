@@ -1,5 +1,5 @@
 ---
-plan_version: "1.0"
+plan_version: "2.0"
 id: "PLAN-03"
 title: "Architecture conformance and distribution"
 status: "proposed"
@@ -16,10 +16,9 @@ source_docs:
 ## Goal
 
 Reconcile docs, plans, and rule specs with the implemented reality (three
-AST rules, validated EDD loop), and record the decided direction for
-self-validation (dogfood) and distribution (install/MCP) without building
-either yet. Implementation is frozen at FG-ST-001; this plan is docs,
-plans, and specs only.
+AST rules, validated EDD loop); land the conformance as docs-only units
+(D0–D4); then build distribution (packaging, install proof, dogfood) after
+P0, with the MCP server owned by SYS-MCP-001.
 
 ## Success Criteria
 
@@ -30,8 +29,10 @@ plans, and specs only.
   in specs and template (PLAN-02 requirement).
 - PLAN-01/02 reflect FG-ST-001 done, the hook running `check` (not
   `grade`), and this plan registered as PLAN-03.
-- No edits under `lib/`, `bin/`, `test/`; `evidence.jsonl` untouched;
-  suite stays 9/9.
+- No edits under `lib/`, `bin/`, `test/` in the docs units (D0–D4);
+  `evidence.jsonl` untouched; suite stays 9/9.
+- Distribution build scheduled after P0: `dart install <git URL>` works,
+  `flutterguard check` runs from a foreign directory, dogfood L0 is green.
 
 ## Approach
 
@@ -47,9 +48,9 @@ per `AGENTS.md` and is never edited. Doc rot fixed: MCP config snippet,
 `.flutterguard/` + agent-file injection made opt-in, `sandbox reset`
 reference, stale "2 rules" notes.
 
-Decisions: D0 implementation frozen, docs-only; D5 docs follow verified
-code (applied to the PLAN-02 prescribed visitor filename); D1–D4 recorded
-under Deferred.
+Decisions: D0 conformance-first (docs-only units D0–D4), distribution
+build scheduled after P0; D5 docs follow verified code (applied to the
+PLAN-02 prescribed visitor filename).
 
 ## Steps
 
@@ -85,11 +86,11 @@ template.
 
 ### D4 — Plans
 
-This file; PLAN-01 (ST-001 done, hook `grade`→`check`, `dart install`
-note); PLAN-02 (TS-03/TC-03 verified, next numbers TS-04/TC-04, ST-001
-done with implemented filename, Step 0/prerequisites refresh, FORMAL
-disposition line). Phase structures, P1–P3 backlog, and non-goals
-untouched.
+This file; PLAN-01 v2.0 (production reframe, hackathon scope dropped);
+PLAN-02 v3.0 (TS-03/TC-03 verified, next numbers TS-04/TC-04, ST-001 done
+with implemented filename, Step 0/prerequisites refresh, FORMAL
+disposition line, P2/P3 promoted to build). Phase structures, backlog, and
+non-goals reframed for production use — nothing untouched by design.
 
 ## Validation Plan
 
@@ -102,7 +103,7 @@ untouched.
   sync; LEIAME accents intact after edit.
 - Final diff review per unit (D1–D4 separable for sliced publishing).
 
-## Deferred (decided, not scheduled)
+## Distribution build (scheduled after P0)
 
 Packaging first via `dart install <Git URL>` (D1; recommended per
 dart.dev, `pub global` legacy; SDK ships 3.13.7, needs 3.10+),
@@ -125,14 +126,16 @@ project).
   don't resolve once installed. Decide before MCP, which
   `get_canonical_recipe` depends on. Options: `rule` command, embedded
   specs, published URLs.
-- Non-goals carried: MCP implementation, protocol spike, CI, threshold
-  calibration, multi-vector evals, P1–P3 backlog changes.
+- Non-goals carried: protocol spike beyond SYS-MCP-001's contract, CI,
+  multi-vector evals, P1–P3 backlog changes. MCP implementation is
+  scheduled (SYS-MCP-001); threshold calibration is scheduled (SYS-CAL-001
+  after P1).
 
 ## Risks
 
-- R4 active: FG-ST-001 verified but uncommitted; docs pile onto it.
-  Publish FG-ST-001 first as a separate unit (explicit direction
-  required), docs second; boundaries are clean by construction (this plan
-  touches only docs/plans/specs/README/LEIAME).
-- R1/R2 dormant (no install step here); R3 open (see Deferred).
+- R4 retired: FG-ST-001 committed (`143ca7f`); conformance lands as
+  separate docs units, distribution as separate code units. Docs units
+  touch only docs/plans/specs/README/LEIAME; distribution units touch
+  pubspec/bin/install scripts.
+- R1/R2 scheduled with the distribution build; R3 open (see above).
 - Open questions: none.
