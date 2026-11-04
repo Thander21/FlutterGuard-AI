@@ -20,8 +20,8 @@ require explicit flags.
 hook install + `flutterguard.yaml` + mandate print by default;
 `--scaffold` also creates `.flutterguard/`; `--agents` also appends the
 mandate to `AGENTS.md`. Exit 0 when every applicable step lands, 1 when a
-step fails, 2 on bad arguments. `init --mcp` stays reserved for
-SYS-MCP-001 (unknown flag → exit 2 today).
+step fails, 2 on bad arguments. `init --mcp` registers IDE clients per
+SYS-MCP-001 §2 (shipped in P3).
 
 Pre-commit hook (`.git/hooks/pre-commit`, marker
 `# FlutterGuard pre-commit hook (SYS-CLI-001b)`):
@@ -80,9 +80,14 @@ Agent mandate (printed by default; appended to `AGENTS.md` only with
 ```
 
 Client-specific files (`CLAUDE.md`, `GEMINI.md`) and `init --mcp`
-registration belong to SYS-MCP-001. `install.sh` / `install.ps1` (root,
-one-liner global install from the git URL) ship here; the `executables`
-stanza and the live install proof stay in distribution (PLAN-03 U2).
+registration belong to SYS-MCP-001. Global install has two methods:
+`dart install '<pkg>@{git:{url:...}}'` (primary, PLAN-01 Phase 4) and
+`dart pub global activate --source git` (fallback for SDKs without
+`dart install`). `install.sh` / `install.ps1` (root, one-liner global
+install from the git URL) try the primary and fall back automatically;
+both verify with `flutterguard check --help`. The `executables` stanza
+and the live install proof stay in distribution (PLAN-03 U2); the
+proof record lives in §6.
 
 # 3. File Placement
 

@@ -10,9 +10,8 @@
 > viewport runner (com fallback AST Tier-1-lite), pipeline de
 > cobertura/CRAP, detector de duplicação estrutural e servidor MCP
 > (5 ferramentas tipadas, `init --mcp`, 4 chat-skills). O visual
-> gate Tier-2 está **[PLANEJADO]** (ver
-> `docs/plans/PLAN-01-implementation-to-submission.md` e
-> `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
+> gate Tier-2 está **[ADIADO]** — endpoints não verificados,
+> Tier-1 vigente (ver `specs/system/SYS-VIEW-002-tier2-visual.md`).
 > `specs/` é normativo; `docs/` registra direção e intenção.
 
 ---
@@ -58,7 +57,10 @@ dart run bin/flutterguard.dart check <path> [--json]
 ### Instalação global
 
 ```bash
-# 1. Ativação global oficial direto do GitHub (Dart SDK)
+# 1. Instalação global oficial direto do GitHub (Dart SDK).
+# Caminho primário (SDKs com `dart install`):
+dart install 'flutterguard_ai@{git:{url:https://github.com/Thander21/FlutterGuard-AI.git}}'
+# Fallback para SDKs antigos:
 dart pub global activate --source git https://github.com/Thander21/FlutterGuard-AI.git
 
 # 2. Inicialização com Servidor MCP e Git Hook no seu projeto Flutter
