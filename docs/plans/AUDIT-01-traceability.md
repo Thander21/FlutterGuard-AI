@@ -244,3 +244,10 @@ approved, 1 deferred, 2 dropped spikes) plus table-recorded drops
   vectors, visitors, registry entries, and recipe embeds;
   SYS-CLI-001a §2/§3/§5/§6 amended (gate row live, batch
   placement, fail-closed flip). Tracked backlogs: zero.
+- 2026-11-04 — TS-07 v2 (FORMAL-002 axes) closed: Row axis +
+  GridView/CustomScrollView coverage amended into TS-07
+  (FG-LAY-004, same ID), TC-07 vectors extended (all six
+  flex×scrollable cells + shrinkWrap-trap negative), visitor +
+  unit tests extended; SYS-FORMAL-001 table flipped
+  BACKLOG→COVERED. Re-audit triggers remaining: VIEW-002,
+  PROF-002, `*Sync` candidate.

@@ -29,7 +29,7 @@ Decomposition table (IDs assigned here at decomposition time):
 | FORMAL-001 closures | FG-MEM-011 retained closures | ABSORBED + DROP | listener-add without `removeListener` already a FG-LIFE-001 table row; capture-escape remainder needs region analysis — dropped |
 | FORMAL-002 intervals (theorem) | unbounded scrollable in flex | COVERED | FG-LAY-004 v0 proves the Column×ListView case |
 | FORMAL-002 engine | interval vectors + screen dims | DROP | needs runtime dimensions + constraint propagation across the tree — not a static rule |
-| FORMAL-002 axes | Row-axis + GridView/CustomScrollView | BACKLOG | same theorem, deliberate TS-07 v0 cut — recorded as TS-07 v2 backlog (no new ID; amends TS-07 when built) |
+| FORMAL-002 axes | Row-axis + GridView/CustomScrollView | COVERED | TS-07 v2 (2026-11-04): Row axis + GridView/CustomScrollView in Column/Row; runtime truth probed on Flutter 3.47.9 (Row ignores shrinkWrap); spec + vectors + visitor amended, no new ID |
 | FORMAL-003 purity (§3.2.1 controllers) | controller allocation in build() | COVERED | FG-ST-001 |
 | FORMAL-003 purity (§3.2.1 async) | fire-and-forget async in build() | BUILD | FG-BUILD-014 — full EDD loop (TS-14): `Future.*` (minus `value`), `Timer`, socket allowlist, `.then/.catchError/.whenComplete`, `unawaited` directly in build scope; closures (event handlers) skipped |
 | FORMAL-003 slicing (§3.2.2) | FG-WASTE-015 RebuildWasteIndex > 0.80 | DROP | forward-slice "reads derived values" needs resolved dataflow + reads analysis; unimplementable statically at precision |
@@ -66,9 +66,10 @@ EDD loop lands.
   precision bar. A future resolved-analysis or CFG engine may
   revisit any drop by amending this table — never by silently
   minting the ID.
-- TS-07 v2 backlog is the only backlog: when built it AMENDS
-  TS-07 (spec + vectors + visitor) — no new rule ID, no new
-  golden pair namespace (extends TC-07).
+- TS-07 v2 backlog was the only backlog: built 2026-11-04,
+  amending TS-07 (spec + vectors + visitor) — no new rule ID,
+  no new golden pair namespace (extended TC-07). No backlogs
+  remain in this table.
 - BUILD-014 vectors stay MET/DRY-neutral (shallow trees, small
   ctors, no 16-line twins): the calibration tripwire pins the
   ratified sets, and deliberate vector shapes must not force a

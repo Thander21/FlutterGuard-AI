@@ -128,6 +128,23 @@ heal; the gate compares against exactly that output.''',
 +      ),
      ],
    )
+```
+
+Row axis — same fix, horizontal (v2):
+
+```diff
+   Row(
+     children: [
+-      ListView(
+-        children: [Text('a')],
+-      ),
++      Expanded(
++        child: ListView(
++          children: [Text('a')],
++        ),
++      ),
+     ],
+   )
 ```''',
   'FG-LIFE-001': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 

@@ -1,10 +1,12 @@
-// FG-LAY-004: forbid unbounded ListView directly inside Column.
+// FG-LAY-004: forbid unbounded scrollables directly inside Column/Row.
 //
-// A Column passes unbounded height to its children, so a bare ListView
-// in `children` throws `Vertical viewport was given unbounded height`.
-// The list must be wrapped in Expanded/Flexible, given a bounded height,
-// or declare `shrinkWrap: true`. Parsing only (no type resolution), so
-// vectors need no dependencies.
+// A Column passes unbounded height (a Row, unbounded width) to its
+// children, so a bare ListView/GridView/CustomScrollView in `children`
+// throws the unbounded-viewport error at runtime. The scrollable must
+// be wrapped in Expanded/Flexible, given a bounded height/width, or —
+// in Column only — declare `shrinkWrap: true` (the Row axis ignores
+// shrinkWrap: probed on Flutter 3.47.9). Parsing only (no type
+// resolution), so vectors need no dependencies.
 
 import 'dart:io';
 
@@ -15,11 +17,21 @@ import 'package:analyzer/source/line_info.dart';
 
 import 'rule_violation.dart';
 
+/// Flex containers whose `children` are judged.
+const _flexNames = <String>{'Column', 'Row'};
+
+/// Scrollable widgets flagged as direct flex children.
+const _scrollableNames = <String>{'ListView', 'GridView', 'CustomScrollView'};
+
+/// Named constructors parsed as invocations on the widget target.
+const _listViewCtors = <String>{'builder', 'separated', 'custom'};
+const _gridViewCtors = <String>{'builder', 'count', 'extent', 'custom'};
+
 /// A single FG-LAY-004 violation.
 class ListViewportViolation implements RuleViolation {
   const ListViewportViolation({required this.line, required this.message});
 
-  /// 1-based line number of the offending ListView creation.
+  /// 1-based line number of the offending scrollable creation.
   @override
   final int line;
 
@@ -39,37 +51,48 @@ List<ListViewportViolation> analyzeListViewportFile(String path) {
   return guard.violations..sort((a, b) => a.line.compareTo(b.line));
 }
 
-/// Flags unbounded ListViews in `Column(children: …)`.
+/// Flags unbounded scrollables in flex `children: …`.
 ///
-/// Scope (v0): every `Column` creation (explicit or bare call) is judged
-/// independently. Its `children` argument is walked through collection
-/// literals, `if`/`for` elements, spreads, and conditionals; a ListView
-/// creation (default or named constructor) found there is flagged unless
-/// it sets `shrinkWrap: true`. Other widget creations are never
-/// descended into, so wrapped lists stay clean.
+/// Scope (v2): every `Column`/`Row` creation (explicit, bare, or
+/// prefixed call) is judged independently. Its `children` argument
+/// is walked through collection literals, `if`/`for` elements,
+/// spreads, and conditionals; a ListView/GridView/CustomScrollView
+/// creation found there is flagged unless it sets `shrinkWrap:
+/// true` in a Column (the Row axis ignores `shrinkWrap`). Other
+/// widget creations are never descended into, so wrapped
+/// scrollables stay clean.
 class ListViewportGuard extends RecursiveAstVisitor<void> {
   ListViewportGuard(this._lineInfo);
 
   final LineInfo _lineInfo;
   final List<ListViewportViolation> violations = [];
 
+  /// True while scanning a `Row` children list. Safe as a field:
+  /// collection scans never recurse into nested flexes (other
+  /// widget creations are opaque), so no scan overlaps another.
+  bool _inRow = false;
+
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    if (_simpleName(node.constructorName.type.toSource()) == 'Column') {
-      _checkChildren(node.argumentList);
+    final name = _simpleName(node.constructorName.type.toSource());
+    if (_flexNames.contains(name)) {
+      _checkChildren(node.argumentList, isRow: name == 'Row');
     }
     super.visitInstanceCreationExpression(node);
   }
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
-    if (node.target == null && node.methodName.name == 'Column') {
-      _checkChildren(node.argumentList);
+    final target = node.target;
+    if ((target == null || target is SimpleIdentifier) &&
+        _flexNames.contains(node.methodName.name)) {
+      _checkChildren(node.argumentList, isRow: node.methodName.name == 'Row');
     }
     super.visitMethodInvocation(node);
   }
 
-  void _checkChildren(ArgumentList arguments) {
+  void _checkChildren(ArgumentList arguments, {required bool isRow}) {
+    _inRow = isRow;
     for (final argument in arguments.arguments) {
       if (argument is NamedExpression &&
           argument.name.label.name == 'children') {
@@ -106,32 +129,71 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
   }
 
   void _checkWidget(Expression widget) {
-    if (_isListView(widget) && !_hasShrinkWrapTrue(widget)) {
-      final line = _lineInfo.getLocation(widget.offset).lineNumber;
-      violations.add(ListViewportViolation(
-        line: line,
-        message: 'ListView() directly inside Column() has unbounded height; '
-            'wrap it in Expanded',
-      ));
+    final name = _scrollableName(widget);
+    if (name == null) return;
+    if (!_inRow && _hasShrinkWrapTrue(widget)) return;
+    final axis =
+        _inRow ? 'Row() has unbounded width' : 'Column() has unbounded height';
+    violations.add(ListViewportViolation(
+      line: _lineInfo.getLocation(widget.offset).lineNumber,
+      message: '$name() directly inside $axis; wrap it in Expanded',
+    ));
+  }
+}
+
+/// Scrollable widget created by [widget], or null when it creates
+/// none. Covers explicit creations, bare calls, named constructors
+/// (invocation form when unresolved), and import-prefixed shapes;
+/// call chains (`a().ListView()`) are excluded as method calls.
+String? _scrollableName(Expression widget) {
+  if (widget is InstanceCreationExpression) {
+    final name = _simpleName(widget.constructorName.type.toSource());
+    return _scrollableNames.contains(name) ? name : null;
+  }
+  if (widget is! MethodInvocation) return null;
+  final target = widget.target;
+  final method = widget.methodName.name;
+  if (target == null) {
+    return _scrollableNames.contains(method) ? method : null;
+  }
+  if (target is SimpleIdentifier) {
+    final targetName = _simpleName(target.name);
+    if (targetName == 'ListView' && _listViewCtors.contains(method)) {
+      return 'ListView';
+    }
+    if (targetName == 'GridView' && _gridViewCtors.contains(method)) {
+      return 'GridView';
+    }
+    // Prefixed default (`widgets.ListView()`): an UpperCamelCase
+    // method on a SimpleIdentifier target is a prefix, not a call.
+    if (_scrollableNames.contains(method)) return method;
+    return null;
+  }
+  if (target is PrefixedIdentifier) {
+    // Prefixed named ctor (`widgets.ListView.builder`).
+    final property = target.identifier.name;
+    if (property == 'ListView' && _listViewCtors.contains(method)) {
+      return 'ListView';
+    }
+    if (property == 'GridView' && _gridViewCtors.contains(method)) {
+      return 'GridView';
+    }
+    return null;
+  }
+  if (target is PropertyAccess) {
+    // Deep-prefixed named ctor (`x.y.ListView.builder`).
+    final property = target.propertyName.name;
+    if (property == 'ListView' && _listViewCtors.contains(method)) {
+      return 'ListView';
+    }
+    if (property == 'GridView' && _gridViewCtors.contains(method)) {
+      return 'GridView';
     }
   }
+  return null;
 }
 
-/// True when [widget] creates a ListView (default or named constructor).
-bool _isListView(Expression widget) {
-  if (widget is InstanceCreationExpression) {
-    return _simpleName(widget.constructorName.type.toSource()) == 'ListView';
-  }
-  if (widget is MethodInvocation) {
-    if (widget.target == null) return widget.methodName.name == 'ListView';
-    return _simpleName(widget.target!.toSource()) == 'ListView' &&
-        const {'builder', 'separated', 'custom'}
-            .contains(widget.methodName.name);
-  }
-  return false;
-}
-
-/// True when the ListView [widget] sets `shrinkWrap: true`.
+/// True when the scrollable [widget] sets `shrinkWrap: true`.
 bool _hasShrinkWrapTrue(Expression widget) {
   final ArgumentList arguments;
   if (widget is InstanceCreationExpression) {
