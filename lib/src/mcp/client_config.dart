@@ -100,20 +100,5 @@ McpRegistration writeMcpConfigs({required String root}) {
   return McpRegistration(wrote: wrote, errors: errors);
 }
 
-/// True when [name] resolves on PATH. [pathEnv] injects a fake PATH
-/// for tests; the ambient machine is never asserted on.
-bool resolvesOnPath(String name, {String? pathEnv}) {
-  final path = pathEnv ?? Platform.environment['PATH'] ?? '';
-  if (path.isEmpty) return false;
-  final separator = Platform.isWindows ? ';' : ':';
-  final extensions =
-      Platform.isWindows ? ['', '.exe', '.bat', '.cmd'] : [''];
-  for (final entry in path.split(separator)) {
-    final dir = entry.trim();
-    if (dir.isEmpty) continue;
-    for (final extension in extensions) {
-      if (File('$dir/$name$extension').existsSync()) return true;
-    }
-  }
-  return false;
-}
+// PATH resolution lives in `src/util.dart` ([resolvesOnPath], shared
+// with the Tier-1-lite SDK probe).

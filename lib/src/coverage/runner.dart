@@ -4,10 +4,10 @@
 // The only async unit besides the mutation runner. Temp artifacts are
 // fully parsed into the verdict and deleted; no repo residue.
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import '../util.dart';
 import 'complexity.dart';
 import 'lcov.dart';
 
@@ -112,7 +112,7 @@ class CoverageRunner {
         '--coverage=${raw.path}',
         '--concurrency=1',
       ]);
-      if (testExit == _timedOut) {
+      if (testExit == breakerTimeoutExit) {
         throw StateError('coverage run timed out after $timeout');
       }
       if (testExit != 0) {
@@ -132,7 +132,7 @@ class CoverageRunner {
         '.',
         for (final file in files) ...['--report-on', file],
       ]);
-      if (formatted.exit == _timedOut) {
+      if (formatted.exit == breakerTimeoutExit) {
         throw StateError('format_coverage timed out after $timeout');
       }
       if (formatted.exit != 0) {
@@ -180,26 +180,13 @@ class CoverageRunner {
   }
 
   Future<({int exit, String stderr})> _runCapture(List<String> args) async {
-    final executable =
-        Platform.resolvedExecutable.isNotEmpty ? Platform.resolvedExecutable : 'dart';
-    final process = await Process.start(executable, args);
-    final stdoutDone = process.stdout.transform(utf8.decoder).join();
-    final stderrDone = process.stderr.transform(utf8.decoder).join();
-    var timedOut = false;
-    final breaker = Timer(timeout, () {
-      timedOut = true;
-      process.kill(ProcessSignal.sigkill);
-    });
-    final exit = await process.exitCode;
-    breaker.cancel();
-    await stdoutDone;
-    final stderr = await stderrDone;
-    return (exit: timedOut ? _timedOut : exit, stderr: stderr);
+    final executable = Platform.resolvedExecutable.isNotEmpty
+        ? Platform.resolvedExecutable
+        : 'dart';
+    final result = await runWithBreaker(executable, args, timeout);
+    return (exit: result.exitCode, stderr: result.stderr);
   }
 }
-
-/// Exit code reported when the circuit breaker kills a hop.
-const _timedOut = -1;
 
 /// Last 2000 chars of [text] for failure diagnostics.
 String _tail(String text) =>

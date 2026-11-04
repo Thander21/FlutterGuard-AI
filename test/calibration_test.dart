@@ -18,24 +18,22 @@ const _ratifiedMetFlags = {
 };
 
 /// Ratified DRY pairs over `lib/` (SYS-CAL-001 §2):
-/// `fileA:lineA~fileB:lineB` in canonical order. TPs (blocking-worthy):
-/// check.dart:67 (shared walk), coverage/runner.dart:182 (breaker),
-/// mcp/client_config.dart:103 (PATH search).
+/// `fileA:lineA~fileB:lineB` in canonical order. The 3 TPs were
+/// healed into `lib/src/util.dart` (re-ratification 2026-11-03);
+/// all 12 remaining pairs are known FP classes (data holders,
+/// guard idiom, thin wrappers).
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
-  'lib/src/cli/check.dart:67~lib/src/viewport/lite.dart:56',
-  // Re-ratified 2026-11-03 (BUILD-014 landing): import insertion shifted
-  // RuleAnalyzer 21→22; same pair, same FP-data-class judgment.
   'lib/src/cli/rules.dart:22~lib/src/duplication/detector.dart:22',
+  'lib/src/cli/rules.dart:22~lib/src/util.dart:51',
   'lib/src/coverage/complexity.dart:13~lib/src/mutation/mutant.dart:12',
-  'lib/src/coverage/runner.dart:182~lib/src/mutation/runner.dart:152',
   'lib/src/duplication/detector.dart:22~lib/src/duplication/detector.dart:77',
   'lib/src/duplication/detector.dart:22~lib/src/heal/dispatcher.dart:62',
-  'lib/src/duplication/detector.dart:22~lib/src/viewport/lite.dart:18',
+  'lib/src/duplication/detector.dart:22~lib/src/util.dart:51',
+  'lib/src/duplication/detector.dart:22~lib/src/viewport/lite.dart:17',
   'lib/src/duplication/detector.dart:77~lib/src/heal/dispatcher.dart:62',
-  'lib/src/duplication/detector.dart:77~lib/src/viewport/lite.dart:18',
-  'lib/src/heal/dispatcher.dart:62~lib/src/viewport/lite.dart:18',
-  'lib/src/mcp/client_config.dart:103~lib/src/viewport/lite.dart:38',
+  'lib/src/duplication/detector.dart:77~lib/src/viewport/lite.dart:17',
+  'lib/src/heal/dispatcher.dart:62~lib/src/viewport/lite.dart:17',
   'lib/src/mcp/tools.dart:190~lib/src/mcp/tools.dart:212',
 };
 

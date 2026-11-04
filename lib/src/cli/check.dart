@@ -2,8 +2,7 @@
 //
 // Pure library code (no stdout/stderr side effects) so the CLI stays thin
 // and the behavior is unit-testable.
-import 'dart:io';
-
+import '../util.dart';
 import 'rules.dart';
 
 /// One violation found by `check`.
@@ -72,27 +71,23 @@ class CheckResult {
 /// is missing.
 /// Results are sorted by file, then rule id, then line for determinism.
 CheckResult checkPath(String target) {
-  final type = FileSystemEntity.typeSync(target);
-  if (type == FileSystemEntityType.notFound) {
-    throw ArgumentError('No such file or directory: $target');
-  }
-  final files = <String>[];
-  if (type == FileSystemEntityType.directory) {
-    for (final entity in Directory(target).listSync(recursive: true)) {
-      if (entity is File && entity.path.endsWith('.dart')) {
-        files.add(_normalize(entity.path));
-      }
-    }
-  } else if (target.endsWith('.dart')) {
-    files.add(_normalize(target));
-  }
-  files.sort();
+  final files = collectDartFiles(target);
+  final (:findings, :errors) =
+      analyzeFilesWithRules(files, ruleAnalyzers);
+  return CheckResult(findings: findings, errors: errors);
+}
 
+/// Runs [analyzers] over [files], collecting findings and one error
+/// per broken file. Shared `check`/lite loop: findings sort by file,
+/// then rule id, then line for determinism.
+({List<CheckFinding> findings, List<CheckError> errors})
+    analyzeFilesWithRules(
+        List<String> files, List<RuleAnalyzer> analyzers) {
   final findings = <CheckFinding>[];
   final errors = <CheckError>[];
   final seenErrors = <(String, String)>{};
   for (final file in files) {
-    for (final rule in ruleAnalyzers) {
+    for (final rule in analyzers) {
       try {
         for (final violation in rule.analyze(file)) {
           findings.add(CheckFinding(
@@ -119,9 +114,5 @@ CheckResult checkPath(String target) {
     if (byRule != 0) return byRule;
     return a.line.compareTo(b.line);
   });
-  return CheckResult(findings: findings, errors: errors);
+  return (findings: findings, errors: errors);
 }
-
-/// Forward slashes on every platform, so findings sort and compare the same
-/// on Windows, macOS, and Linux.
-String _normalize(String path) => path.replaceAll(r'\', '/');

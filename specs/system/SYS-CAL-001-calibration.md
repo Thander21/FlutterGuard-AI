@@ -73,27 +73,29 @@ Recall 1.0 by exhaustiveness; 5-deep boundary clean. Open FP
 pattern: app scaffolding counts toward the budget. No retune is
 fitted to N=2 (that would be overfitting, not calibration).
 
-## DRY ≥ 0.8 / > 15 lines — HOLD advisory (precision 3/13)
+## DRY ≥ 0.8 / > 15 lines — HOLD advisory (was 3/13; TPs healed)
 
-TP (blocking-worthy, extraction-actionable): `checkPath` ~=
-`runTier1Lite` @0.823 (57-line walk/collect logic duplicated);
-`CoverageRunner._runCapture` ~= `MutationRunner._runTest` @0.850
-(breaker subprocess logic duplicated); `resolvesOnPath` ~=
-`isFlutterSdkAvailable` @0.882 (16-line PATH search duplicated).
-These three stand as known-advisory findings (future heal
-pointers); fixing them is optional hygiene, not this contract's
-scope.
+TP at ratification (blocking-worthy, extraction-actionable):
+`checkPath` ~= `runTier1Lite` @0.823;
+`CoverageRunner._runCapture` ~= `MutationRunner._runTest` @0.850;
+`resolvesOnPath` ~= `isFlutterSdkAvailable` @0.882. All three
+were HEALED into `lib/src/util.dart` (`collectDartFiles`,
+`runWithBreaker` + `breakerTimeoutExit`, `resolvesOnPath`, with
+the per-file loop shared as `analyzeFilesWithRules`) with
+behavior pinned by the existing suites — the pairs are gone.
 
-FP (10): eight small-immutable-data-class pairs
-(`RuleAnalyzer`/`DuplicationUnit`/`MethodComplexity`/`Mutant`/
-`DuplicationVerdict`/`HealResult`/`Tier1LiteResult` in
-combination), one rule-guard-idiom pair (`ArchLayerGuard` ~=
+Remaining 12 pairs, all FP (known classes): ten
+small-immutable-data-class pairs (prior eight plus two new
+`BreakerResult` pairings — the new result type joins the same
+FP class), one rule-guard-idiom pair (`ArchLayerGuard` ~=
 `ControllerBuildGuard` — the deliberate per-rule pattern), one
 thin-wrapper pair (`_viewport` ~= `_mutation` — shared try/catch
-shape, different domains, extraction forced). Plus
-`BadLayout` ~= `GoodLayout` @0.857 over `viewport/` (intentional
-fixture twins — excluded from the corpus, recorded as an FP
-class: detectors cannot tell fixture twins apart).
+shape, different domains, extraction forced). Precision on the
+remainder is 0/12: the detector flags nothing actionable left
+in this corpus. Plus `BadLayout` ~= `GoodLayout` @0.857 over
+`viewport/` (intentional fixture twins — excluded from the
+corpus, recorded as an FP class: detectors cannot tell fixture
+twins apart).
 
 Recall: exhaustive pairwise → 1.0 w.r.t. the metric; near-miss
 band (0.5–0.8) top-8 spot-check found only more data-class/idiom
@@ -150,6 +152,11 @@ SYS-TELE-001 first (canon rule §4).
   DRY pair key (`rules.dart:21` → `:22`, import insertion); same
   13 pairs, same judgments, precision still 3/13, HOLD reaffirmed.
   MET set unchanged (new files MET-clean).
+- Re-ratifications: 2026-11-03 — util-heal removed the 3 TP pairs
+  (verified gone, behavior pinned by suites) and added 2
+  `BreakerResult` data-class FPs; 12 pairs re-judged all-FP,
+  precision on remainder 0/12, HOLD reaffirmed. MET set
+  unchanged (`util.dart` MET-clean).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

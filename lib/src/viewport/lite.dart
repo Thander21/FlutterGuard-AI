@@ -3,10 +3,9 @@
 //
 // Pure library code (no stdout/stderr side effects), same walk/sort
 // discipline as `checkPath`, so the behavior is unit-testable.
-import 'dart:io';
-
 import '../cli/check.dart';
 import '../cli/rules.dart';
+import '../util.dart';
 
 /// Viewport-relevant AST rule ids (Tier-1-lite vocabulary, v1).
 const tier1LiteRules = <String>['FG-LAY-004'];
@@ -37,21 +36,9 @@ class Tier1LiteResult {
 
 /// True when a `flutter` executable resolves on PATH. [pathEnv]
 /// injects a fake PATH for tests; the ambient machine is never
-/// asserted on.
-bool isFlutterSdkAvailable({String? pathEnv}) {
-  final path = pathEnv ?? Platform.environment['PATH'] ?? '';
-  if (path.isEmpty) return false;
-  final separator = Platform.isWindows ? ';' : ':';
-  const names = ['flutter', 'flutter.exe', 'flutter.bat', 'flutter.sh'];
-  for (final entry in path.split(separator)) {
-    final dir = entry.trim();
-    if (dir.isEmpty) continue;
-    for (final name in names) {
-      if (File('$dir/$name').existsSync()) return true;
-    }
-  }
-  return false;
-}
+/// asserted on. Historical candidate set kept (`.sh` included).
+bool isFlutterSdkAvailable({String? pathEnv}) => resolvesOnPath('flutter',
+    pathEnv: pathEnv, extensions: const ['', '.exe', '.bat', '.sh']);
 
 /// Runs the Tier-1-lite vocabulary over [target] (one `.dart` file or
 /// a directory scanned recursively, sorted).
@@ -60,21 +47,7 @@ bool isFlutterSdkAvailable({String? pathEnv}) {
 /// in [Tier1LiteResult.errors]. Throws [ArgumentError] when [target]
 /// is missing, [StateError] when a lite rule id has no analyzer.
 Tier1LiteResult runTier1Lite(String target) {
-  final type = FileSystemEntity.typeSync(target);
-  if (type == FileSystemEntityType.notFound) {
-    throw ArgumentError('No such file or directory: $target');
-  }
-  final files = <String>[];
-  if (type == FileSystemEntityType.directory) {
-    for (final entity in Directory(target).listSync(recursive: true)) {
-      if (entity is File && entity.path.endsWith('.dart')) {
-        files.add(_normalize(entity.path));
-      }
-    }
-  } else if (target.endsWith('.dart')) {
-    files.add(_normalize(target));
-  }
-  files.sort();
+  final files = collectDartFiles(target);
 
   final byId = {for (final rule in ruleAnalyzers) rule.id: rule};
   final analyzers = <RuleAnalyzer>[];
@@ -84,36 +57,7 @@ Tier1LiteResult runTier1Lite(String target) {
     analyzers.add(analyzer);
   }
 
-  final findings = <CheckFinding>[];
-  final errors = <CheckError>[];
-  final seenErrors = <(String, String)>{};
-  for (final file in files) {
-    for (final rule in analyzers) {
-      try {
-        for (final violation in rule.analyze(file)) {
-          findings.add(CheckFinding(
-            ruleId: rule.id,
-            spec: rule.spec,
-            file: file,
-            line: violation.line,
-            message: violation.message,
-            severity: rule.severity,
-          ));
-        }
-      } catch (error) {
-        if (seenErrors.add((file, '$error'))) {
-          errors.add(CheckError(file: file, error: '$error'));
-        }
-      }
-    }
-  }
-  findings.sort((a, b) {
-    final byFile = a.file.compareTo(b.file);
-    if (byFile != 0) return byFile;
-    final byRule = a.ruleId.compareTo(b.ruleId);
-    if (byRule != 0) return byRule;
-    return a.line.compareTo(b.line);
-  });
+  final (:findings, :errors) = analyzeFilesWithRules(files, analyzers);
   return Tier1LiteResult(
     findings: findings,
     errors: errors,
@@ -121,7 +65,3 @@ Tier1LiteResult runTier1Lite(String target) {
     sdkAvailable: isFlutterSdkAvailable(),
   );
 }
-
-/// Forward slashes on every platform, so findings sort and compare the same
-/// on Windows, macOS, and Linux.
-String _normalize(String path) => path.replaceAll(r'\', '/');

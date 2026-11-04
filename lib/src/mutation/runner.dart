@@ -2,13 +2,13 @@
 // invocation with a circuit breaker, and the green-on-mutant
 // comparator. The only async unit in the package.
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
+import '../util.dart';
 import 'mutant.dart';
 
 /// Outcome of running the test suite against one mutant.
@@ -124,7 +124,7 @@ class MutationRunner {
       final exit = await _runTest(staged);
       results.add(MutantResult(
         mutant: mutant,
-        status: exit == _timedOut
+        status: exit == breakerTimeoutExit
             ? MutantStatus.timeout
             : exit == 0
                 ? MutantStatus.survived
@@ -151,27 +151,14 @@ class MutationRunner {
 
   /// Runs `dart test` on [testPath]; [_timedOut] when the breaker fires.
   Future<int> _runTest(String testPath) async {
-    final executable =
-        Platform.resolvedExecutable.isNotEmpty ? Platform.resolvedExecutable : 'dart';
-    final process = await Process.start(
-        executable, ['test', testPath, '--concurrency=1']);
-    final stdoutDone = process.stdout.transform(utf8.decoder).join();
-    final stderrDone = process.stderr.transform(utf8.decoder).join();
-    var timedOut = false;
-    final breaker = Timer(timeout, () {
-      timedOut = true;
-      process.kill(ProcessSignal.sigkill);
-    });
-    final exit = await process.exitCode;
-    breaker.cancel();
-    await stdoutDone;
-    await stderrDone;
-    return timedOut ? _timedOut : exit;
+    final executable = Platform.resolvedExecutable.isNotEmpty
+        ? Platform.resolvedExecutable
+        : 'dart';
+    final result = await runWithBreaker(
+        executable, ['test', testPath, '--concurrency=1'], timeout);
+    return result.exitCode;
   }
 }
-
-/// Exit code reported when the circuit breaker kills a run.
-const _timedOut = -1;
 
 /// Rewrites the relative import(s) in [testSource] that resolve to
 /// [sourceAbs] so the staged sibling copy keeps compiling: any layout

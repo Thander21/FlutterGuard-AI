@@ -24,6 +24,7 @@ export 'src/coverage/complexity.dart';
 export 'src/coverage/lcov.dart';
 export 'src/coverage/runner.dart';
 export 'src/duplication/detector.dart';
+export 'src/util.dart';
 export 'src/mcp/tools.dart';
 export 'src/mcp/recipes.dart';
 export 'src/mcp/server.dart';
