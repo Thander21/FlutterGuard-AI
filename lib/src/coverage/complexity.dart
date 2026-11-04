@@ -119,7 +119,7 @@ class _ComplexityCollector extends RecursiveAstVisitor<void> {
       _pushClass(node.name.lexeme, node, () => super.visitEnumDeclaration(node));
 
   // No extension-type override: the AST node is experimental in the
-  // pinned analyzer, and `// ignore:` comments violate FG-LINT-009.
+  // pinned analyzer, and suppression comments violate FG-LINT-009.
   // Methods inside extension types are scored with bare names.
   @override
   void visitExtensionDeclaration(ExtensionDeclaration node) =>

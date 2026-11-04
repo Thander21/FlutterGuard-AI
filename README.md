@@ -10,8 +10,9 @@
 > advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
 > a pre-commit hook, a heal dispatcher, a mutation runner, a
 > Tier-1 viewport runner (with Tier-1-lite AST fallback), a
-> coverage/CRAP pipeline, and a structural duplication detector.
-> The MCP server and the Tier-2 visual gate are **[PLANNED]**
+> coverage/CRAP pipeline, a structural duplication detector, and an
+> MCP server (5 typed tools, `init --mcp`, 4 chat-skills).
+> The Tier-2 visual gate is **[PLANNED]**
 > (see `docs/plans/PLAN-01-implementation-to-submission.md` and
 > `docs/plans/PLAN-02-functional-scope-to-working-system.md`).
 > `specs/` is normative; `docs/` records direction and intent.
@@ -56,23 +57,23 @@ dart run bin/flutterguard.dart grade
 dart run bin/flutterguard.dart check <path> [--json]
 ```
 
-### [PLANNED] Global install (does not work yet)
+### Global install
 
 ```bash
 # 1. Official global activation straight from GitHub (Dart SDK)
-dart pub global activate --source git https://github.com/YOUR-USER/flutterguard-ai.git
+dart pub global activate --source git https://github.com/Thander21/FlutterGuard-AI.git
 
 # 2. Initialization with MCP Server and Git Hook in your Flutter project
 cd path/to/your_flutter_project
 flutterguard init --mcp
 ```
 
-### What will happen automatically behind the scenes:
+### What happens automatically behind the scenes:
 
-1. **[PLANNED] Native MCP Server:** Registers the `flutterguard_mcp` binary ready to connect with IDEs and agents (Cursor, Claude Code, Gemini CLI, Antigravity).
-2. **[PLANNED] Auto-Configuration:** Writes the MCP configuration to `.cursor/mcp.json`, `.agents/mcp_config.json`, or `claude_desktop_config.json`.
-3. **[PLANNED] Governance Contract in `AGENTS.md`:** Mandatory instructions so the local AI uses the MCP before committing.
-4. **[PLANNED] Git Pre-Commit Hook:** Physical barrier that prevents code with leaks or visual breakage from entering the repository.
+1. **Native MCP Server:** the `flutterguard_mcp` stdio binary (JSON-RPC 2.0) with 5 typed tools, ready for IDEs and agents (Cursor, Claude Code, Gemini CLI, Antigravity).
+2. **Auto-Configuration:** `init --mcp` writes `mcp_config.json` (plus `.cursor/mcp.json` when `.cursor/` is detected) and prints the global-client snippet for manual install.
+3. **Governance Contract:** the agent mandate is printed by default; `init --agents` writes it to `AGENTS.md`.
+4. **Git Pre-Commit Hook:** installed by `init`; runs `check` and blocks commits with violations.
 
 ---
 

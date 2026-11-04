@@ -8,7 +8,13 @@ environment:
 dependencies:
   analyzer: ^6.0.0
   args: ^2.7.0
+  json_rpc_2: ^4.1.0
+  stream_channel: ^2.1.4
 
 dev_dependencies:
   coverage: ^1.16.0
   test: ^1.24.0
+
+executables:
+  flutterguard: flutterguard
+  flutterguard_mcp: flutterguard_mcp

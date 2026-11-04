@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
@@ -89,10 +90,39 @@ void main() {
           'foreign\n');
     });
 
-    test('usage errors and reserved --mcp', () {
+    test('usage errors', () {
       expect(cli.init(['--help'], root: root.path), isZero);
       expect(cli.init(['extra'], root: root.path), 2);
-      expect(cli.init(['--mcp'], root: root.path), 2);
+    });
+
+    test('--mcp writes the generic config, skips cursor undetected', () {
+      expect(cli.init(['--mcp'], root: root.path), isZero);
+      final generic = File('${root.path}/mcp_config.json');
+      expect(generic.existsSync(), isTrue);
+      final decoded = jsonDecode(generic.readAsStringSync());
+      expect(decoded['mcpServers']['flutterguard']['command'],
+          'flutterguard_mcp');
+      expect(
+          File('${root.path}/.cursor/mcp.json').existsSync(), isFalse);
+    });
+
+    test('--mcp merges cursor config, preserving other servers', () {
+      Directory('${root.path}/.cursor').createSync();
+      File('${root.path}/.cursor/mcp.json').writeAsStringSync(
+          '{"mcpServers": {"other": {"command": "x"}}}');
+      expect(cli.init(['--mcp'], root: root.path), isZero);
+      final decoded = jsonDecode(
+          File('${root.path}/.cursor/mcp.json').readAsStringSync());
+      expect(decoded['mcpServers']['other'], {'command': 'x'});
+      expect(decoded['mcpServers']['flutterguard']['command'],
+          'flutterguard_mcp');
+    });
+
+    test('--mcp fails closed on unparseable config', () {
+      File('${root.path}/mcp_config.json').writeAsStringSync('{nope');
+      expect(cli.init(['--mcp'], root: root.path), 1);
+      expect(File('${root.path}/mcp_config.json').readAsStringSync(),
+          '{nope');
     });
 
     test('existing yaml is left untouched', () {

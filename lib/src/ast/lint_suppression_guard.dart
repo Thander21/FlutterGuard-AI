@@ -1,6 +1,6 @@
 // FG-LINT-009: forbid suppressions and empty catch blocks.
 //
-// `// ignore:` silences the gate itself and an empty `catch` buries the
+// Suppressions silence the gate itself and an empty `catch` buries the
 // failure: both trade a compile-time finding for a production incident
 // (Root Cause Only). Parsing only (no type resolution), so vectors need
 // no dependencies.

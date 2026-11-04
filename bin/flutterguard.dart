@@ -225,12 +225,13 @@ const _agentsMandate = '''$_agentsMarker
 3. No task is done while `check` reports violations.
 ''';
 
-/// CLI usage for `init` (SYS-CLI-001b).
+/// CLI usage for `init` (SYS-CLI-001b, SYS-MCP-001).
 const _initUsage = '''
-Usage: dart run bin/flutterguard.dart init [--scaffold] [--agents] [--help]
+Usage: dart run bin/flutterguard.dart init [--scaffold] [--agents] [--mcp] [--help]
   Installs the pre-commit hook (runs check), writes flutterguard.yaml,
   and prints the agent mandate. --scaffold also creates .flutterguard/;
-  --agents also appends the mandate to AGENTS.md.''';
+  --agents also appends the mandate to AGENTS.md;
+  --mcp also registers the flutterguard MCP server in IDE clients.''';
 
 /// Initializes [root] for FlutterGuard. Returns 0 when every applicable
 /// step lands, 1 when a step fails, 2 on bad arguments.
@@ -239,6 +240,8 @@ int init(List<String> args, {String root = '.'}) {
     ..addFlag('scaffold', negatable: false, help: 'Create .flutterguard/.')
     ..addFlag('agents',
         negatable: false, help: 'Append the mandate to AGENTS.md.')
+    ..addFlag('mcp',
+        negatable: false, help: 'Register the MCP server in IDE clients.')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -275,10 +278,12 @@ int init(List<String> args, {String root = '.'}) {
     failed = true;
   } else {
     hook.writeAsStringSync(_hookScript);
-    try {
-      Process.runSync('chmod', ['+x', hook.path]);
-    } catch (_) {
-      // Best-effort (Unix): hooks run regardless where chmod is missing.
+    if (!Platform.isWindows) {
+      try {
+        Process.runSync('chmod', ['+x', hook.path]);
+      } catch (error) {
+        stderr.writeln('warning: chmod skipped: $error');
+      }
     }
     stdout.writeln('wrote: ${hook.path}');
   }
@@ -298,6 +303,24 @@ int init(List<String> args, {String root = '.'}) {
     }
   } else {
     stdout.writeln(_agentsMandate);
+  }
+  if (parsed['mcp'] as bool) {
+    final registration = writeMcpConfigs(root: root);
+    for (final path in registration.wrote) {
+      stdout.writeln('wrote: $path');
+    }
+    for (final error in registration.errors) {
+      stderr.writeln('error: $error');
+      failed = true;
+    }
+    if (!resolvesOnPath(mcpServerCommand)) {
+      stdout.writeln('warning: $mcpServerCommand is not on PATH — '
+          'registration lands once the package is installed '
+          '(dart pub global activate).');
+    }
+    stdout.writeln('global-client snippet (manual install, never '
+        'written outside the root):');
+    stdout.writeln(mcpGlobalSnippet);
   }
   return failed ? 1 : 0;
 }
