@@ -277,8 +277,7 @@ void main() {
     });
 
     String write(String name, List<String> lines) {
-      final file = File('${dir.path}/$name')
-        ..writeAsStringSync(_src(lines));
+      final file = File('${dir.path}/$name')..writeAsStringSync(_src(lines));
       return file.path;
     }
 

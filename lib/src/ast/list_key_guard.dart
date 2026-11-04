@@ -104,9 +104,8 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    final strict =
-        _simpleName(node.constructorName.type.toSource()) ==
-            'ReorderableListView';
+    final strict = _simpleName(node.constructorName.type.toSource()) ==
+        'ReorderableListView';
     _checkItemBuilder(node.argumentList, strict: strict);
     if (strict) {
       _checkReorderableChildren(node.argumentList);
@@ -135,8 +134,9 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
       if (argument is NamedExpression &&
           argument.name.label.name == 'itemBuilder' &&
           argument.expression is FunctionExpression) {
-        _scanCallback(argument.expression as FunctionExpression,
-            'via itemBuilder', allowlist: !strict);
+        _scanCallback(
+            argument.expression as FunctionExpression, 'via itemBuilder',
+            allowlist: !strict);
       }
     }
   }
@@ -182,7 +182,9 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
     final info = _creationInfo(child);
     if (info == null) return;
     if (_hasKey(info.arguments)) return;
-    _flag(child.offset, "'${info.type}' built in ReorderableListView "
+    _flag(
+        child.offset,
+        "'${info.type}' built in ReorderableListView "
         'has no key; add a key (ValueKey(item.id))');
   }
 
@@ -233,8 +235,8 @@ class _RootCollector extends RecursiveAstVisitor<void> {
 /// Creation type plus arguments, or null for non-creations.
 _Creation? _creationInfo(Expression node) {
   if (node is InstanceCreationExpression) {
-    return _Creation(_simpleName(node.constructorName.type.toSource()),
-        node.argumentList);
+    return _Creation(
+        _simpleName(node.constructorName.type.toSource()), node.argumentList);
   }
   if (node is MethodInvocation) {
     if (node.target == null) {
@@ -257,8 +259,7 @@ class _Creation {
 }
 
 /// True for constructor-shaped calls (bare `Tile(…)` or `Tile.named(…)`).
-bool _isCreationLike(MethodInvocation node) =>
-    _creationInfo(node) != null;
+bool _isCreationLike(MethodInvocation node) => _creationInfo(node) != null;
 
 /// True when [name] starts uppercase (private `_Tile` counts as well).
 bool _isCapitalized(String name) =>

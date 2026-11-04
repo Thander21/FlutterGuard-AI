@@ -25,7 +25,10 @@ void main() {
       expect(result.findings, isNotEmpty);
       expect(result.findings.every((f) => f.ruleId == 'FG-LAY-004'), isTrue);
       expect(result.filesScanned, greaterThanOrEqualTo(26));
-      expect(result.errors, isEmpty);
+      expect(result.errors, hasLength(1),
+          reason: 'only the intentional TC-17 syntax error throws visitors');
+      expect(result.errors.single.file, endsWith('TC-17_syn.bad.dart'));
+      expect(result.errors.single.error, contains('MISSING_IDENTIFIER'));
     });
 
     test('empty directory is clean', () {
@@ -55,8 +58,8 @@ void main() {
         File('${dir.path}/$name').writeAsStringSync('');
       }
       final separator = Platform.isWindows ? ';' : ':';
-      expect(isFlutterSdkAvailable(pathEnv: ' ${dir.path} $separator '),
-          isTrue);
+      expect(
+          isFlutterSdkAvailable(pathEnv: ' ${dir.path} $separator '), isTrue);
     });
 
     test('misses on an empty or SDK-less PATH', () {

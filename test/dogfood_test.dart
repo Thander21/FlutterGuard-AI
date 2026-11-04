@@ -15,18 +15,15 @@ void main() {
     test('lib, bin, test carry zero error-severity findings', () {
       for (final root in _roots) {
         final result = checkPath(root);
-        final errors = result.findings
-            .where((f) => f.severity == 'error')
-            .toList();
-        expect(errors, isEmpty,
-            reason: '$root must be self-clean: $errors');
+        final errors =
+            result.findings.where((f) => f.severity == 'error').toList();
+        expect(errors, isEmpty, reason: '$root must be self-clean: $errors');
       }
     });
 
     test('vector exclusion is load-bearing (not vacuous)', () {
       final vectors = checkPath('benchmark/vectors');
-      expect(
-          vectors.findings.any((f) => f.severity == 'error'), isTrue,
+      expect(vectors.findings.any((f) => f.severity == 'error'), isTrue,
           reason: 'golden .bad vectors must flag — exclusion is real');
     });
   });
@@ -44,8 +41,7 @@ void main() {
     });
 
     test('relative vs absolute paths find the same violations', () {
-      final absolute =
-          Directory('lib').absolute.path.replaceAll(r'\', '/');
+      final absolute = Directory('lib').absolute.path.replaceAll(r'\', '/');
       final relative = checkPath('lib');
       final absoluteResult = checkPath(absolute);
       Set<String> triples(CheckResult result) => {

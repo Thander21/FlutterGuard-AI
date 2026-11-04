@@ -64,8 +64,7 @@ class WidgetImmutableGuard extends RecursiveAstVisitor<void> {
   void visitClassDeclaration(ClassDeclaration node) {
     final wasScope = _scope;
     final superclass = node.extendsClause?.superclass.name2.lexeme;
-    if (superclass != null &&
-        _statelessSuperclasses.contains(superclass)) {
+    if (superclass != null && _statelessSuperclasses.contains(superclass)) {
       _scope = superclass;
     }
     super.visitClassDeclaration(node);

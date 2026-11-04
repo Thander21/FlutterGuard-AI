@@ -71,7 +71,8 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
 
   void _checkChildren(ArgumentList arguments) {
     for (final argument in arguments.arguments) {
-      if (argument is NamedExpression && argument.name.label.name == 'children') {
+      if (argument is NamedExpression &&
+          argument.name.label.name == 'children') {
         _scanCollectionValue(argument.expression);
       }
     }

@@ -132,7 +132,9 @@ class ContextScopeGuard extends RecursiveAstVisitor<void> {
     final collector = _StoredTypeCollector();
     type.accept(collector);
     for (final offset in collector.offsets) {
-      _flag(offset, 'BuildContext must not be stored; '
+      _flag(
+          offset,
+          'BuildContext must not be stored; '
           'pass data instead of context');
     }
   }
@@ -163,9 +165,7 @@ class _StoredTypeCollector extends RecursiveAstVisitor<void> {
 bool _isUiClass(NamedType? superclass) {
   if (superclass == null) return false;
   final name = superclass.name2.lexeme;
-  return name == 'State' ||
-      name == 'ConsumerState' ||
-      isWidgetTypeName(name);
+  return name == 'State' || name == 'ConsumerState' || isWidgetTypeName(name);
 }
 
 /// True for extensions on BuildContext, State, or a widget.

@@ -50,9 +50,13 @@ Future<void> main() async {
   print('--- MET depth/params flags ---');
   var metCount = 0;
   for (final file in files) {
-    for (final violation in analyzeMetricFile(file)) {
-      metCount++;
-      print('$file:${violation.line}: ${violation.message}');
+    try {
+      for (final violation in analyzeMetricFile(file)) {
+        metCount++;
+        print('$file:${violation.line}: ${violation.message}');
+      }
+    } on ArgumentError {
+      print('SKIP (unparseable): $file');
     }
   }
   print('MET total: $metCount');

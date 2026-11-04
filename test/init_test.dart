@@ -83,8 +83,7 @@ void main() {
     });
 
     test('refuses to overwrite a foreign hook', () {
-      File('${root.path}/.git/hooks/pre-commit')
-          .writeAsStringSync('foreign\n');
+      File('${root.path}/.git/hooks/pre-commit').writeAsStringSync('foreign\n');
       expect(cli.init([], root: root.path), 1);
       expect(File('${root.path}/.git/hooks/pre-commit').readAsStringSync(),
           'foreign\n');
@@ -100,29 +99,27 @@ void main() {
       final generic = File('${root.path}/mcp_config.json');
       expect(generic.existsSync(), isTrue);
       final decoded = jsonDecode(generic.readAsStringSync());
-      expect(decoded['mcpServers']['flutterguard']['command'],
-          'flutterguard_mcp');
       expect(
-          File('${root.path}/.cursor/mcp.json').existsSync(), isFalse);
+          decoded['mcpServers']['flutterguard']['command'], 'flutterguard_mcp');
+      expect(File('${root.path}/.cursor/mcp.json').existsSync(), isFalse);
     });
 
     test('--mcp merges cursor config, preserving other servers', () {
       Directory('${root.path}/.cursor').createSync();
-      File('${root.path}/.cursor/mcp.json').writeAsStringSync(
-          '{"mcpServers": {"other": {"command": "x"}}}');
+      File('${root.path}/.cursor/mcp.json')
+          .writeAsStringSync('{"mcpServers": {"other": {"command": "x"}}}');
       expect(cli.init(['--mcp'], root: root.path), isZero);
-      final decoded = jsonDecode(
-          File('${root.path}/.cursor/mcp.json').readAsStringSync());
+      final decoded =
+          jsonDecode(File('${root.path}/.cursor/mcp.json').readAsStringSync());
       expect(decoded['mcpServers']['other'], {'command': 'x'});
-      expect(decoded['mcpServers']['flutterguard']['command'],
-          'flutterguard_mcp');
+      expect(
+          decoded['mcpServers']['flutterguard']['command'], 'flutterguard_mcp');
     });
 
     test('--mcp fails closed on unparseable config', () {
       File('${root.path}/mcp_config.json').writeAsStringSync('{nope');
       expect(cli.init(['--mcp'], root: root.path), 1);
-      expect(File('${root.path}/mcp_config.json').readAsStringSync(),
-          '{nope');
+      expect(File('${root.path}/mcp_config.json').readAsStringSync(), '{nope');
     });
 
     test('existing yaml is left untouched', () {
@@ -185,8 +182,7 @@ void main() {
   });
 
   group('SYS-CLI-001b hook', () {
-    test('hook blocks a planted violation commit in a scratch clone',
-        () async {
+    test('hook blocks a planted violation commit in a scratch clone', () async {
       final scratch = Directory.systemTemp.createTempSync('hook_clone.');
       try {
         Future<ProcessResult> git(List<String> args,
@@ -218,7 +214,8 @@ void main() {
             reason: 'hook must block the violation commit');
 
         File('${scratch.path}/bad.dart').deleteSync();
-        File('${scratch.path}/clean.dart').writeAsStringSync('void main() {}\n');
+        File('${scratch.path}/clean.dart')
+            .writeAsStringSync('void main() {}\n');
         await git(['add', '-A']);
         final allowed = await git(['commit', '-m', 'clean'], env: env);
         expect(allowed.exitCode, isZero,

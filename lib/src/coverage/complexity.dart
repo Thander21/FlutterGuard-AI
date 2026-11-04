@@ -107,24 +107,23 @@ class _ComplexityCollector extends RecursiveAstVisitor<void> {
   }
 
   @override
-  void visitClassDeclaration(ClassDeclaration node) =>
-      _pushClass(node.name.lexeme, node, () => super.visitClassDeclaration(node));
+  void visitClassDeclaration(ClassDeclaration node) => _pushClass(
+      node.name.lexeme, node, () => super.visitClassDeclaration(node));
 
   @override
-  void visitMixinDeclaration(MixinDeclaration node) =>
-      _pushClass(node.name.lexeme, node, () => super.visitMixinDeclaration(node));
+  void visitMixinDeclaration(MixinDeclaration node) => _pushClass(
+      node.name.lexeme, node, () => super.visitMixinDeclaration(node));
 
   @override
-  void visitEnumDeclaration(EnumDeclaration node) =>
-      _pushClass(node.name.lexeme, node, () => super.visitEnumDeclaration(node));
+  void visitEnumDeclaration(EnumDeclaration node) => _pushClass(
+      node.name.lexeme, node, () => super.visitEnumDeclaration(node));
 
   // No extension-type override: the AST node is experimental in the
   // pinned analyzer, and suppression comments violate FG-LINT-009.
   // Methods inside extension types are scored with bare names.
   @override
-  void visitExtensionDeclaration(ExtensionDeclaration node) =>
-      _pushClass(
-          node.name?.lexeme, node, () => super.visitExtensionDeclaration(node));
+  void visitExtensionDeclaration(ExtensionDeclaration node) => _pushClass(
+      node.name?.lexeme, node, () => super.visitExtensionDeclaration(node));
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {

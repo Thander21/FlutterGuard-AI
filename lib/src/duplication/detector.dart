@@ -152,8 +152,8 @@ DuplicationVerdict findDuplication(String target) {
   for (final file in files) {
     try {
       final source = File(file).readAsStringSync();
-      final result = parseString(
-          content: source, path: file, throwIfDiagnostics: false);
+      final result =
+          parseString(content: source, path: file, throwIfDiagnostics: false);
       final collector = _UnitCollector(result.lineInfo);
       result.unit.accept(collector);
       for (final unit in collector.units) {
@@ -330,16 +330,16 @@ class _UnitCollector extends RecursiveAstVisitor<void> {
       _classStack.isEmpty ? name : '${_classStack.last}.$name';
 
   @override
-  void visitClassDeclaration(ClassDeclaration node) =>
-      _classLike(node.name.lexeme, node, () => super.visitClassDeclaration(node));
+  void visitClassDeclaration(ClassDeclaration node) => _classLike(
+      node.name.lexeme, node, () => super.visitClassDeclaration(node));
 
   @override
-  void visitMixinDeclaration(MixinDeclaration node) =>
-      _classLike(node.name.lexeme, node, () => super.visitMixinDeclaration(node));
+  void visitMixinDeclaration(MixinDeclaration node) => _classLike(
+      node.name.lexeme, node, () => super.visitMixinDeclaration(node));
 
   @override
-  void visitEnumDeclaration(EnumDeclaration node) =>
-      _classLike(node.name.lexeme, node, () => super.visitEnumDeclaration(node));
+  void visitEnumDeclaration(EnumDeclaration node) => _classLike(
+      node.name.lexeme, node, () => super.visitEnumDeclaration(node));
 
   // No extension-type override: the AST node is experimental in the
   // pinned analyzer, and suppression comments violate FG-LINT-009.

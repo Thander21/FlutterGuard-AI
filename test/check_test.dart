@@ -7,7 +7,10 @@ void main() {
   group('check', () {
     test('flags every .bad vector and spares every .good vector', () {
       final result = checkPath('benchmark/vectors');
-      expect(result.errors, isEmpty);
+      expect(result.errors, hasLength(1),
+          reason: 'only the intentional TC-17 syntax error throws visitors');
+      expect(result.errors.single.file, endsWith('TC-17_syn.bad.dart'));
+      expect(result.errors.single.error, contains('MISSING_IDENTIFIER'));
       final flagged = result.findings.map((f) => f.file).toSet();
       expect(
         flagged,
@@ -26,6 +29,9 @@ void main() {
           'benchmark/vectors/TC-12_key.bad.dart',
           'benchmark/vectors/TC-13_met.bad.dart',
           'benchmark/vectors/TC-14_build.bad.dart',
+          'benchmark/vectors/TC-15_imp.bad.dart',
+          'benchmark/vectors/TC-16_fmt.bad.dart',
+          'benchmark/vectors/TC-17_syn.bad.dart',
         ]),
       );
       expect(
@@ -67,6 +73,9 @@ void main() {
         'benchmark/vectors/TC-12_key.bad.dart': 'FG-KEY-001r',
         'benchmark/vectors/TC-13_met.bad.dart': 'FG-MET-007',
         'benchmark/vectors/TC-14_build.bad.dart': 'FG-BUILD-014',
+        'benchmark/vectors/TC-15_imp.bad.dart': 'FG-IMP-015',
+        'benchmark/vectors/TC-16_fmt.bad.dart': 'FG-FMT-016',
+        'benchmark/vectors/TC-17_syn.bad.dart': 'FG-SYN-017',
       };
       final result = checkPath('benchmark/vectors');
       for (final entry in expected.entries) {
@@ -80,12 +89,14 @@ void main() {
       }
     });
 
-    test('records an unparseable file once instead of once per rule', () {
+    test('fails closed on an unparseable file (FG-SYN-017 finding)', () {
       final root = Directory.systemTemp.createTempSync('check_test.');
       try {
         File('${root.path}/broken.dart').writeAsStringSync('class { !!!');
         final result = checkPath(root.path);
-        expect(result.findings, isEmpty);
+        expect(result.findings, isNotEmpty);
+        expect(result.findings.map((f) => f.ruleId), everyElement('FG-SYN-017'),
+            reason: 'unparseable files fail closed via FG-SYN-017');
         expect(result.errors, hasLength(1));
         expect(result.errors.single.file, endsWith('broken.dart'));
       } finally {
@@ -101,10 +112,9 @@ void main() {
 
       final advisories = checkPath('benchmark/vectors/TC-13_met.bad.dart');
       expect(advisories.findings, isNotEmpty);
-      expect(advisories.findings.every((f) => f.severity == 'warning'),
-          isTrue);
-      expect(advisories.findings.every((f) => f.ruleId == 'FG-MET-007'),
-          isTrue);
+      expect(advisories.findings.every((f) => f.severity == 'warning'), isTrue);
+      expect(
+          advisories.findings.every((f) => f.ruleId == 'FG-MET-007'), isTrue);
       expect(advisories.findings.first.toJson()['severity'], 'warning');
     });
   });

@@ -33,8 +33,7 @@ void main() {
     });
 
     test('analyzer crash fails closed without killing the run', () {
-      File('${root.path}/benchmark/vectors/TC-01_bloc.good.dart')
-          .deleteSync();
+      File('${root.path}/benchmark/vectors/TC-01_bloc.good.dart').deleteSync();
       expect(cli.grade(root: root.path), isNonZero);
       final lines = File('${root.path}/evidence.jsonl').readAsLinesSync();
       expect(lines, hasLength(2));

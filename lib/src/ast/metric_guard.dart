@@ -80,7 +80,8 @@ class MetricGuard extends RecursiveAstVisitor<void> {
       final name = node.name;
       violations.add(MetricViolation(
         line: _lineInfo
-            .getLocation((name ?? node.firstTokenAfterCommentAndMetadata).offset)
+            .getLocation(
+                (name ?? node.firstTokenAfterCommentAndMetadata).offset)
             .lineNumber,
         message: 'constructor has $count parameters, exceeding the '
             'advisory budget of $maxConstructorParams; '

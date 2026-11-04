@@ -6,7 +6,7 @@
 
 *Leia em português: [LEIAME.md](LEIAME.md)*
 
-> **Scope:** 14 AST rules implemented (13 blocking + `FG-MET-007`
+> **Scope:** 17 AST rules implemented (16 blocking + `FG-MET-007`
 > advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
 > a pre-commit hook, a heal dispatcher, a mutation runner, a
 > Tier-1 viewport runner (with Tier-1-lite AST fallback), a

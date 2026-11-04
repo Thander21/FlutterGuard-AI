@@ -8,15 +8,15 @@ import 'package:test/test.dart';
 void main() {
   group('FG-BUILD-014 async-in-build guard', () {
     test('flags the .bad vector at exact lines', () {
-      final violations = analyzeAsyncBuildFile(
-          'benchmark/vectors/TC-14_build.bad.dart');
+      final violations =
+          analyzeAsyncBuildFile('benchmark/vectors/TC-14_build.bad.dart');
       expect(violations.map((v) => v.line), [17, 18, 19, 20]);
       expect(violations.first.message, contains('Future.delayed'));
     });
 
     test('spares the .good vector (zero false positives)', () {
-      final violations = analyzeAsyncBuildFile(
-          'benchmark/vectors/TC-14_build.good.dart');
+      final violations =
+          analyzeAsyncBuildFile('benchmark/vectors/TC-14_build.good.dart');
       expect(violations, isEmpty);
     });
 

@@ -193,8 +193,8 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
       } else if (isDispose &&
           name == 'removeListener' &&
           node.argumentList.arguments.isNotEmpty) {
-        releases.add(
-            '$receiver#${_argSource(node.argumentList.arguments.first)}');
+        releases
+            .add('$receiver#${_argSource(node.argumentList.arguments.first)}');
       }
     }
     super.visitMethodInvocation(node);

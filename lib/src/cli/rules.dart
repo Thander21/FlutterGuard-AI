@@ -9,6 +9,8 @@ import '../ast/async_context_guard.dart';
 import '../ast/bloc_emit_guard.dart';
 import '../ast/context_scope_guard.dart';
 import '../ast/controller_build_guard.dart';
+import '../ast/format_guard.dart';
+import '../ast/import_guard.dart';
 import '../ast/lifecycle_guard.dart';
 import '../ast/lint_suppression_guard.dart';
 import '../ast/metric_guard.dart';
@@ -16,6 +18,7 @@ import '../ast/list_key_guard.dart';
 import '../ast/list_viewport_guard.dart';
 import '../ast/riverpod_watch_guard.dart';
 import '../ast/state_mutation_guard.dart';
+import '../ast/syntax_guard.dart';
 import '../ast/widget_immutable_guard.dart';
 import '../ast/rule_violation.dart';
 
@@ -114,5 +117,20 @@ final ruleAnalyzers = <RuleAnalyzer>[
     id: 'FG-BUILD-014',
     spec: 'specs/TS-14-async-in-build-guard.md',
     analyze: analyzeAsyncBuildFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-IMP-015',
+    spec: 'specs/TS-15-import-guard.md',
+    analyze: analyzeImportFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-FMT-016',
+    spec: 'specs/TS-16-format-guard.md',
+    analyze: analyzeFormatFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-SYN-017',
+    spec: 'specs/TS-17-syntax-guard.md',
+    analyze: analyzeSyntaxFile,
   ),
 ];

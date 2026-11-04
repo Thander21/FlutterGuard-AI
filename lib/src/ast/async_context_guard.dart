@@ -80,8 +80,7 @@ class AsyncContextGuard extends RecursiveAstVisitor<void> {
         }
         continue;
       }
-      if (statement is IfStatement &&
-          _isMountedCheck(statement.expression)) {
+      if (statement is IfStatement && _isMountedCheck(statement.expression)) {
         _scanStatements(_branchStatements(statement.thenStatement), false);
         final elseBranch = statement.elseStatement;
         if (elseBranch != null) {
@@ -109,14 +108,16 @@ class AsyncContextGuard extends RecursiveAstVisitor<void> {
   /// Scans the non-return statements of a guard block: they run unmounted.
   void _scanLeading(Statement branch) {
     if (branch is Block && branch.statements.length > 1) {
-      _scanStatements(branch.statements.sublist(0, branch.statements.length - 1), true);
+      _scanStatements(
+          branch.statements.sublist(0, branch.statements.length - 1), true);
     }
   }
 
   /// Threads the armed state through a compound statement's children.
   bool _scanChildren(Statement statement, bool armed) {
     if (statement is IfStatement) {
-      armed = _scanStatements(_branchStatements(statement.thenStatement), armed);
+      armed =
+          _scanStatements(_branchStatements(statement.thenStatement), armed);
       final elseBranch = statement.elseStatement;
       if (elseBranch != null) {
         armed = _scanStatements(_branchStatements(elseBranch), armed);

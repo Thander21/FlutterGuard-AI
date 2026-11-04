@@ -94,17 +94,16 @@ class MutationRunner {
     }
     final source = sourceFile.readAsStringSync();
     final test = testFile.readAsStringSync();
-    final siblingTest = _siblingImport(test, testAbs, sourceAbs,
-        _basenameOf(sourceAbs), testPath, sourcePath);
+    final siblingTest = _siblingImport(
+        test, testAbs, sourceAbs, _basenameOf(sourceAbs), testPath, sourcePath);
 
     final id = runId ?? _slug();
     final runDir = Directory('$sandboxRoot/$id');
     if (runDir.existsSync()) {
       throw ArgumentError('run id already exists: $id');
     }
-    final baselineTest =
-        _stage(runDir, 'baseline', _basenameOf(sourceAbs), source,
-            _basenameOf(testAbs), siblingTest);
+    final baselineTest = _stage(runDir, 'baseline', _basenameOf(sourceAbs),
+        source, _basenameOf(testAbs), siblingTest);
 
     final baselineExit = await _runTest(baselineTest);
     if (baselineExit != 0) {
@@ -118,9 +117,8 @@ class MutationRunner {
     for (var i = 0; i < mutants.length; i++) {
       final mutant = mutants[i];
       final dir = 'mutant_${i.toString().padLeft(2, '0')}';
-      final staged =
-          _stage(runDir, dir, _basenameOf(sourceAbs), applyMutant(source, mutant),
-              _basenameOf(testAbs), siblingTest);
+      final staged = _stage(runDir, dir, _basenameOf(sourceAbs),
+          applyMutant(source, mutant), _basenameOf(testAbs), siblingTest);
       final exit = await _runTest(staged);
       results.add(MutantResult(
         mutant: mutant,
@@ -142,7 +140,8 @@ class MutationRunner {
   /// the staged test path.
   String _stage(Directory runDir, String dir, String sourceName,
       String sourceContent, String testName, String testContent) {
-    final target = Directory('${runDir.path}/$dir')..createSync(recursive: true);
+    final target = Directory('${runDir.path}/$dir')
+      ..createSync(recursive: true);
     File('${target.path}/$sourceName').writeAsStringSync(sourceContent);
     final staged = File('${target.path}/$testName')
       ..writeAsStringSync(testContent);
@@ -166,8 +165,7 @@ class MutationRunner {
 /// import reaches the source.
 String _siblingImport(String testSource, String testAbs, String sourceAbs,
     String sourceBase, String testPath, String sourcePath) {
-  final unit =
-      parseString(content: testSource, throwIfDiagnostics: false).unit;
+  final unit = parseString(content: testSource, throwIfDiagnostics: false).unit;
   final collector = _ImportCollector();
   unit.accept(collector);
   final testDir = _dirOf(testAbs);
@@ -177,10 +175,8 @@ String _siblingImport(String testSource, String testAbs, String sourceAbs,
     if (raw == null || raw.startsWith('dart:') || raw.startsWith('package:')) {
       continue;
     }
-    final resolved = Uri.directory(testDir)
-        .resolve(raw)
-        .normalizePath()
-        .toFilePath();
+    final resolved =
+        Uri.directory(testDir).resolve(raw).normalizePath().toFilePath();
     if (_absoluteNormalized(resolved) == sourceAbs) {
       hits.add((offset: uri.offset, length: uri.length));
     }

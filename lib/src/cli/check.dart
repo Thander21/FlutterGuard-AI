@@ -2,6 +2,7 @@
 //
 // Pure library code (no stdout/stderr side effects) so the CLI stays thin
 // and the behavior is unit-testable.
+import '../ast/format_guard.dart';
 import '../util.dart';
 import 'rules.dart';
 
@@ -63,6 +64,10 @@ class CheckResult {
       };
 }
 
+/// Rule id judged by subprocess batch instead of the per-file loop
+/// (FG-FMT-016: one `dart format` spawn per run, not per file).
+const batchRuleId = 'FG-FMT-016';
+
 /// Runs every registered visitor over [target] (one `.dart` file or a
 /// directory scanned recursively for `.dart` files, sorted).
 ///
@@ -72,17 +77,47 @@ class CheckResult {
 /// Results are sorted by file, then rule id, then line for determinism.
 CheckResult checkPath(String target) {
   final files = collectDartFiles(target);
-  final (:findings, :errors) =
-      analyzeFilesWithRules(files, ruleAnalyzers);
-  return CheckResult(findings: findings, errors: errors);
+  final batched = ruleAnalyzers.where((r) => r.id == batchRuleId).toList();
+  final immediate = ruleAnalyzers.where((r) => r.id != batchRuleId).toList();
+  final (:findings, :errors) = analyzeFilesWithRules(files, immediate);
+  final all = [...findings];
+  for (final rule in batched) {
+    try {
+      final verdicts = analyzeFormatBatch(files);
+      for (final entry in verdicts.entries) {
+        for (final violation in entry.value) {
+          all.add(CheckFinding(
+            ruleId: rule.id,
+            spec: rule.spec,
+            file: entry.key,
+            line: violation.line,
+            message: violation.message,
+            severity: rule.severity,
+          ));
+        }
+      }
+    } catch (error) {
+      errors.add(CheckError(file: target, error: '$error'));
+    }
+  }
+  all.sort(_byFileRuleLine);
+  return CheckResult(findings: all, errors: errors);
+}
+
+/// Deterministic finding order: file, then rule id, then line.
+int _byFileRuleLine(CheckFinding a, CheckFinding b) {
+  final byFile = a.file.compareTo(b.file);
+  if (byFile != 0) return byFile;
+  final byRule = a.ruleId.compareTo(b.ruleId);
+  if (byRule != 0) return byRule;
+  return a.line.compareTo(b.line);
 }
 
 /// Runs [analyzers] over [files], collecting findings and one error
 /// per broken file. Shared `check`/lite loop: findings sort by file,
 /// then rule id, then line for determinism.
-({List<CheckFinding> findings, List<CheckError> errors})
-    analyzeFilesWithRules(
-        List<String> files, List<RuleAnalyzer> analyzers) {
+({List<CheckFinding> findings, List<CheckError> errors}) analyzeFilesWithRules(
+    List<String> files, List<RuleAnalyzer> analyzers) {
   final findings = <CheckFinding>[];
   final errors = <CheckError>[];
   final seenErrors = <(String, String)>{};
@@ -107,12 +142,6 @@ CheckResult checkPath(String target) {
       }
     }
   }
-  findings.sort((a, b) {
-    final byFile = a.file.compareTo(b.file);
-    if (byFile != 0) return byFile;
-    final byRule = a.ruleId.compareTo(b.ruleId);
-    if (byRule != 0) return byRule;
-    return a.line.compareTo(b.line);
-  });
+  findings.sort(_byFileRuleLine);
   return (findings: findings, errors: errors);
 }

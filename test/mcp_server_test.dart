@@ -55,8 +55,8 @@ void main() {
       expect(bad['sdk_available'], isA<bool>());
       expect(bad['note'], contains('Tier-1-lite'));
 
-      final good = await callTool('verify_viewport',
-          {'path': 'benchmark/vectors/TC-07_lay.good.dart'});
+      final good = await callTool(
+          'verify_viewport', {'path': 'benchmark/vectors/TC-07_lay.good.dart'});
       expect(good['status'], 'PASSED');
     });
 
@@ -113,8 +113,7 @@ void main() {
           throwsA(isA<McpError>().having((e) => e.code, 'code', -32602)));
     });
 
-    test('get_telemetry on a missing log is empty, never an error',
-        () async {
+    test('get_telemetry on a missing log is empty, never an error', () async {
       final dir = Directory.systemTemp.createTempSync('mcp_tele_empty_');
       addTearDown(() => dir.deleteSync(recursive: true));
       final result = await IOOverrides.runZoned(
@@ -136,8 +135,8 @@ void main() {
       final executable = Platform.resolvedExecutable.isNotEmpty
           ? Platform.resolvedExecutable
           : 'dart';
-      final result = await Process.run(
-          executable, ['tool/embed_recipes.dart', '--check']);
+      final result =
+          await Process.run(executable, ['tool/embed_recipes.dart', '--check']);
       expect(result.exitCode, 0,
           reason: 'run: dart tool/embed_recipes.dart\n${result.stderr}');
     }, timeout: const Timeout(Duration(seconds: 60)));
@@ -165,16 +164,15 @@ void main() {
   group('client config', () {
     test('merge writes fresh, preserves, refuses garbage', () {
       final fresh = jsonDecode(mergeMcpConfig(null)) as Map;
-      expect(fresh['mcpServers']['flutterguard']['command'],
-          'flutterguard_mcp');
+      expect(
+          fresh['mcpServers']['flutterguard']['command'], 'flutterguard_mcp');
 
       final merged = jsonDecode(mergeMcpConfig(
-              '{"mcpServers": {"other": {"command": "x"}}, "k": 1}'))
-          as Map;
+          '{"mcpServers": {"other": {"command": "x"}}, "k": 1}')) as Map;
       expect(merged['k'], 1);
       expect(merged['mcpServers']['other'], {'command': 'x'});
-      expect(merged['mcpServers']['flutterguard']['command'],
-          'flutterguard_mcp');
+      expect(
+          merged['mcpServers']['flutterguard']['command'], 'flutterguard_mcp');
 
       expect(() => mergeMcpConfig('{nope'), throwsFormatException);
       expect(() => mergeMcpConfig('[1]'), throwsFormatException);
@@ -199,8 +197,7 @@ void main() {
       expect(reg.wrote, hasLength(1));
       expect(reg.errors, hasLength(1));
       expect(reg.errors.single, contains('mcp_config.json'));
-      expect(File('${root.path}/mcp_config.json').readAsStringSync(),
-          '{nope');
+      expect(File('${root.path}/mcp_config.json').readAsStringSync(), '{nope');
     });
 
     test('resolvesOnPath honors an injected PATH', () {
@@ -210,8 +207,7 @@ void main() {
       File('${dir.path}/$name').writeAsStringSync('');
       final separator = Platform.isWindows ? ';' : ':';
       expect(
-          resolvesOnPath('fgmcp', pathEnv: ' ${dir.path} $separator '),
-          isTrue);
+          resolvesOnPath('fgmcp', pathEnv: ' ${dir.path} $separator '), isTrue);
       expect(resolvesOnPath('fgmcp', pathEnv: dir.path + '_empty'), isFalse);
       expect(resolvesOnPath('fgmcp', pathEnv: ''), isFalse);
     });
@@ -225,16 +221,17 @@ void main() {
       final responses = <String, Map<String, Object?>>{};
       final subscription = controller.local.stream.listen((line) {
         final decoded = jsonDecode(line) as Map;
-        responses['${decoded['id']}'] =
-            {for (final e in decoded.entries) '${e.key}': e.value};
+        responses['${decoded['id']}'] = {
+          for (final e in decoded.entries) '${e.key}': e.value
+        };
       });
       addTearDown(() async {
         await subscription.cancel();
         await controller.local.sink.close();
       });
 
-      Future<Map<String, Object?>> request(
-          int id, String method, [Object? params]) async {
+      Future<Map<String, Object?>> request(int id, String method,
+          [Object? params]) async {
         controller.local.sink.add(jsonEncode({
           'jsonrpc': '2.0',
           'id': id,
@@ -260,15 +257,15 @@ void main() {
 
       final list = await request(2, 'tools/list', {});
       final tools = _at(list, 'result')['tools'] as List;
-      expect(
-          [for (final t in tools) t['name']],
-          [
-            'analyze_ast',
-            'get_canonical_recipe',
-            'verify_viewport',
-            'run_mutation_check',
-            'get_telemetry',
-          ]);
+      expect([
+        for (final t in tools) t['name']
+      ], [
+        'analyze_ast',
+        'get_canonical_recipe',
+        'verify_viewport',
+        'run_mutation_check',
+        'get_telemetry',
+      ]);
       for (final tool in tools) {
         expect(tool['inputSchema']['type'], 'object');
       }
@@ -281,12 +278,14 @@ void main() {
           (_at(call, 'result')['content'] as List).single['text'] as String;
       expect(jsonDecode(text)['rule_id'], 'FG-RIV-001');
 
-      final badTool = await request(
-          4, 'tools/call', {'name': 'nope', 'arguments': {}});
+      final badTool =
+          await request(4, 'tools/call', {'name': 'nope', 'arguments': {}});
       expect(_at(badTool, 'error')['code'], -32601);
 
-      final badParams = await request(5, 'tools/call',
-          {'name': 'analyze_ast', 'arguments': {'path': 'nope.dart'}});
+      final badParams = await request(5, 'tools/call', {
+        'name': 'analyze_ast',
+        'arguments': {'path': 'nope.dart'}
+      });
       expect(_at(badParams, 'error')['code'], -32602);
 
       final badMethod = await request(6, 'nope/method', {});
@@ -332,12 +331,13 @@ void main() {
           server.stdout.transform(utf8.decoder).transform(const LineSplitter());
       final subscription = lines.listen((line) {
         final decoded = jsonDecode(line) as Map;
-        responses['${decoded['id']}'] =
-            {for (final e in decoded.entries) '${e.key}': e.value};
+        responses['${decoded['id']}'] = {
+          for (final e in decoded.entries) '${e.key}': e.value
+        };
       });
 
-      Future<Map<String, Object?>> request(
-          int id, String method, [Object? params]) async {
+      Future<Map<String, Object?>> request(int id, String method,
+          [Object? params]) async {
         server.stdin.writeln(jsonEncode({
           'jsonrpc': '2.0',
           'id': id,
@@ -361,8 +361,7 @@ void main() {
       try {
         final hello = await request(
             1, 'initialize', {'protocolVersion': 'x', 'capabilities': {}});
-        expect(
-            (_at(hello, 'result')['serverInfo'] as Map)['name'],
+        expect((_at(hello, 'result')['serverInfo'] as Map)['name'],
             'flutterguard');
 
         server.stdin.writeln(jsonEncode(
@@ -406,8 +405,8 @@ void main() {
         final teleResult = jsonDecode(toolText(tele)) as Map;
         expect((teleResult['lines'] as List).length, lessThanOrEqualTo(3));
 
-        final badTool = await request(
-            8, 'tools/call', {'name': 'nope', 'arguments': {}});
+        final badTool =
+            await request(8, 'tools/call', {'name': 'nope', 'arguments': {}});
         expect(_at(badTool, 'error')['code'], -32601);
 
         final badMethod = await request(9, 'nope', {});
@@ -422,8 +421,7 @@ void main() {
 }
 
 /// Nested map at [key] of a JSON-RPC [response] (test-only cast).
-Map _at(Map<String, Object?> response, String key) =>
-    response[key] as Map;
+Map _at(Map<String, Object?> response, String key) => response[key] as Map;
 
 /// Names under `fixtures/mutation/` (absent dir → empty).
 Set<String> _sandboxNames() {

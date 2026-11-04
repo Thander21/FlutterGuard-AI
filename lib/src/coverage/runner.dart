@@ -34,8 +34,7 @@ class MethodScore {
 
   /// `CC(m)^2 x (1 - cov(m))^3 + CC(m)`.
   double get crap =>
-      (complexity * complexity * pow(1 - coverage, 3) + complexity)
-          .toDouble();
+      (complexity * complexity * pow(1 - coverage, 3) + complexity).toDouble();
 
   /// True at `CRAP >= 10` (advisory: reported, never fails).
   bool get overBudget => crap >= crapThreshold;

@@ -30,8 +30,7 @@ void main() {
     test('accepts --json without changing exit codes', () {
       expect(cli.check(['--json', 'benchmark/vectors/TC-01_bloc.good.dart']),
           isZero);
-      expect(
-          cli.check(['benchmark/vectors/TC-01_bloc.bad.dart', '--json']), 1);
+      expect(cli.check(['benchmark/vectors/TC-01_bloc.bad.dart', '--json']), 1);
     });
   });
 }

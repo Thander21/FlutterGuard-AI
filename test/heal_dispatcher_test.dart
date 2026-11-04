@@ -44,8 +44,7 @@ void main() {
     });
 
     String writeFixture(String name, String content) {
-      final file = File('${root.path}/$name')
-        ..writeAsStringSync(content);
+      final file = File('${root.path}/$name')..writeAsStringSync(content);
       return file.path;
     }
 
@@ -132,16 +131,14 @@ void main() {
       expect(result.success, isFalse);
       expect(result.attempts, 1);
       expect(result.rolledBack, isTrue);
-      expect(File(path).readAsStringSync(),
-          'line one\nline two\nline three\n');
+      expect(File(path).readAsStringSync(), 'line one\nline two\nline three\n');
       expect(File('$path.heal-report.md').existsSync(), isTrue);
     });
 
     test('detect crash rolls back immediately with a report', () {
       final path =
           writeFixture('crash.dart', 'line one\nline two\nline three\n');
-      List<RuleViolation> crashing(String _) =>
-          throw StateError('boom');
+      List<RuleViolation> crashing(String _) => throw StateError('boom');
 
       final result = HealDispatcher().healFile(
         path: path,
@@ -158,8 +155,7 @@ void main() {
       expect(result.errors, hasLength(1));
       expect(result.errors.single.phase, 'detect');
       expect(result.errors.single.error, contains('boom'));
-      expect(File(path).readAsStringSync(),
-          'line one\nline two\nline three\n');
+      expect(File(path).readAsStringSync(), 'line one\nline two\nline three\n');
       final report = File('$path.heal-report.md');
       expect(report.existsSync(), isTrue);
       expect(report.readAsStringSync(), contains('FG-STUB-001'));
@@ -188,7 +184,8 @@ void main() {
     });
 
     test('persistent failure burns the cap, rolls back, reports', () {
-      final path = writeFixture('stub.dart', 'line one\nline two\nline three\n');
+      final path =
+          writeFixture('stub.dart', 'line one\nline two\nline three\n');
       List<RuleViolation> alwaysRed(String _) => [_StubViolation()];
 
       final result = HealDispatcher().healFile(
@@ -203,8 +200,7 @@ void main() {
       expect(result.success, isFalse);
       expect(result.attempts, 3);
       expect(result.rolledBack, isTrue);
-      expect(File(path).readAsStringSync(),
-          'line one\nline two\nline three\n');
+      expect(File(path).readAsStringSync(), 'line one\nline two\nline three\n');
       final report = File('$path.heal-report.md');
       expect(report.existsSync(), isTrue);
       expect(report.readAsStringSync(), contains('FG-STUB-001'));

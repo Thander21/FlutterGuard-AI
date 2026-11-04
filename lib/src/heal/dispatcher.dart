@@ -179,8 +179,7 @@ class HealDispatcher {
     return true;
   }
 
-  String _indentOf(String line) =>
-      RegExp(r'^\s*').firstMatch(line)!.group(0)!;
+  String _indentOf(String line) => RegExp(r'^\s*').firstMatch(line)!.group(0)!;
 
   String _report(String path, HealRecipe recipe, int attempts, int cap,
       List<HealError> errors) {

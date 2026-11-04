@@ -169,7 +169,7 @@ only, not spec material) · PROCESS (adopted way of working).
 - §2 gate ladder → BUILT (CLI-001a mapping with budgets).
 - Light-gate imports/format/syntax checks → BACKLOG (attached
   "when specced" per CLI-001a; no spec yet — the audit's one
-  tracked backlog, not an orphan).
+  tracked backlog, not an orphan) → CLOSED 2026-11-04 (see §6).
 - §3 heal budget + snapshot + Attack-the-Premise → BUILT
   (HEAL-001, wins).
 
@@ -235,3 +235,12 @@ approved, 1 deferred, 2 dropped spikes) plus table-recorded drops
 0 orphans. Re-audit trigger: any new doc under `docs/_origem/`
 (frozen — should not happen) or a deferred item's re-entry
 (VIEW-002, PROF-002, TS-07 v2, `*Sync` candidate).
+
+## 6. Re-entry log
+
+- 2026-11-04 — §1.15 light-gate BACKLOG closed: `TS-15`
+  (FG-IMP-015 illegal imports), `TS-16` (FG-FMT-016 formatter
+  batch), `TS-17` (FG-SYN-017 fail-closed syntax) built with
+  vectors, visitors, registry entries, and recipe embeds;
+  SYS-CLI-001a §2/§3/§5/§6 amended (gate row live, batch
+  placement, fail-closed flip). Tracked backlogs: zero.

@@ -23,17 +23,17 @@ Server createMcpServer(StreamChannel<String> channel) {
   server.registerMethod('initialize', (Parameters params) {
     final requested = params.asMap['protocolVersion'];
     return {
-      'protocolVersion':
-          requested is String ? requested : mcpProtocolVersion,
-      'capabilities': {
-        'tools': <String, Object?>{}
-      },
+      'protocolVersion': requested is String ? requested : mcpProtocolVersion,
+      'capabilities': {'tools': <String, Object?>{}},
       'serverInfo': {'name': 'flutterguard', 'version': mcpServerVersion},
     };
   });
   server.registerMethod('notifications/initialized', (_) {});
   server.registerMethod(
-      'tools/list', (_) => {'tools': [for (final t in mcpToolDefs) t.toJson()]});
+      'tools/list',
+      (_) => {
+            'tools': [for (final t in mcpToolDefs) t.toJson()]
+          });
   server.registerMethod('tools/call', (Parameters params) async {
     final map = params.asMap;
     final name = map['name'];

@@ -86,8 +86,7 @@ class ArchLayerGuard extends RecursiveAstVisitor<void> {
   var _hasWidget = false;
 
   /// Violations to report: pending directives only when UI was detected.
-  List<ArchLayerViolation> get violations =>
-      _hasWidget ? _pending : const [];
+  List<ArchLayerViolation> get violations => _hasWidget ? _pending : const [];
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {

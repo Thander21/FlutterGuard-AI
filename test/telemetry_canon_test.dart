@@ -24,8 +24,7 @@ void main() {
       final root = Directory.systemTemp.createTempSync('tele_canon.');
       try {
         Directory('${root.path}/specs').createSync();
-        Directory('${root.path}/benchmark/vectors')
-            .createSync(recursive: true);
+        Directory('${root.path}/benchmark/vectors').createSync(recursive: true);
         for (final name in [
           'specs/TS-01-bloc-emit-guard.md',
           'benchmark/vectors/TC-01_bloc.bad.dart',

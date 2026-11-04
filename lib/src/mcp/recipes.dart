@@ -76,6 +76,30 @@ Bare `if (!mounted) return;` is accepted as a guard but never injected.''',
 
 The service returns data; the calling widget navigates with its own
 context (guarded per FG-ASYNC-002 when asynchronous).''',
+  'FG-FMT-016': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   void main() {
+-    print( 'hello'  );
++    print('hello');
+   }
+```
+
+Run `dart format <file>` (or accept the formatter's output) to
+heal; the gate compares against exactly that output.''',
+  'FG-IMP-015': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+- import 'dart:mirrors';
++ // Reflection is unavailable on Flutter; use explicit
++ // serialization (json_serializable) or code generation instead.
+```
+
+```diff
+   // lib/ui/page.dart
+-  import '../tool/debug.dart';
++  import 'package:myapp/tool/debug.dart';
+```''',
   'FG-KEY-001r': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -228,6 +252,15 @@ Params — group into a config object:
 +    );
    }
 ```''',
+  'FG-SYN-017': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   void main() {
+-    var greeting = ;
++    var greeting = 'hello';
+     print(greeting);
+   }
+```''',
   'FG-WID-008': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -253,6 +286,8 @@ const canonicalRecipeSpecs = <String, String>{
   'FG-BLOC-001': 'specs/TS-01-bloc-emit-guard.md',
   'FG-BUILD-014': 'specs/TS-14-async-in-build-guard.md',
   'FG-CTX-006': 'specs/TS-09-context-scope-guard.md',
+  'FG-FMT-016': 'specs/TS-16-format-guard.md',
+  'FG-IMP-015': 'specs/TS-15-import-guard.md',
   'FG-KEY-001r': 'specs/TS-12-list-key-guard.md',
   'FG-LAY-004': 'specs/TS-07-list-viewport-guard.md',
   'FG-LIFE-001': 'specs/TS-04-life-symmetry-guard.md',
@@ -261,5 +296,6 @@ const canonicalRecipeSpecs = <String, String>{
   'FG-RIV-001': 'specs/TS-02-riverpod-watch-guard.md',
   'FG-ST-001': 'specs/TS-03-controller-in-build-guard.md',
   'FG-ST-005': 'specs/TS-08-state-mutation-guard.md',
+  'FG-SYN-017': 'specs/TS-17-syntax-guard.md',
   'FG-WID-008': 'specs/TS-10-widget-immutable-guard.md',
 };

@@ -45,7 +45,8 @@ int _run(List<String> args) {
   }
   stderr.writeln(
       'Usage: dart run bin/flutterguard.dart <grade|check|init|sandbox>');
-  stderr.writeln('  grade                 Run golden evals, append evidence.jsonl.');
+  stderr.writeln(
+      '  grade                 Run golden evals, append evidence.jsonl.');
   stderr.writeln(
       '  check <path> [--json] [--help] Audit a .dart file or directory.');
   stderr.writeln('  init [--scaffold] [--agents] [--help] Init a project.');
@@ -165,10 +166,12 @@ int grade({String root = '.'}) {
       specErrors++;
       continue;
     }
-    failures += _gradeVector(lines, spec.id, analyzer,
-        _join(root, spec.failing), expectFlagged: true);
-    failures += _gradeVector(lines, spec.id, analyzer,
-        _join(root, spec.passing), expectFlagged: false);
+    failures += _gradeVector(
+        lines, spec.id, analyzer, _join(root, spec.failing),
+        expectFlagged: true);
+    failures += _gradeVector(
+        lines, spec.id, analyzer, _join(root, spec.passing),
+        expectFlagged: false);
   }
   File(_join(root, 'evidence.jsonl'))
       .writeAsStringSync('${lines.join('\n')}\n', mode: FileMode.append);
@@ -176,8 +179,8 @@ int grade({String root = '.'}) {
   if (failures == 0 && specErrors == 0) {
     stdout.writeln('All golden evals passed.');
   } else {
-    stdout.writeln(
-        '$failures golden eval(s) failed, $specErrors spec error(s).');
+    stdout
+        .writeln('$failures golden eval(s) failed, $specErrors spec error(s).');
   }
   return failures == 0 && specErrors == 0 ? 0 : 1;
 }
@@ -188,7 +191,8 @@ String _join(String root, String path) => root == '.' ? path : '$root/$path';
 
 /// `flutterguard.yaml` schema v1 (SYS-CLI-001b §2). Written once, never
 /// overwritten.
-const _flutterguardYaml = '''# FlutterGuard configuration (SYS-CLI-001b). Schema v1: version + gate
+const _flutterguardYaml =
+    '''# FlutterGuard configuration (SYS-CLI-001b). Schema v1: version + gate
 # toggles. Toggles are declared here; enforcement lands with the gate
 # runner — unknown keys are ignored for forward compatibility.
 version: 1
@@ -429,8 +433,7 @@ _Spec _readSpec(File file) {
       continue;
     }
     if (!inMatter) continue;
-    final match =
-        RegExp(r'^\s*(\w+):\s*"?([^"]+)"?\s*$').firstMatch(line);
+    final match = RegExp(r'^\s*(\w+):\s*"?([^"]+)"?\s*$').firstMatch(line);
     if (match == null) continue;
     switch (match.group(1)) {
       case 'id':
@@ -446,5 +449,6 @@ _Spec _readSpec(File file) {
   if (id == null || failing == null || passing == null) {
     throw StateError('Incomplete front matter in ${file.path}.');
   }
-  return _Spec(id: id, failing: failing, passing: passing, kind: kind ?? 'rule');
+  return _Spec(
+      id: id, failing: failing, passing: passing, kind: kind ?? 'rule');
 }

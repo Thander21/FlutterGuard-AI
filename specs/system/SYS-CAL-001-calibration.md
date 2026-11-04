@@ -40,6 +40,11 @@ tables below). Tripwire: `test/calibration_test.dart` pins the
 ratified MET flag set and DRY pair membership — any detector or
 codebase change that moves the numbers fails the suite and forces
 re-calibration (re-judge, re-ratify, update this spec).
+Unparseable corpus files are skipped by the harness (printed as
+`SKIP (unparseable)`) and the tripwire — they cannot be measured;
+the tripwire pins the skip set to exactly
+`benchmark/vectors/TC-17_syn.bad.dart`, intentionally unparseable
+as TS-17's golden negative.
 
 Flip bar (defined here, applied below): a threshold flips
 advisory→blocking iff precision == 1.0 AND N ≥ 5 judged flags AND
@@ -157,6 +162,14 @@ SYS-TELE-001 first (canon rule §4).
   `BreakerResult` data-class FPs; 12 pairs re-judged all-FP,
   precision on remainder 0/12, HOLD reaffirmed. MET set
   unchanged (`util.dart` MET-clean).
+- Re-ratifications: 2026-11-04 — light-gate trio (TS-15/16/17)
+  plus the repo format pass: 3 DRY pair keys shifted
+  (`rules.dart:22` → `:25` ×2 from registry import insertions;
+  `tools.dart:190/212` → `189/210` from formatter reflows);
+  same 12 pairs, same FP classes, precision on remainder still
+  0/12, HOLD reaffirmed. MET set unchanged (new files
+  MET-clean). Corpus scans now skip unparseable files (see §2);
+  the skip set is pinned to the designed TC-17 negative.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

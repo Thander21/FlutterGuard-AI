@@ -50,7 +50,7 @@ lines keep the bare `RULE file:line message` shape.
 
 | Gate | Contents | Budget | Status |
 |------|----------|--------|--------|
-| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014); imports/format/syntax checks attach here when specced | ~1–3 s | live (AST part) |
+| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
 | `test` | changed-file unit tests via `dart test` / `flutter test --concurrency=1`; 100% green, no warnings | ~5–15 s | live |
 | `validate` | `dart analyze --fatal-infos` over the module, cross-regression tests, contract integrity; resolved-analysis rules attach here | ~30–60 s | live (analyzer part) |
 | `commit-check` | evidence presence per SYS-TELE-001, no temp files, clean diff | ~2 s | defined here, enforced by the hook in SYS-CLI-001b |
@@ -91,6 +91,9 @@ the pollution budget).
 - `lib/src/cli/rules.dart` (registry both `grade` and `check` run).
 - Tests: `test/check_test.dart` (audit behavior), `test/check_cli_test.dart`
   (arg parsing, exit codes).
+- `lib/src/ast/format_guard.dart` (FG-FMT-016 batch core: one
+  `dart format` spawn per `checkPath` call; called by `checkPath`,
+  not the per-file loop).
 
 # 4. Evidence Wiring
 
@@ -102,9 +105,12 @@ SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
 
 - Missing target: `ArgumentError` → usage → exit 2.
 - Non-`.dart` file target: zero files scanned → clean, exit 0.
-- Unreadable/unparseable file: collected in `errors` once per file
-  (stderr + JSON), reported but never fails the gate — exit follows
-  findings only.
+- Unreadable file (I/O failure) or analyzer crash: collected in
+  `errors` once per file (stderr + JSON), reported but never fails
+  the gate — exit follows findings only. Unparseable file:
+  FG-SYN-017 finding (fails closed); the other visitors' identical
+  parse throws still dedup to one `errors` entry. FG-FMT-016 emits
+  no verdict for unparseable files (owned by FG-SYN-017).
 - Unknown flags / wrong arity: usage → exit 2. `--help` (or `-h`): usage
   → exit 0. `--json` never changes exit codes.
 
@@ -114,3 +120,12 @@ SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
   by `check` (PLAN-01 decision, owned here).
 - Grade-vs-check doctrine: `grade` is the repo-local dev-loop (appends
   evidence); `check` is the portable read-only gate.
+- Syntax fail-closed flip (TS-17, 2026-11-04): unparseable files
+  fail via FG-SYN-017 findings; §5 report-only now covers
+  unreadable/crash only. The old fail-open hole (parse errors
+  green) is closed.
+- Formatter oracle (TS-16, 2026-11-04): the ambient `dart format`
+  subprocess on the original paths; no new dependency (rejected:
+  `dart_style` 3.x needs analyzer ^7+ vs ^6.0.0 here, 2.x formats
+  short style; temp copies lose package context and flip the
+  language version).

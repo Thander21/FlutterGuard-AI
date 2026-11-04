@@ -165,9 +165,8 @@ Map<String, Object?> _analyzeAst(Map<String, Object?> args) {
     throw McpError(-32602, '$error');
   }
   return {
-    'status': result.findings.any((f) => f.severity == 'error')
-        ? 'FAILED'
-        : 'PASSED',
+    'status':
+        result.findings.any((f) => f.severity == 'error') ? 'FAILED' : 'PASSED',
     'findings': [for (final f in result.findings) f.toJson()],
     'errors': [for (final e in result.errors) e.toJson()],
   };
@@ -198,9 +197,8 @@ Map<String, Object?> _viewport(Map<String, Object?> args) {
     throw McpError(-32603, 'Lite vocabulary unwired: $error');
   }
   return {
-    'status': result.findings.any((f) => f.severity == 'error')
-        ? 'FAILED'
-        : 'PASSED',
+    'status':
+        result.findings.any((f) => f.severity == 'error') ? 'FAILED' : 'PASSED',
     'findings': [for (final f in result.findings) f.toJson()],
     'errors': [for (final e in result.errors) e.toJson()],
     'files_scanned': result.filesScanned,
@@ -273,15 +271,13 @@ Map<String, Object?> _telemetry(Map<String, Object?> args) {
 String _stringArg(Map<String, Object?> args, String tool, String key) {
   final value = args[key];
   if (value is! String || value.isEmpty) {
-    throw McpError(
-        -32602, '$tool needs "$key: string" (non-empty).');
+    throw McpError(-32602, '$tool needs "$key: string" (non-empty).');
   }
   return value;
 }
 
 /// Optional string arg; `-32602` on wrong type, null when absent.
-String? _optionalString(
-    Map<String, Object?> args, String key, String tool) {
+String? _optionalString(Map<String, Object?> args, String key, String tool) {
   final value = args[key];
   if (value == null) return null;
   if (value is! String) {
@@ -295,8 +291,7 @@ int _limit(Map<String, Object?> args) {
   final value = args['limit'];
   if (value == null) return 50;
   if (value is! int || value <= 0 || value > 500) {
-    throw McpError(
-        -32602, 'get_telemetry "limit" must be an integer 1..500.');
+    throw McpError(-32602, 'get_telemetry "limit" must be an integer 1..500.');
   }
   return value;
 }

@@ -179,8 +179,8 @@ end_of_record
           runner.run(testPath: 'nope.dart', reportOn: ['samples/coverage']),
           throwsArgumentError);
       await expectLater(
-          runner.run(
-              testPath: 'samples/coverage/sample_test.dart', reportOn: []),
+          runner
+              .run(testPath: 'samples/coverage/sample_test.dart', reportOn: []),
           throwsArgumentError);
       await expectLater(
           runner.run(

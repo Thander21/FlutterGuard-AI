@@ -32,8 +32,8 @@ void main() {
       final specs = Directory('specs')
           .listSync()
           .whereType<File>()
-          .where((f) =>
-              f.path.endsWith('.md') && !f.path.endsWith('_template.md'))
+          .where(
+              (f) => f.path.endsWith('.md') && !f.path.endsWith('_template.md'))
           .map((f) => f.path.replaceAll(r'\', '/'))
           .toList();
       expect(specs, isNotEmpty);
@@ -52,8 +52,7 @@ void main() {
 
     test('methodology catalog stays resolvable as frozen reference', () {
       expect(
-          File('docs/_origem/CanonicalRecipesCatalog.md').existsSync(),
-          isTrue);
+          File('docs/_origem/CanonicalRecipesCatalog.md').existsSync(), isTrue);
     });
   });
 }
@@ -69,8 +68,7 @@ String? _frontMatterId(String text) {
       continue;
     }
     if (!inMatter) continue;
-    final match =
-        RegExp(r'^\s*id:\s*"?([^"\s]+)"?\s*$').firstMatch(line);
+    final match = RegExp(r'^\s*id:\s*"?([^"\s]+)"?\s*$').firstMatch(line);
     if (match != null) return match.group(1);
   }
   return null;
