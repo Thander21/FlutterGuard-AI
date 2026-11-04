@@ -1,12 +1,13 @@
-// FG-LAY-004: forbid unbounded scrollables directly inside Column/Row.
+// FG-LAY-004: forbid unbounded scrollables inside Column/Row.
 //
 // A Column passes unbounded height (a Row, unbounded width) to its
 // children, so a bare ListView/GridView/CustomScrollView in `children`
-// throws the unbounded-viewport error at runtime. The scrollable must
-// be wrapped in Expanded/Flexible, given a bounded height/width, or —
-// in Column only — declare `shrinkWrap: true` (the Row axis ignores
-// shrinkWrap: probed on Flutter 3.47.9). Parsing only (no type
-// resolution), so vectors need no dependencies.
+// — directly or through Padding/Center/Align — throws the
+// unbounded-viewport error at runtime. The scrollable must be wrapped
+// in Expanded/Flexible, given a bounded height/width, or — in Column
+// only — declare `shrinkWrap: true` (the Row axis ignores shrinkWrap:
+// probed on Flutter 3.47.9). Parsing only (no type resolution), so
+// vectors need no dependencies.
 
 import 'dart:io';
 
@@ -22,6 +23,10 @@ const _flexNames = <String>{'Column', 'Row'};
 
 /// Scrollable widgets flagged as direct flex children.
 const _scrollableNames = <String>{'ListView', 'GridView', 'CustomScrollView'};
+
+/// Transparent wrappers descended through into `child` (closed v3 set,
+/// probed on Flutter 3.47.9 — all pass unbounded constraints through).
+const _transparentNames = <String>{'Padding', 'Center', 'Align'};
 
 /// Named constructors parsed as invocations on the widget target.
 const _listViewCtors = <String>{'builder', 'separated', 'custom'};
@@ -53,14 +58,15 @@ List<ListViewportViolation> analyzeListViewportFile(String path) {
 
 /// Flags unbounded scrollables in flex `children: …`.
 ///
-/// Scope (v2): every `Column`/`Row` creation (explicit, bare, or
+/// Scope (v3): every `Column`/`Row` creation (explicit, bare, or
 /// prefixed call) is judged independently. Its `children` argument
 /// is walked through collection literals, `if`/`for` elements,
-/// spreads, and conditionals; a ListView/GridView/CustomScrollView
-/// creation found there is flagged unless it sets `shrinkWrap:
-/// true` in a Column (the Row axis ignores `shrinkWrap`). Other
-/// widget creations are never descended into, so wrapped
-/// scrollables stay clean.
+/// spreads, and conditionals, then transitively through transparent
+/// wrappers (`Padding`/`Center`/`Align`) into `child`; a
+/// ListView/GridView/CustomScrollView creation found there is flagged
+/// unless it sets `shrinkWrap: true` in a Column (the Row axis ignores
+/// `shrinkWrap`). Other widget creations are never descended into, so
+/// opaquely wrapped scrollables stay clean.
 class ListViewportGuard extends RecursiveAstVisitor<void> {
   ListViewportGuard(this._lineInfo);
 
@@ -129,16 +135,87 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
   }
 
   void _checkWidget(Expression widget) {
-    final name = _scrollableName(widget);
+    final descended = _descendTransparent(widget);
+    final name = _scrollableName(descended.target);
     if (name == null) return;
-    if (!_inRow && _hasShrinkWrapTrue(widget)) return;
+    if (!_inRow && _hasShrinkWrapTrue(descended.target)) return;
     final axis =
         _inRow ? 'Row() has unbounded width' : 'Column() has unbounded height';
+    final via = descended.chain.isEmpty
+        ? 'directly inside $axis'
+        : 'inside $axis (through ${descended.chain.join(' > ')})';
     violations.add(ListViewportViolation(
-      line: _lineInfo.getLocation(widget.offset).lineNumber,
-      message: '$name() directly inside $axis; wrap it in Expanded',
+      line: _lineInfo.getLocation(descended.target.offset).lineNumber,
+      message: '$name() $via; wrap it in Expanded',
     ));
   }
+}
+
+/// Descends [widget] transitively through transparent wrappers into
+/// `child`, recording the wrapper chain. Stops at the first
+/// non-transparent creation (judged as a scrollable or ignored) or
+/// when `child:` is absent.
+({Expression target, List<String> chain}) _descendTransparent(
+    Expression widget) {
+  final chain = <String>[];
+  var target = widget;
+  while (true) {
+    final wrapper = _transparentName(target);
+    if (wrapper == null) break;
+    final child = _childArgument(target);
+    if (child == null) break;
+    chain.add(wrapper);
+    target = child;
+  }
+  return (target: target, chain: chain);
+}
+
+/// Transparent wrapper created by [widget], or null when it creates
+/// none. Covers explicit creations, bare calls, and import-prefixed
+/// shapes; named-constructor and call-chain forms are excluded
+/// (Padding/Center/Align ship no named constructors that matter).
+String? _transparentName(Expression widget) {
+  if (widget is InstanceCreationExpression) {
+    final name = _simpleName(widget.constructorName.type.toSource());
+    return _transparentNames.contains(name) ? name : null;
+  }
+  if (widget is! MethodInvocation) return null;
+  final target = widget.target;
+  final method = widget.methodName.name;
+  if (target == null) {
+    return _transparentNames.contains(method) ? method : null;
+  }
+  // Prefixed default (`widgets.Padding()`): an UpperCamelCase
+  // method on a SimpleIdentifier target is a prefix, not a call.
+  if (target is SimpleIdentifier && _transparentNames.contains(method)) {
+    return method;
+  }
+  return null;
+}
+
+/// Value of the wrapper's `child:` argument, or null when absent.
+Expression? _childArgument(Expression widget) =>
+    _namedArgumentValue(widget, 'child');
+
+/// Value of the `[name]:` argument of [widget], or null when absent.
+/// First match wins (duplicate named args don't compile).
+/// Shared scan: one definition serves every named-arg lookup so the
+/// per-arg helpers stay one-liners (SYS-DRY-001: no twin scans).
+Expression? _namedArgumentValue(Expression widget, String name) {
+  final ArgumentList arguments;
+  if (widget is InstanceCreationExpression) {
+    arguments = widget.argumentList;
+  } else if (widget is MethodInvocation) {
+    arguments = widget.argumentList;
+  } else {
+    return null;
+  }
+  for (final argument in arguments.arguments) {
+    if (argument is NamedExpression && argument.name.label.name == name) {
+      return argument.expression;
+    }
+  }
+  return null;
 }
 
 /// Scrollable widget created by [widget], or null when it creates
@@ -195,23 +272,8 @@ String? _scrollableName(Expression widget) {
 
 /// True when the scrollable [widget] sets `shrinkWrap: true`.
 bool _hasShrinkWrapTrue(Expression widget) {
-  final ArgumentList arguments;
-  if (widget is InstanceCreationExpression) {
-    arguments = widget.argumentList;
-  } else if (widget is MethodInvocation) {
-    arguments = widget.argumentList;
-  } else {
-    return false;
-  }
-  for (final argument in arguments.arguments) {
-    if (argument is NamedExpression &&
-        argument.name.label.name == 'shrinkWrap' &&
-        argument.expression is BooleanLiteral &&
-        (argument.expression as BooleanLiteral).value) {
-      return true;
-    }
-  }
-  return false;
+  final value = _namedArgumentValue(widget, 'shrinkWrap');
+  return value is BooleanLiteral && value.value;
 }
 
 /// Simple type name (`ListView` for `ListView.builder`, prefixes and type

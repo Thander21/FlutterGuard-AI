@@ -145,6 +145,31 @@ Row axis — same fix, horizontal (v2):
 +      ),
      ],
    )
+```
+
+Transparent wrapper — bound the chain (v3):
+
+```diff
+   Column(
+     children: [
+-      Padding(
+-        padding: const EdgeInsets.all(8),
+-        child: ListView.builder(
+-          itemCount: 10,
+-          itemBuilder: (context, index) => Text('Item $index'),
+-        ),
+-      ),
++      Expanded(
++        child: Padding(
++          padding: const EdgeInsets.all(8),
++          child: ListView.builder(
++            itemCount: 10,
++            itemBuilder: (context, index) => Text('Item $index'),
++          ),
++        ),
++      ),
+     ],
+   )
 ```''',
   'FG-LIFE-001': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 

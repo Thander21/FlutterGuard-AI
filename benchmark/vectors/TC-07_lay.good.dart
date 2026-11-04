@@ -103,3 +103,34 @@ class BoxWrapScreen extends StatelessWidget {
     );
   }
 }
+
+class PaddedShrinkScreen extends StatelessWidget {
+  const PaddedShrinkScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.all(8),
+          child: ListView(
+            shrinkWrap: true,
+            children: [Text('a')],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class OutsideFlexScreen extends StatelessWidget {
+  const OutsideFlexScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(8),
+      child: ListView(),
+    );
+  }
+}

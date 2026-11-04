@@ -10,12 +10,15 @@ ast_nodes:
   - "MethodInvocation[name='Column|Row',target=null]"
   - "NamedExpression[name='children']"
   - "ListLiteral / IfElement / ForElement / SpreadElement"
+  - "InstanceCreationExpression[type='Padding|Center|Align']"
+  - "NamedExpression[name='child']"
   - "InstanceCreationExpression[type='ListView|GridView|CustomScrollView']"
-invariant: "A ListView, GridView, or CustomScrollView creation MUST NOT appear as a direct child in a Column's or Row's 'children' list; in Column, 'shrinkWrap: true' exempts (Row-axis ignores shrinkWrap — probed). An unbounded scrollable MUST be wrapped in Expanded/Flexible or given a bounded height/width."
+invariant: "A ListView, GridView, or CustomScrollView creation MUST NOT appear in a Column's or Row's 'children' list, either directly or through transparent wrappers (Padding/Center/Align, transitively); in Column, 'shrinkWrap: true' on the scrollable exempts (Row-axis ignores shrinkWrap — probed). An unbounded scrollable MUST be wrapped in Expanded/Flexible or given a bounded height/width."
 fp_limits:
   - "Scrollables wrapped in Expanded/Flexible/SizedBox (never descended into)"
-  - "Scrollable(shrinkWrap: true) in Column"
+  - "Scrollable(shrinkWrap: true) in Column (direct or through transparent wrappers)"
   - "Scrollables outside any Column/Row children list"
+  - "Scrollables behind opaque wrappers (Container and other opaque creations — never descended into)"
 golden_vectors:
   failing: "benchmark/vectors/TC-07_lay.bad.dart"
   passing: "benchmark/vectors/TC-07_lay.good.dart"
@@ -44,6 +47,18 @@ flex×scrollable cells throw bare; `shrinkWrap: true` exempts only
 in `Column` (all three Row+shrinkWrap shapes still throw);
 `scrollDirection` is irrelevant (a horizontal list in `Column`
 throws); `Expanded` fixes both axes.
+
+v3 closes the transparent-wrapper gap: `Padding`, `Center`, and
+`Align` pass unbounded constraints to `child` (probed on Flutter
+3.47.9 — throwaway `viewport/test/zz_v3_probe_tmp.dart`, removed
+after the probe — all three throw with a bare list on both axes;
+`mainAxisSize: min` still throws, so it never exempts). The
+visitor now descends transitively through that closed set into
+`child`, judging the scrollable found there by the same rule
+(`shrinkWrap: true` still exempts in `Column` only — probed
+clean through `Padding`). `Container` stays opaque: boundedness
+there depends on its own args (axis-aware analysis, future
+work).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -82,14 +97,40 @@ Row axis — same fix, horizontal (v2):
    )
 ```
 
+Transparent wrapper — bound the chain (v3):
+
+```diff
+   Column(
+     children: [
+-      Padding(
+-        padding: const EdgeInsets.all(8),
+-        child: ListView.builder(
+-          itemCount: 10,
+-          itemBuilder: (context, index) => Text('Item $index'),
+-        ),
+-      ),
++      Expanded(
++        child: Padding(
++          padding: const EdgeInsets.all(8),
++          child: ListView.builder(
++            itemCount: 10,
++            itemBuilder: (context, index) => Text('Item $index'),
++          ),
++        ),
++      ),
+     ],
+   )
+```
+
 # 3. Edge Cases and Non-Compliance
 
 Detection is per-flex (`Column`/`Row`): the visitor finds every flex
 creation (explicit or bare call) and walks its `children` argument,
 descending through collection literals, `if`/`for` elements,
-spreads, and conditionals — but never into other widget creations,
-so wrapped scrollables stay clean and nested flexes are judged
-independently.
+spreads, and conditionals, then transitively through transparent
+wrappers (`Padding`/`Center`/`Align`) into `child` — but never
+into other widget creations, so opaquely wrapped scrollables stay
+clean and nested flexes are judged independently.
 
 - `ListView.builder` as a direct child: MUST be flagged.
   [eval: TC-07.bad]
@@ -131,13 +172,25 @@ independently.
   [eval: unit fixture]
 - `GridView.builder` / `.count` / `.extent` / `.custom`: same
   named-constructor path. [eval: TC-07.bad, unit fixture]
-- Prefixed forms (`widgets.Column`, `widgets.ListView.builder`):
-  matched by simple name. [eval: unit fixture]
-- Transparent wrappers (`Padding(child: ListView(…))`): still broken
-  at runtime but NOT traced (known false negative; descent-through
-  is future work beyond v2). [unevaluated]
-- `mainAxisSize: min` does not exempt (still unbounded).
-  [unevaluated]
+- Prefixed forms (`widgets.Column`, `widgets.Padding`,
+  `widgets.ListView.builder`): matched by simple name.
+  [eval: unit fixture]
+- Transparent wrappers (`Padding`/`Center`/`Align`, transitively
+  nested, either axis): MUST be flagged. [eval: TC-07.bad,
+  unit fixture]
+- `Padding(child: ListView(shrinkWrap: true))` in `Column`:
+  MUST NOT be flagged (the exemption survives descent —
+  probed). [eval: TC-07.good]
+- `Padding(child: ListView(shrinkWrap: true))` in `Row`: MUST
+  be flagged (Row-axis ignores `shrinkWrap`). [eval: unit
+  fixture]
+- `mainAxisSize: min` does not exempt (still unbounded —
+  probed). [eval: unit fixture]
+- `Container(child: ListView(…))`: NOT traced (opaque;
+  boundedness needs arg analysis). [unevaluated]
+- Scrollable under a bounded grandchild (`Expanded(child:
+  Column(children: [ListView]))`): still flagged (known false
+  positive; flexes are judged independently). [unevaluated]
 
 `wrap_with_expanded` is model-owned per the SYS-HEAL-001 closed
 fast-path list (two-sided edit: insert the wrapper above plus close it

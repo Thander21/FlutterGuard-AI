@@ -243,6 +243,11 @@ SYS-TELE-001 first (canon rule §4).
   (2 verified clean), 3 OVER re-judged all-TP, tools trio
   measured 0 OVER, HOLD reaffirmed (N=3 < 5, fully sound
   measurement). MET/DRY sets unchanged.
+- Re-ratifications: 2026-11-04 — TS-07 v3 growth: one new TP pair
+  (`_childArgument` ~= `_hasShrinkWrapTrue` @0.812, twin named-arg
+  scans) HEALED into a shared `_namedArgumentValue` helper with
+  behavior pinned by the TS-07 suite — the pair is gone. Same
+  3 survivors, same judgments, HOLD reaffirmed. No pin changes.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

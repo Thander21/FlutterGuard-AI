@@ -8,13 +8,19 @@ void main() {
     test('flags unbounded scrollables in every flex cell', () {
       final violations =
           analyzeListViewportFile('benchmark/vectors/TC-07_lay.bad.dart');
-      expect(violations.map((v) => v.line), [14, 30, 45, 58, 71, 84, 97, 110]);
+      expect(violations.map((v) => v.line),
+          [14, 30, 45, 58, 71, 84, 97, 110, 125, 140, 155, 172]);
       expect(violations.first.message, contains('ListView'));
       expect(violations.first.message, contains('Expanded'));
       expect(violations[2].message, contains('Row'));
       expect(violations[2].message, contains('width'));
       expect(violations[4].message, contains('GridView'));
       expect(violations[6].message, contains('CustomScrollView'));
+      expect(violations[8].message, contains('through Padding'));
+      expect(violations[9].message, contains('through Center'));
+      expect(violations[10].message, contains('Row'));
+      expect(violations[10].message, contains('through Align'));
+      expect(violations[11].message, contains('through Padding > Center'));
     });
 
     test('spares bounded lists (zero false positives)', () {
@@ -132,6 +138,97 @@ Widget build(BuildContext context) {
 ''');
         final violations = analyzeListViewportFile(path);
         expect(violations.map((v) => v.line), [6]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags min-axis, transitive/prefixed wrappers, Row trap', () {
+      final root = Directory.systemTemp.createTempSync('lay_test.');
+      try {
+        final path = '${root.path}/v3.dart';
+        File(path).writeAsStringSync('''
+Widget build(BuildContext context) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      ListView(),
+      Padding(
+        padding: EdgeInsets.all(8),
+        child: Center(
+          child: GridView.count(crossAxisCount: 2),
+        ),
+      ),
+      widgets.Padding(
+        padding: const EdgeInsets.all(8),
+        child: widgets.ListView(),
+      ),
+      Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: ListView(shrinkWrap: true),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+''');
+        final violations = analyzeListViewportFile(path);
+        expect(violations.map((v) => v.line), [5, 9, 14, 20]);
+        expect(violations[1].message, contains('through Padding > Center'));
+        expect(violations[3].message, contains('Row'));
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('spares clean wrapper edges', () {
+      final root = Directory.systemTemp.createTempSync('lay_test.');
+      try {
+        final path = '${root.path}/v3clean.dart';
+        File(path).writeAsStringSync('''
+Widget build(BuildContext context) {
+  return Column(
+    children: [
+      Center(
+        child: ListView(shrinkWrap: true),
+      ),
+      Padding(),
+      Padding(child: Text('x')),
+    ],
+  );
+}
+''');
+        expect(analyzeListViewportFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('judges flexes behind wrappers independently, exactly once', () {
+      final root = Directory.systemTemp.createTempSync('lay_test.');
+      try {
+        final path = '${root.path}/wrapflex.dart';
+        File(path).writeAsStringSync('''
+Widget build(BuildContext context) {
+  return Column(
+    children: [
+      Padding(
+        padding: EdgeInsets.all(8),
+        child: Column(
+          children: [
+            ListView(),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+''');
+        final violations = analyzeListViewportFile(path);
+        expect(violations.map((v) => v.line), [8]);
       } finally {
         root.deleteSync(recursive: true);
       }

@@ -112,3 +112,67 @@ class SliverRowScreen extends StatelessWidget {
     );
   }
 }
+
+class PaddedListScreen extends StatelessWidget {
+  const PaddedListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.all(8),
+          child: ListView(),
+        ),
+      ],
+    );
+  }
+}
+
+class CenteredGridScreen extends StatelessWidget {
+  const CenteredGridScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Center(
+          child: GridView.count(crossAxisCount: 2),
+        ),
+      ],
+    );
+  }
+}
+
+class AlignedSliverRowScreen extends StatelessWidget {
+  const AlignedSliverRowScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Align(
+          child: CustomScrollView(slivers: const []),
+        ),
+      ],
+    );
+  }
+}
+
+class NestedWrapScreen extends StatelessWidget {
+  const NestedWrapScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.all(8),
+          child: Center(
+            child: ListView(),
+          ),
+        ),
+      ],
+    );
+  }
+}
