@@ -61,7 +61,7 @@ dart run bin/flutterguard.dart check <path> [--json]
 ```bash
 # 1. Official global install straight from GitHub (Dart SDK).
 # Primary path (SDKs shipping `dart install`):
-dart install 'flutterguard_ai@{git:{url:https://github.com/Thander21/FlutterGuard-AI.git}}'
+dart install 'flutterguard_ai@{git: {url: https://github.com/Thander21/FlutterGuard-AI.git}}'
 # Fallback for older SDKs:
 dart pub global activate --source git https://github.com/Thander21/FlutterGuard-AI.git
 

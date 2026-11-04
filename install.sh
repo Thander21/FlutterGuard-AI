@@ -5,7 +5,7 @@
 # for SDKs that do not ship `dart install` yet.
 set -e
 if dart install --help >/dev/null 2>&1; then
-  dart install 'flutterguard_ai@{git:{url:https://github.com/Thander21/FlutterGuard-AI.git}}'
+  dart install 'flutterguard_ai@{git: {url: https://github.com/Thander21/FlutterGuard-AI.git}}'
 else
   dart pub global activate --source git https://github.com/Thander21/FlutterGuard-AI.git
 fi

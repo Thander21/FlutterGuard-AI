@@ -127,3 +127,14 @@ executes `check`, which is read-only by SYS-CLI-001a.
   and `AGENTS.md` need `--scaffold` / `--agents`.
 - Playground resolution (PLAN-02 SYS-MUT-001): `vectors/` = golden evals
   (read-only source), `fixtures/` = agent playground (volatile copies).
+- Live install proof (2026-11-04, SDK 3.13.7, post-push): the primary
+  `dart install 'flutterguard_ai@{git: {url: <repo>}}'` (spaced
+  descriptor — the compact `{git:{url:...}}` form fails to parse)
+  installed both exes; `flutterguard check` flagged a fresh BLOC-001
+  file from a foreign directory (exit 1) and `flutterguard_mcp`
+  answered `initialize` with `serverInfo flutterguard/0.1.0`. The
+  `pub global activate --source git` fallback was verified the same
+  way under an isolated `PUB_CACHE` (`dart install` ignores
+  `PUB_CACHE` and targets `<user>/AppData/Local/Dart/install/`).
+  All install artifacts were uninstalled after verification
+  (`dart uninstall flutterguard_ai`).

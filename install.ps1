@@ -5,7 +5,7 @@
 $ErrorActionPreference = 'Stop'
 dart install --help 2>$null 1>$null
 if ($LASTEXITCODE -eq 0) {
-  dart install 'flutterguard_ai@{git:{url:https://github.com/Thander21/FlutterGuard-AI.git}}'
+  dart install 'flutterguard_ai@{git: {url: https://github.com/Thander21/FlutterGuard-AI.git}}'
 } else {
   dart pub global activate --source git https://github.com/Thander21/FlutterGuard-AI.git
 }
