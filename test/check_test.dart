@@ -57,6 +57,19 @@ void main() {
       expect(() => checkPath('does/not/exist'), throwsArgumentError);
     });
 
+    test('analyzer crash becomes a report-only error, run continues', () {
+      final boom = RuleAnalyzer(
+        id: 'FG-BOOM-000',
+        spec: 'specs/TS-01-bloc-emit-guard.md',
+        analyze: (_) => throw StateError('boom'),
+      );
+      final result = analyzeFilesWithRules(
+          ['benchmark/vectors/TC-01_bloc.good.dart'], [boom]);
+      expect(result.findings, isEmpty);
+      expect(result.errors, hasLength(1));
+      expect(result.errors.single.error, contains('boom'));
+    });
+
     test('each .bad vector is flagged only by its own rule', () {
       const expected = <String, String>{
         'benchmark/vectors/TC-01_bloc.bad.dart': 'FG-BLOC-001',

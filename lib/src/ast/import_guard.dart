@@ -3,8 +3,9 @@
 // Two triggers, both parse-only decidable: `dart:mirrors` (banned
 // on Flutter) in any import/export URI, and relative URIs escaping
 // the nearest ancestor `lib/` directory (breaks package
-// encapsulation). Files outside any `lib/` are never judged for
-// escape (no package context); `part` directives are out of scope.
+// encapsulation). Main and conditional (`if`) URIs are judged
+// alike. Files outside any `lib/` are never judged for escape (no
+// package context); `part` directives are out of scope.
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
@@ -59,27 +60,34 @@ class ImportGuard extends RecursiveAstVisitor<void> {
 
   @override
   void visitImportDirective(ImportDirective node) {
-    _checkDirective(node.uri.stringValue, node, 'import');
+    _checkDirective(node, 'import');
     super.visitImportDirective(node);
   }
 
   @override
   void visitExportDirective(ExportDirective node) {
-    _checkDirective(node.uri.stringValue, node, 'export');
+    _checkDirective(node, 'export');
     super.visitExportDirective(node);
   }
 
-  void _checkDirective(String? uri, AstNode node, String kind) {
+  void _checkDirective(NamespaceDirective node, String kind) {
+    _checkUri(node.uri.stringValue, node, kind);
+    for (final config in node.configurations) {
+      _checkUri(config.uri.stringValue, config, kind);
+    }
+  }
+
+  void _checkUri(String? uri, AstNode site, String kind) {
     if (uri == null) return;
     if (uri == importBannedUri) {
-      _flag(node,
+      _flag(site,
           "$kind of 'dart:mirrors' is banned on Flutter; use explicit serialization or code generation");
       return;
     }
     final libDir = _libDir;
     if (libDir == null || !_isRelative(uri)) return;
     if (_escapesLib(libDir, _fileDir, uri)) {
-      _flag(node, "relative $kind '$uri' escapes the package lib/ directory");
+      _flag(site, "relative $kind '$uri' escapes the package lib/ directory");
     }
   }
 

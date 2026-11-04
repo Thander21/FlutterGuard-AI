@@ -17,6 +17,7 @@ fp_limits:
   - "files outside any lib/ directory never flag for escape (unjudgeable parse-only)"
   - "part and part-of directives are out of scope (same-library mechanics)"
   - "'dart:mirrors' in strings or comments is never flagged (directives only)"
+  - "absolute and file: URIs are never flagged (not relative; existence needs resolution)"
 golden_vectors:
   failing: "benchmark/vectors/TC-15_imp.bad.dart"
   passing: "benchmark/vectors/TC-15_imp.good.dart"
@@ -75,6 +76,11 @@ so they belong in `validate-light` per SYS-CLI-001a §2.
   [eval: TC-15.good]
 - `'dart:mirrors'` inside a string literal or comment: MUST NOT be
   flagged (directives only). [eval: TC-15.good]
+- Conditional URIs (`import 'x' if (...) 'dart:mirrors'`): each
+  configuration URI is judged like the main one, flagged at its
+  own line. [eval: unit fixture]
+- Absolute (`/x/y.dart`) and `file:` URIs: MUST NOT be flagged
+  (not relative). [eval: unit fixture]
 - Ancestor matching is the exact lowercase segment `lib`
   (`LIB/` never counts): MUST be exact. [eval: unit fixture]
 - Nested `lib/` directories resolve against the nearest ancestor.

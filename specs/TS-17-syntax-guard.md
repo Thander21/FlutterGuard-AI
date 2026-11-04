@@ -54,9 +54,11 @@ parser's own error list — never invented, never resolved.
 - Files flagged by other rules with zero parse errors: MUST NOT
   gain a syntax finding (verdicts are independent).
   [eval: TC-17.good]
-- Unreadable files (I/O failure) and analyzer crashes: MUST stay
-  report-only `errors`, never findings (SYS-CLI-001a §5).
-  [unevaluated]
+- Analyzer crashes: MUST stay report-only `errors`, never
+  findings (SYS-CLI-001a §5). [eval: unit fixture]
+- Unreadable files (I/O failure): MUST stay report-only `errors`,
+  never findings (Windows cannot stage owner-unreadable files
+  deterministically). [unevaluated]
 
 `repair_syntax` is model-owned per the SYS-HEAL-001 closed
 fast-path list (repair needs judgment: complete, rebalance, or

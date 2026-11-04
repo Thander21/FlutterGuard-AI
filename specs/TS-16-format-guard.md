@@ -70,6 +70,11 @@ heal; the gate compares against exactly that output.
 - Missing files: MUST throw from the read (`FileSystemException`),
   like every AST visitor — never silently clean.
   [eval: unit fixture]
+- Formatter tool failure (exit outside {0, 1, 65}, missing SDK):
+  MUST surface as a single report-only entry on the audited
+  target — never findings (environmental failures are not code
+  verdicts, SYS-CLI-001a §5), never per-file spam (one tool
+  failure, one entry). Recorded decision. [unevaluated]
 - Batch/per-file equivalence is guarded by a mapping test
   (batch findings equal the union of per-file CLI verdicts on
   mixed absolute-path fixtures, incl. an unparseable file and a

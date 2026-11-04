@@ -67,5 +67,22 @@ void main() {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('flags conditional URIs, spares absolute and file: URIs', () {
+      final root = Directory.systemTemp.createTempSync('imp_test.');
+      try {
+        final cond = File('${root.path}/lib/cond.dart')
+          ..createSync(recursive: true)
+          ..writeAsStringSync("import './ok.dart'\n"
+              "    if (dart.library.io) 'dart:mirrors';\n"
+              "import 'package:x/y.dart'\n"
+              "    if (dart.library.html) '../escape.dart';\n"
+              "import 'file:///x.dart';\n"
+              "import '/absolute/path.dart';\n");
+        expect(analyzeImportFile(cond.path).map((v) => v.line), [2, 4]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }
