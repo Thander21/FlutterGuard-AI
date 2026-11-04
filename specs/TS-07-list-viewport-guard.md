@@ -38,7 +38,8 @@ unbounded width, so any scrollable directly in its `children`
 throws the horizontal unbounded error; `GridView` and
 `CustomScrollView` are viewports like `ListView` and throw
 unbounded in `Column`. Runtime truth was probed on Flutter 3.47.9
-(`viewport/test/zz_truth_probe_tmp.dart`, throwaway): all six
+(throwaway `viewport/test/zz_truth_probe_tmp.dart`, removed after
+the probe): all six
 flex×scrollable cells throw bare; `shrinkWrap: true` exempts only
 in `Column` (all three Row+shrinkWrap shapes still throw);
 `scrollDirection` is irrelevant (a horizontal list in `Column`
