@@ -68,6 +68,15 @@ are skipped (their tokens already belong to the enclosing unit's
 span). Widget-tree clones surface as `build()`-method pairs:
 normalization keeps the structure that matters.
 
+Pure data-holder classes are never units (shared TS-13
+doctrine, `isDataHolderClass` in `lib/src/ast/data_holder.dart`:
+every field `final`/`const`, only `toString`/`==`/`hashCode`
+beyond fields and constructors) — their shape similarity is
+structural coincidence, never cloning. Mixins and enums are
+never excluded (no observed FP; classes only). Members below
+an excluded class are still collected normally: only the
+class-like unit is skipped.
+
 Normalization (token walk
 `firstTokenAfterCommentAndMetadata..endToken`; doc comments and
 metadata never enter the bag — units compare by code shape, so
@@ -146,3 +155,8 @@ rule §4).
 - Blocking (Gate B "rejeita a edição") vs the calibration bar
   (REVIEW-01 §3.9): enforcement deferred — v1 advisory, flip
   owned by SYS-CAL-001 (same treatment as CRAP and MET-007).
+- Data-holder class-likes (CAL-001's ten data-class pairs) are
+  excluded at collection (§2): their bags match by construction
+  (fields + ctor + `toString`), never by cloning. A >15-line
+  member of a data holder (e.g. a giant `toString`) stays
+  comparable — only the class-like span is skipped.

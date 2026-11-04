@@ -11,6 +11,7 @@ import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/source/line_info.dart';
 
+import '../ast/data_holder.dart';
 import '../cli/check.dart';
 
 /// Similarity at or above which a pair is reported (advisory in v1).
@@ -330,8 +331,17 @@ class _UnitCollector extends RecursiveAstVisitor<void> {
       _classStack.isEmpty ? name : '${_classStack.last}.$name';
 
   @override
-  void visitClassDeclaration(ClassDeclaration node) => _classLike(
-      node.name.lexeme, node, () => super.visitClassDeclaration(node));
+  void visitClassDeclaration(ClassDeclaration node) {
+    if (isDataHolderClass(node)) {
+      // Data-holder class-likes never become units (SYS-DRY-001
+      // §2); members below them are still collected.
+      _classStack.add(node.name.lexeme);
+      super.visitClassDeclaration(node);
+      _classStack.removeLast();
+      return;
+    }
+    _classLike(node.name.lexeme, node, () => super.visitClassDeclaration(node));
+  }
 
   @override
   void visitMixinDeclaration(MixinDeclaration node) => _classLike(

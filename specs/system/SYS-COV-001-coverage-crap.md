@@ -51,7 +51,7 @@ class MethodScore {
   final double coverage; // 0..1
   double get crap =>
       complexity * complexity * pow(1 - coverage, 3) + complexity;
-  bool get overBudget => crap >= crapThreshold;
+  bool get overBudget => crap >= crapThreshold && coverage < 1.0;
 }
 
 class CoverageVerdict {
@@ -81,6 +81,12 @@ a system-temp run dir, deleted in a `finally` — artifacts are
 fully parsed into the verdict (unlike mutation sandboxes, they
 are not rerunnable repros).
 
+Slow lane (calibration only): the `mcp/tools` trio (24s suite)
+exceeds the 8s default, so `tool/calibrate.dart` runs it at a
+180s/hop budget; the 8s default stands for gate-time use.
+Sharding the slow suite is deferred until a gate-time consumer
+needs it (no CLI runs CRAP today).
+
 CC counting (CleanCodeDeterministicGates Gate A, base 1 McCabe;
 only declarations WITH bodies are scored):
 
@@ -101,9 +107,13 @@ absent from lcov scores all its methods `0.0` (never imported =
 untested).
 
 `CRAP(m) = CC(m)^2 x (1 - cov(m))^3 + CC(m)` (both origin docs
-agree). `overBudget` at `>= 10.0` is advisory: reported, never
-fails. `passed` is always true in v1; the blocking flip requires
-a SYS-CAL-001 amendment (same treatment as FG-MET-007).
+agree). `overBudget` at `>= 10.0` with imperfect coverage is
+advisory: reported, never fails. Full coverage absolves
+complexity (CC-floor decision, §6): a method with proof for
+every line has nothing left to cover, so only `cov < 1.0`
+methods can flag. `passed` is always true in v1; the blocking
+flip requires a SYS-CAL-001 amendment (same treatment as
+FG-MET-007).
 
 # 3. File Placement
 
@@ -156,6 +166,13 @@ rule §4).
   deferred — v1 is advisory (`passed` always true, `overBudget`
   flags) because blocking on uncalibrated thresholds is barred
   (REVIEW-01 §3.9). The flip is owned by SYS-CAL-001.
+- CC-floor decision (CAL-001 design question, answered v2):
+  coverage absolves — `overBudget` requires `cov < 1.0`
+  alongside `crap >= 10`. Flagging fully covered methods
+  produced only FPs (`bagJaccard`, `_checkDepth` at cov 1.0
+  had nothing left to cover); the gate's purpose is untested
+  complexity (a CC3/cov0 method still flags). The `crap`
+  formula itself is unchanged; only the budget flag narrows.
 - `flutterguard crap` / `dryer` command names are superseded
   (PLAN-01) → library API only, no CLI surface.
 - The widget-bifurcation CC row ("nested widget with state

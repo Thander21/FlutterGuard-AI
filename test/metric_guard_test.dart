@@ -101,6 +101,151 @@ class WideForm extends StatelessWidget {
       }
     });
 
+    test('treats scaffold levels as transparent (closed set)', () {
+      final root = Directory.systemTemp.createTempSync('met_test.');
+      try {
+        final path = '${root.path}/scaffold.dart';
+        File(path).writeAsStringSync('''
+Widget buildScaffoldClean(BuildContext context) {
+  return MaterialApp(
+    home: Scaffold(
+      body: SingleChildScrollView(
+        child: Row(
+          children: [
+            ColoredBox(
+              color: 0,
+              child: SizedBox(width: 1, height: 1),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Widget buildCupertinoFlagged(BuildContext context) {
+  return CupertinoApp(
+    home: Column(
+      children: [
+        Column(
+          children: [
+            Column(
+              children: [
+                Column(
+                  children: [
+                    Text('x'),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget buildDeepScaffoldFlagged(BuildContext context) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Column(
+        children: [
+          Column(
+            children: [
+              Column(
+                children: [
+                  Column(
+                    children: [
+                      Column(
+                        children: [
+                          Text('y'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+''');
+        final violations = analyzeMetricFile(path);
+        expect(violations.map((v) => v.line), [28, 53]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('exempts data-holder constructors, flags behavioral ones', () {
+      final root = Directory.systemTemp.createTempSync('met_test.');
+      try {
+        final path = '${root.path}/holders.dart';
+        File(path).writeAsStringSync('''
+class Point9 {
+  const Point9({
+    required this.a,
+    required this.b,
+    required this.c,
+    required this.d,
+    required this.e,
+    required this.f,
+    required this.g,
+    required this.h,
+    required this.i,
+  });
+
+  final int a;
+  final int b;
+  final int c;
+  final int d;
+  final int e;
+  final int f;
+  final int g;
+  final int h;
+  final int i;
+
+  @override
+  String toString() => 'Point9';
+}
+
+class Behavior9 {
+  const Behavior9({
+    required this.a,
+    required this.b,
+    required this.c,
+    required this.d,
+    required this.e,
+    required this.f,
+    required this.g,
+    required this.h,
+    required this.i,
+  });
+
+  final int a;
+  final int b;
+  final int c;
+  final int d;
+  final int e;
+  final int f;
+  final int g;
+  final int h;
+  final int i;
+
+  int sum() => a + b;
+}
+''');
+        final violations = analyzeMetricFile(path);
+        expect(violations.map((v) => v.line), [29]);
+        expect(violations.single.message, contains('9 parameters'));
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
     test('measures Widget functions, skips List<Widget> helpers', () {
       final root = Directory.systemTemp.createTempSync('met_test.');
       try {

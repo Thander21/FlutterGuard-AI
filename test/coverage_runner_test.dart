@@ -139,6 +139,17 @@ end_of_record
           name: 'm', file: 'f', line: 1, complexity: 1, coverage: 1.0);
       expect(clean.crap, 1.0);
     });
+
+    test('full coverage absolves complexity (CC floor decision)', () {
+      const absolved = MethodScore(
+          name: 'm', file: 'f', line: 1, complexity: 12, coverage: 1.0);
+      expect(absolved.crap, 12.0);
+      expect(absolved.overBudget, isFalse);
+      const exposed = MethodScore(
+          name: 'm', file: 'f', line: 1, complexity: 12, coverage: 0.9);
+      expect(exposed.crap, closeTo(12.144, 1e-9));
+      expect(exposed.overBudget, isTrue);
+    });
   });
 
   group('CoverageRunner', () {

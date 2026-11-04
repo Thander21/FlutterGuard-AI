@@ -10,11 +10,13 @@ ast_nodes:
   - "InstanceCreationExpression"
   - "MethodInvocation[constructor-shaped]"
   - "ConstructorDeclaration"
-invariant: "Widget trees SHOULD nest at most 5 creation levels deep and constructors SHOULD declare at most 7 parameters; over-budget findings are advisory warnings until SYS-CAL-001 calibrates the thresholds."
+invariant: "Widget trees SHOULD nest at most 5 non-scaffold creation levels deep and constructors SHOULD declare at most 7 parameters (data-holder constructors exempt); over-budget findings are advisory warnings until SYS-CAL-001 calibrates the thresholds."
 fp_limits:
   - "trees nested 5 deep or less"
   - "constructors with 7 parameters or fewer"
   - "deep trees outside build()/Widget-returning methods"
+  - "scaffold creations (MaterialApp, Scaffold — transparent to depth)"
+  - "constructors of pure data-holder classes"
 golden_vectors:
   failing: "benchmark/vectors/TC-13_met.bad.dart"
   passing: "benchmark/vectors/TC-13_met.good.dart"
@@ -39,6 +41,16 @@ every creation level counts (framework and custom alike); every
 declared constructor parameter counts (including `super.key`, whatever
 its type). Calibration may narrow both (key exclusion, primitive-only
 params); until then the rule stays strict-but-advisory.
+
+v2 (SYS-CAL-001 re-ratification) excludes two corpus-observed FP
+classes. Depth no longer counts scaffold levels: `MaterialApp` and
+`Scaffold` creations are transparent (closed v1 set — every real
+screen carries them, so they never signal a god widget). Params no
+longer count constructors of pure data-holder classes: every field
+`final`/`const`, with only `toString`/`==`/`hashCode` beyond fields
+and constructors (a config object there adds indirection without
+benefit). Thresholds 5/7 are unchanged: this is detector refinement,
+not a retune.
 
 Spike record (Semantic Ratio 15%, PLAN-02 P1): DROPPED. No parse-only
 node classifier separates business-rule nodes from UI-plumbing nodes —
@@ -110,6 +122,17 @@ creation up through its enclosing function; every creation deeper than
   [eval: TC-13.bad]
 - Non-primitive parameters count (origin said primitives;
   calibration may narrow). [eval: TC-13.bad]
+- `MaterialApp`/`Scaffold`-wrapped tree with at most 5 non-scaffold
+  levels: MUST NOT be flagged. [eval: unit fixture]
+- 8-deep tree under `MaterialApp`+`Scaffold` (6 non-scaffold
+  levels): MUST be flagged (advisory). [eval: unit fixture]
+- `CupertinoApp`-wrapped 6-deep tree: MUST be flagged — the
+  scaffold set is closed (`MaterialApp`/`Scaffold` only).
+  [eval: unit fixture]
+- 9-parameter data-holder constructor (finals-only fields,
+  `toString` only): MUST NOT be flagged. [eval: unit fixture]
+- 9-parameter finals-only class with an extra behavior method:
+  MUST be flagged (advisory). [eval: unit fixture]
 - Deep trees in field initializers or constructors: skipped
   (build-scope). [unevaluated]
 - Closures accumulate outer depth (the runtime tree is one tree).

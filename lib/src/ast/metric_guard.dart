@@ -13,6 +13,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/source/line_info.dart';
 
+import 'data_holder.dart';
 import 'rule_violation.dart';
 
 /// Advisory budget: maximum widget-creation nesting depth.
@@ -20,6 +21,10 @@ const maxWidgetDepth = 5;
 
 /// Advisory budget: maximum declared constructor parameters.
 const maxConstructorParams = 7;
+
+/// Scaffold widgets transparent to depth (closed v1 set, TS-13 §1):
+/// every real screen carries them, so they never signal a god widget.
+const _scaffoldNames = <String>{'MaterialApp', 'Scaffold'};
 
 /// A single FG-MET-007 violation.
 class MetricViolation implements RuleViolation {
@@ -47,12 +52,13 @@ List<MetricViolation> analyzeMetricFile(String path) {
 
 /// Flags over-deep widget trees and over-wide constructors.
 ///
-/// Scope (v0): depth is measured only inside `build()` methods and
-/// `Widget`-returning functions, counting creation ancestors (explicit
-/// or constructor-shaped calls; method calls, properties, and closures
-/// are transparent). Every creation deeper than 5 is flagged with its
-/// depth. Every constructor declaring more than 7 parameters is
-/// flagged at its name.
+/// Scope (v2): depth is measured only inside `build()` methods and
+/// `Widget`-returning functions, counting non-scaffold creation
+/// ancestors (explicit or constructor-shaped calls; method calls,
+/// properties, closures, and scaffold creations are transparent).
+/// Every creation deeper than 5 is flagged with its depth. Every
+/// constructor declaring more than 7 parameters is flagged at its
+/// name, unless it belongs to a pure data-holder class.
 class MetricGuard extends RecursiveAstVisitor<void> {
   MetricGuard(this._lineInfo);
 
@@ -76,7 +82,7 @@ class MetricGuard extends RecursiveAstVisitor<void> {
   @override
   void visitConstructorDeclaration(ConstructorDeclaration node) {
     final count = node.parameters.parameters.length;
-    if (count > maxConstructorParams) {
+    if (count > maxConstructorParams && !_inDataHolder(node)) {
       final name = node.name;
       violations.add(MetricViolation(
         line: _lineInfo
@@ -92,15 +98,17 @@ class MetricGuard extends RecursiveAstVisitor<void> {
   }
 
   /// Flags [creation] when it nests deeper than the depth budget inside
-  /// a measured function.
+  /// a measured function. Scaffold creations are transparent: they
+  /// never flag themselves and never add depth.
   void _checkDepth(AstNode creation) {
+    if (_scaffoldNames.contains(_creationName(creation))) return;
     var depth = 1;
     AstNode? current = creation.parent;
     AstNode? scope;
     while (current != null) {
       if (current is InstanceCreationExpression ||
           (current is MethodInvocation && _isCreationLike(current))) {
-        depth++;
+        if (!_scaffoldNames.contains(_creationName(current))) depth++;
       }
       if (current is MethodDeclaration ||
           current is FunctionDeclaration ||
@@ -143,6 +151,31 @@ bool _isCreationLike(MethodInvocation node) {
   if (node.target == null) return _isCapitalized(node.methodName.name);
   final target = node.target!;
   return target is SimpleIdentifier && _isCapitalized(target.name);
+}
+
+/// Simple created-type name (`MaterialApp` for `MaterialApp`,
+/// `widgets.MaterialApp`, or `MaterialApp.home`), or null when the
+/// shape is unknown (unknown shapes keep counting: fail-closed).
+String? _creationName(AstNode node) {
+  if (node is InstanceCreationExpression) {
+    return node.constructorName.type.name2.lexeme;
+  }
+  if (node is MethodInvocation) {
+    if (node.target == null) return node.methodName.name;
+    final target = node.target!;
+    if (target is SimpleIdentifier) return target.name;
+  }
+  return null;
+}
+
+/// True when [node] sits inside a pure data-holder class
+/// ([isDataHolderClass], shared with the DRY collector).
+bool _inDataHolder(ConstructorDeclaration node) {
+  AstNode? current = node.parent;
+  while (current != null && current is! ClassDeclaration) {
+    current = current.parent;
+  }
+  return current is ClassDeclaration && isDataHolderClass(current);
 }
 
 /// True when [name] starts uppercase (private `_Tile` counts as well).

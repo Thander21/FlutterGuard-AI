@@ -36,8 +36,11 @@ class MethodScore {
   double get crap =>
       (complexity * complexity * pow(1 - coverage, 3) + complexity).toDouble();
 
-  /// True at `CRAP >= 10` (advisory: reported, never fails).
-  bool get overBudget => crap >= crapThreshold;
+  /// True at `CRAP >= 10` with imperfect coverage (advisory:
+  /// reported, never fails). Full coverage absolves: a method
+  /// with proof for every line has nothing left to cover
+  /// (CC-floor decision, SYS-COV-001 §6).
+  bool get overBudget => crap >= crapThreshold && coverage < 1.0;
 }
 
 /// Outcome of [CoverageRunner.run]: advisory scores per method.

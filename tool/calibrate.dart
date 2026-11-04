@@ -28,11 +28,13 @@ const _corpusRoots = [
 /// fixtures are intentional near-copies, not smell candidates.
 const _dryRoots = ['lib', 'bin', 'tool', 'viewport'];
 
-/// CRAP trios: (test file, reported-on lib file).
+/// CRAP trios: (test file, reported-on lib file, hop budget in
+/// seconds). The mcp/tools trio runs the 180s slow lane (SYS-COV-001
+/// §2); the 8s default stands everywhere else.
 const _crapTrios = [
-  ('test/duplication_test.dart', 'lib/src/duplication/detector.dart'),
-  ('test/metric_guard_test.dart', 'lib/src/ast/metric_guard.dart'),
-  ('test/mcp_server_test.dart', 'lib/src/mcp/tools.dart'),
+  ('test/duplication_test.dart', 'lib/src/duplication/detector.dart', 8),
+  ('test/metric_guard_test.dart', 'lib/src/ast/metric_guard.dart', 8),
+  ('test/mcp_server_test.dart', 'lib/src/mcp/tools.dart', 180),
 ];
 
 Future<void> main() async {
@@ -74,10 +76,9 @@ Future<void> main() async {
   print('--- CRAP trios ---');
   for (final trio in _crapTrios) {
     try {
-      final verdict = await CoverageRunner()
+      final verdict = await CoverageRunner(timeout: Duration(seconds: trio.$3))
           .run(testPath: trio.$1, reportOn: [trio.$2]);
-      final over =
-          verdict.methods.where((m) => m.overBudget).toList();
+      final over = verdict.methods.where((m) => m.overBudget).toList();
       print('${trio.$2}: ${verdict.methods.length} methods, '
           '${over.length} over budget');
       for (final m in over) {

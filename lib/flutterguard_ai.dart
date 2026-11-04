@@ -5,6 +5,7 @@ export 'src/ast/async_context_guard.dart';
 export 'src/ast/bloc_emit_guard.dart';
 export 'src/ast/context_scope_guard.dart';
 export 'src/ast/controller_build_guard.dart';
+export 'src/ast/data_holder.dart';
 export 'src/ast/format_guard.dart';
 export 'src/ast/import_guard.dart';
 export 'src/ast/lifecycle_guard.dart';

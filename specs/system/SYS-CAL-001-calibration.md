@@ -67,6 +67,13 @@ boundary clean (`TC-13.good` + unit fixtures). Open FP pattern:
 immutable data holders. Only one real >7 ctor in 92 files — the
 threshold barely fires on real code.
 
+v2 (2026-11-04, TS-13 data-holder exemption): `ClonePair`
+verified clean (finals-only + `toString` only); sole flag is
+`TC-13_met.bad:7` (TP, labeled positive by design). Precision on
+emitted flags 1/1; the immutable-data-holder FP pattern is
+CLOSED. HOLD reaffirmed: N=1 < 5 (flip bar), and real-code
+precision is vacuously 1.0 on a trivial sample.
+
 ## Depth > 5 — HOLD advisory (precision 1/2)
 
 | flag | judgment |
@@ -77,6 +84,13 @@ threshold barely fires on real code.
 Recall 1.0 by exhaustiveness; 5-deep boundary clean. Open FP
 pattern: app scaffolding counts toward the budget. No retune is
 fitted to N=2 (that would be overfitting, not calibration).
+
+v2 (2026-11-04, TS-13 scaffold transparency): `good_layout.dart:18`
+verified clean (`MaterialApp`/`Scaffold` discounted, 4
+non-scaffold levels); sole flag is `TC-13_met.bad:32` (TP,
+labeled positive by design). Precision on emitted flags 1/1; the
+scaffolding FP pattern is CLOSED for the observed closed set.
+HOLD reaffirmed: N=1 < 5 (flip bar).
 
 ## DRY ≥ 0.8 / > 15 lines — HOLD advisory (was 3/13; TPs healed)
 
@@ -106,6 +120,25 @@ Recall: exhaustive pairwise → 1.0 w.r.t. the metric; near-miss
 band (0.5–0.8) top-8 spot-check found only more data-class/idiom
 shapes, no missed actionable clone.
 
+v2 MET growth (2026-11-04): +1 pair —
+`MetricGuard.visitConstructorDeclaration` ~=
+`WidgetImmutableGuard.visitFieldDeclaration` @0.802 (the MET
+method grew past 15 lines). Judged FP, guard-idiom class (2nd
+of class — same deliberate per-rule visitor shape as the
+`ArchLayerGuard` ~= `ControllerBuildGuard` pair; extraction
+across node/violation types is forced, not actionable). 13
+pairs pinned, precision on the remainder still 0/13; HOLD
+reaffirmed.
+
+v2 exclusion (2026-11-04, SYS-DRY-001 §2): data-holder
+class-likes are never units. All ten data-class pairs verified
+gone (no member pairs surfaced — data-holder members are
+sub-threshold); survivors are exactly the 3 previously judged
+FPs (guard-idiom ×2, thin-wrapper ×1; one key shifted +1 line
+from a shared-predicate import insertion, similarity
+unchanged). The data-holder FP class is CLOSED. HOLD
+reaffirmed: 0 actionable of 3.
+
 ## CRAP ≥ 10 — HOLD advisory (precision 4/6, method-constrained)
 
 `detector.dart` trio (20 methods, one clean run): OVER =
@@ -123,6 +156,19 @@ Open items: the CC-floor design question (is cov=1/CC≥10
 blocking-worthy?) and the slow-suite strategy (hop budget vs
 sharding). A repeat `detector.dart` run tripped the breaker under
 load — CRAP measurement itself is load-sensitive at 8s/hop.
+
+v2 (2026-11-04, CC-floor decision + slow lane): `overBudget`
+now requires `cov < 1.0` (SYS-COV-001 §6). Re-measured:
+detector trio 3 OVER (`findDuplication` CC35/cov0.99, TP;
+extension-visitor CC3/cov0, TP; `_bagOf` CC10/cov0.93, TP —
+uncovered lines exist to look at, unlike the absolved floor
+cases); `bagJaccard` CC10/cov1.00 verified clean. Metric trio
+0 OVER (`_checkDepth` CC13/cov1.00 absolved). `mcp/tools`
+trio MEASURED via the 180s slow lane (11 methods, 0 OVER —
+first measurement ever; the UNMEASURED era ends, sharding
+deferred per SYS-COV-001 §2). Precision on emitted flags
+3/3; the CC-floor FP pattern is CLOSED. HOLD reaffirmed:
+N=3 < 5 (flip bar).
 
 ## Out of measurement
 
@@ -170,6 +216,33 @@ SYS-TELE-001 first (canon rule §4).
   0/12, HOLD reaffirmed. MET set unchanged (new files
   MET-clean). Corpus scans now skip unparseable files (see §2);
   the skip set is pinned to the designed TC-17 negative.
+- Re-ratifications: 2026-11-04 — MET v2 refinement (TS-13
+  scaffold transparency + data-holder params): both open FP
+  patterns closed, 2 flags left, both labeled TPs, HOLD
+  reaffirmed (N=1 per threshold < 5). DRY: one new pair from
+  MET growth, judged FP (guard-idiom class), 13 pairs pinned.
+  CRAP observation (design re-judgment deferred to the U3
+  CC-floor decision): detector trio unchanged (5 OVER, same
+  methods); metric trio now 2 OVER (`_checkDepth` CC13/cov1.00,
+  `_isDataHolderCtor` CC11/cov0.91); `mcp/tools` still
+  UNMEASURED. Corpus at 110 files (roots-based growth).
+- Re-ratifications: 2026-11-04 — DRY v2 exclusion (data-holder
+  class-likes never units, shared `isDataHolderClass` with
+  TS-13): ten data-class pairs eliminated, 3 survivors
+  re-judged same-FP, HOLD reaffirmed. MET set unchanged
+  (refactor behavior-preserving). CRAP observation (design
+  re-judgment in U3): detector trio now 4 OVER (new tests
+  cover `_UnitCollector.visitConstructorDeclaration`;
+  `bagJaccard`/`findDuplication`/`_bagOf`/extension-visitor
+  unchanged); metric trio now 1 OVER (`_isDataHolderCtor`
+  moved to `data_holder.dart`, outside trio files);
+  `mcp/tools` still UNMEASURED.
+- Re-ratifications: 2026-11-04 — CRAP v2 (CC-floor decision:
+  coverage absolves, `overBudget` requires `cov < 1.0`; slow
+  lane 180s/hop for the mcp/tools trio): floor FPs eliminated
+  (2 verified clean), 3 OVER re-judged all-TP, tools trio
+  measured 0 OVER, HOLD reaffirmed (N=3 < 5, fully sound
+  measurement). MET/DRY sets unchanged.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

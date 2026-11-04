@@ -193,6 +193,102 @@ const _beta = [
   '}',
 ];
 
+/// 18-line data-holder twin, alpha names (exclusion control).
+const _holderA = [
+  'class HolderA {',
+  '  const HolderA({',
+  '    required this.first,',
+  '    required this.second,',
+  '    required this.third,',
+  '    required this.fourth,',
+  '    required this.fifth,',
+  '  });',
+  '',
+  '  final int first;',
+  '  final int second;',
+  '  final int third;',
+  '  final int fourth;',
+  '  final int fifth;',
+  '',
+  '  @override',
+  "  String toString() => 'A';",
+  '}',
+];
+
+/// 18-line data-holder twin, beta names (exclusion control).
+const _holderB = [
+  'class HolderB {',
+  '  const HolderB({',
+  '    required this.one,',
+  '    required this.two,',
+  '    required this.three,',
+  '    required this.four,',
+  '    required this.five,',
+  '  });',
+  '',
+  '  final int one;',
+  '  final int two;',
+  '  final int three;',
+  '  final int four;',
+  '  final int five;',
+  '',
+  '  @override',
+  "  String toString() => 'B';",
+  '}',
+];
+
+/// 22-line data holder with a 16-line toString (member control).
+const _bigA = [
+  'class BigA {',
+  '  const BigA({required this.x});',
+  '  final int x;',
+  '',
+  '  @override',
+  '  String toString() {',
+  "    var out = 'A';",
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    return out;',
+  '  }',
+  '}',
+];
+
+/// 22-line twin of [_bigA] (member control).
+const _bigB = [
+  'class BigB {',
+  '  const BigB({required this.x});',
+  '  final int x;',
+  '',
+  '  @override',
+  '  String toString() {',
+  "    var out = 'B';",
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    out += x.toString();',
+  '    return out;',
+  '  }',
+  '}',
+];
+
 String _src(List<String> lines) => '${lines.join('\n')}\n';
 
 void main() {
@@ -265,6 +361,10 @@ void main() {
       expect(c, isNot(a));
       expect(c['for'], (a['for'] ?? 0) + 1);
       expect(c.containsKey('while'), isFalse);
+    });
+
+    test('skips data-holder class-likes', () {
+      expect(collectUnits(_src(_holderA)), isEmpty);
     });
   });
 
@@ -357,6 +457,26 @@ void main() {
       final pair = verdict.pairs.single;
       expect([pair.nameA, pair.nameB], ['Alpha', 'Beta']);
       expect(pair.similarity, 1.0);
+    });
+
+    test('data-holder twins never pair', () {
+      write('holder_a.dart', _holderA);
+      write('holder_b.dart', _holderB);
+      final verdict = findDuplication(dir.path);
+      expect(verdict.pairs, isEmpty);
+      expect(verdict.unitsCompared, 0);
+    });
+
+    test('members below data holders stay comparable', () {
+      write('big_a.dart', _bigA);
+      write('big_b.dart', _bigB);
+      final verdict = findDuplication(dir.path);
+      expect(verdict.pairs, hasLength(1));
+      final pair = verdict.pairs.single;
+      expect([pair.nameA, pair.nameB], ['BigA.toString', 'BigB.toString']);
+      expect(pair.similarity, 1.0);
+      expect([pair.lineA, pair.endLineA], [5, 21]);
+      expect([pair.lineB, pair.endLineB], [5, 21]);
     });
 
     test('tolerates bad files, rejects bad targets', () {

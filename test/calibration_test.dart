@@ -11,11 +11,12 @@ import 'package:flutterguard_ai/flutterguard_ai.dart';
 import 'package:test/test.dart';
 
 /// Ratified MET flag set (SYS-CAL-001 §2): `file:line`.
+/// v2 (2026-11-04): both FP classes excluded by the detector
+/// (data-holder params, scaffold transparency) — only the two
+/// labeled TPs remain.
 const _ratifiedMetFlags = {
   'benchmark/vectors/TC-13_met.bad.dart:7',
   'benchmark/vectors/TC-13_met.bad.dart:32',
-  'lib/src/duplication/detector.dart:47',
-  'viewport/test/fixtures/good_layout.dart:18',
 };
 
 /// Ratified unparseable-skip set (SYS-CAL-001 §2): corpus files the
@@ -28,20 +29,12 @@ const _ratifiedSkipped = {
 /// Ratified DRY pairs over `lib/` (SYS-CAL-001 §2):
 /// `fileA:lineA~fileB:lineB` in canonical order. The 3 TPs were
 /// healed into `lib/src/util.dart` (re-ratification 2026-11-03);
-/// all 12 remaining pairs are known FP classes (data holders,
-/// guard idiom, thin wrappers).
+/// v2 (2026-11-04): data-holder exclusion eliminated the ten
+/// data-class pairs; the 3 survivors are known FP classes
+/// (guard idiom ×2, thin wrappers).
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
-  'lib/src/cli/rules.dart:25~lib/src/duplication/detector.dart:22',
-  'lib/src/cli/rules.dart:25~lib/src/util.dart:51',
-  'lib/src/coverage/complexity.dart:13~lib/src/mutation/mutant.dart:12',
-  'lib/src/duplication/detector.dart:22~lib/src/duplication/detector.dart:77',
-  'lib/src/duplication/detector.dart:22~lib/src/heal/dispatcher.dart:62',
-  'lib/src/duplication/detector.dart:22~lib/src/util.dart:51',
-  'lib/src/duplication/detector.dart:22~lib/src/viewport/lite.dart:17',
-  'lib/src/duplication/detector.dart:77~lib/src/heal/dispatcher.dart:62',
-  'lib/src/duplication/detector.dart:77~lib/src/viewport/lite.dart:17',
-  'lib/src/heal/dispatcher.dart:62~lib/src/viewport/lite.dart:17',
+  'lib/src/ast/metric_guard.dart:82~lib/src/ast/widget_immutable_guard.dart:74',
   'lib/src/mcp/tools.dart:189~lib/src/mcp/tools.dart:210',
 };
 
@@ -51,7 +44,7 @@ const _ratifiedViewportPairs = {
 
 void main() {
   group('SYS-CAL-001 tripwire', () {
-    test('MET flag set is exactly the ratified 4', () {
+    test('MET flag set is exactly the ratified 2', () {
       final files = _corpusFiles([
         'lib',
         'bin',
