@@ -110,8 +110,9 @@ executes `check`, which is read-only by SYS-CLI-001a.
 - `AGENTS.md` already carrying the marker: skipped (idempotent).
 - `sandbox load` with no vectors source: exit 1. `sandbox check` on a
   missing sandbox: exit 2 via `check`.
-- `--mcp` today: unknown flag → usage, exit 2 (reserved, not an error
-  message of its own).
+- `--mcp`: registers IDE clients per SYS-MCP-001 §2 (shipped in P3;
+  formerly reserved). Registration errors fail the run (exit 1);
+  unwritable/out-of-root clients are never attempted.
 
 # 6. Contradictions Resolved
 

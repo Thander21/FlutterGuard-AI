@@ -4,6 +4,7 @@
 // visitor that enforces it. Both `grade` and `check` run this registry,
 // so adding a rule means adding one entry here.
 import '../ast/arch_layer_guard.dart';
+import '../ast/async_build_guard.dart';
 import '../ast/async_context_guard.dart';
 import '../ast/bloc_emit_guard.dart';
 import '../ast/context_scope_guard.dart';
@@ -108,5 +109,10 @@ final ruleAnalyzers = <RuleAnalyzer>[
     id: 'FG-LIFE-001',
     spec: 'specs/TS-04-life-symmetry-guard.md',
     analyze: analyzeLifecycleFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-BUILD-014',
+    spec: 'specs/TS-14-async-in-build-guard.md',
+    analyze: analyzeAsyncBuildFile,
   ),
 ];

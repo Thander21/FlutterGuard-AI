@@ -25,6 +25,7 @@ void main() {
           'benchmark/vectors/TC-11_lint.bad.dart',
           'benchmark/vectors/TC-12_key.bad.dart',
           'benchmark/vectors/TC-13_met.bad.dart',
+          'benchmark/vectors/TC-14_build.bad.dart',
         ]),
       );
       expect(
@@ -65,6 +66,7 @@ void main() {
         'benchmark/vectors/TC-11_lint.bad.dart': 'FG-LINT-009',
         'benchmark/vectors/TC-12_key.bad.dart': 'FG-KEY-001r',
         'benchmark/vectors/TC-13_met.bad.dart': 'FG-MET-007',
+        'benchmark/vectors/TC-14_build.bad.dart': 'FG-BUILD-014',
       };
       final result = checkPath('benchmark/vectors');
       for (final entry in expected.entries) {

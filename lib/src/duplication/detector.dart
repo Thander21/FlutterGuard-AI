@@ -150,19 +150,18 @@ DuplicationVerdict findDuplication(String target) {
   final units = <_Unit>[];
   final errors = <CheckError>[];
   for (final file in files) {
-    String source;
     try {
-      source = File(file).readAsStringSync();
+      final source = File(file).readAsStringSync();
+      final result = parseString(
+          content: source, path: file, throwIfDiagnostics: false);
+      final collector = _UnitCollector(result.lineInfo);
+      result.unit.accept(collector);
+      for (final unit in collector.units) {
+        units.add(
+            _Unit(unit: unit.unit, file: file, isClassLike: unit.isClassLike));
+      }
     } catch (error) {
       errors.add(CheckError(file: file, error: '$error'));
-      continue;
-    }
-    final result = parseString(
-        content: source, path: file, throwIfDiagnostics: false);
-    final collector = _UnitCollector(result.lineInfo);
-    result.unit.accept(collector);
-    for (final unit in collector.units) {
-      units.add(_Unit(unit: unit.unit, file: file, isClassLike: unit.isClassLike));
     }
   }
   units.sort((a, b) {
@@ -381,11 +380,17 @@ class _UnitCollector extends RecursiveAstVisitor<void> {
 }
 
 /// Normalized token multiset over the node span: identifiers -> ID,
-/// string/number literals -> LIT, everything else verbatim. Comments
-/// never enter the token chain.
+/// string/number literals -> LIT, everything else verbatim. Doc
+/// comments and metadata never enter the bag (units are compared by
+/// code shape, so `///` prose must not dilute similarity).
 Map<String, int> _bagOf(AstNode node) {
   final bag = <String, int>{};
-  var token = node.beginToken;
+  // beginToken of a documented declaration IS the doc comment, which
+  // lives off the `.next` chain — walking from it strands before
+  // endToken (calibration crash). Start past comments/metadata.
+  var token = node is AnnotatedNode
+      ? node.firstTokenAfterCommentAndMetadata
+      : node.beginToken;
   final end = node.endToken;
   while (true) {
     final type = token.type;
@@ -397,8 +402,10 @@ Map<String, int> _bagOf(AstNode node) {
             ? 'LIT'
             : token.lexeme;
     bag[key] = (bag[key] ?? 0) + 1;
-    if (token == end) break;
-    token = token.next!;
+    if (identical(token, end)) break;
+    final next = token.next;
+    if (next == null) break; // Synthetic-token gap: score the prefix.
+    token = next;
   }
   return bag;
 }

@@ -4,7 +4,7 @@
 
 > **Transformando IA de geradora complacente de código em engenheiro de software sênior determinístico através de Spec-Driven Development (SDD), Análise Reativa de AST, Verificação Visual Multimodal e Gates Bloqueantes.**
 
-> **Escopo:** 13 regras AST implementadas (12 bloqueantes + `FG-MET-007`
+> **Escopo:** 14 regras AST implementadas (13 bloqueantes + `FG-MET-007`
 > consultiva) com comandos CLI `grade` + `check` + `init` + `sandbox`,
 > hook pre-commit, dispatcher de autocura, mutation runner, Tier-1
 > viewport runner (com fallback AST Tier-1-lite), pipeline de

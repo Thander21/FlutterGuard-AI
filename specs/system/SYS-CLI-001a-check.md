@@ -50,7 +50,7 @@ lines keep the bare `RULE file:line message` shape.
 
 | Gate | Contents | Budget | Status |
 |------|----------|--------|--------|
-| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory); imports/format/syntax checks attach here when specced | ~1–3 s | live (AST part) |
+| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014); imports/format/syntax checks attach here when specced | ~1–3 s | live (AST part) |
 | `test` | changed-file unit tests via `dart test` / `flutter test --concurrency=1`; 100% green, no warnings | ~5–15 s | live |
 | `validate` | `dart analyze --fatal-infos` over the module, cross-regression tests, contract integrity; resolved-analysis rules attach here | ~30–60 s | live (analyzer part) |
 | `commit-check` | evidence presence per SYS-TELE-001, no temp files, clean diff | ~2 s | defined here, enforced by the hook in SYS-CLI-001b |
@@ -63,7 +63,9 @@ deep/resolved prover remnants stay spike-gated and attach to `validate`
 only if ever built resolved.
 
 Measured baselines (Windows x64, Dart 3.13.7, 2026-11-03, repo at 13
-rules / 26 vectors): `check` over `benchmark/vectors` 5.9 s wall via
+rules / 26 vectors; 14 rules / 28 vectors after FG-BUILD-014 — same
+order of magnitude, startup-dominated): `check` over
+`benchmark/vectors` 5.9 s wall via
 `dart run` (in-process audit core is milliseconds — startup dominates);
 `dart test` full suite 15.4 s (dominated by the scratch-clone hook test);
 `dart analyze lib bin test` 2.4 s. The

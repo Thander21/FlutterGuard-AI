@@ -240,6 +240,23 @@ void main() {
       expect(units.map((u) => u.name), ['outer']);
     });
 
+    test('docs and metadata never crash or dilute bags', () {
+      // Calibration crash: beginToken of a documented declaration is
+      // the doc comment (off the .next chain). Bags must equal the
+      // undocumented twin; spans still run from the node offset.
+      final documented = _src([
+        '/// Alpha docs, one.',
+        '/// Alpha docs, two.',
+        "@Deprecated('use betaSecond')",
+        ..._cloneA,
+      ]);
+      final units = collectUnits(documented);
+      expect(units, hasLength(1));
+      expect(units.single.line, 1);
+      expect(units.single.endLine, 19);
+      expect(units.single.bag, collectUnits(_src(_cloneA)).single.bag);
+    });
+
     test('normalization erases names/literals, keeps keywords', () {
       final a = collectUnits(_src(_cloneA)).single.bag;
       final b = collectUnits(_src(_cloneB)).single.bag;

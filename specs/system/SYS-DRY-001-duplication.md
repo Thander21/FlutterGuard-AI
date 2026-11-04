@@ -68,12 +68,15 @@ are skipped (their tokens already belong to the enclosing unit's
 span). Widget-tree clones surface as `build()`-method pairs:
 normalization keeps the structure that matters.
 
-Normalization (token walk `beginToken..endToken`, comments never
-enter the chain): `IDENTIFIER` → `ID`; `STRING`/`INT`/`DOUBLE` →
-`LIT`; every other token verbatim (keywords incl.
-`true`/`false`/`null`, operators, punctuation). Two clones
-differing only in names and literals normalize identically
-(similarity exactly 1.0).
+Normalization (token walk
+`firstTokenAfterCommentAndMetadata..endToken`; doc comments and
+metadata never enter the bag — units compare by code shape, so
+`///` prose must not dilute similarity): `IDENTIFIER` → `ID`;
+`STRING`/`INT`/`DOUBLE` → `LIT`; every other token verbatim
+(keywords incl. `true`/`false`/`null`, operators, punctuation).
+Two clones differing only in names, literals, docs, and metadata
+normalize identically (similarity exactly 1.0). Unit spans still
+run from the node offset (docs included in the 15-line bar).
 
 A pair is reported when similarity `>= 0.8`. Canonical order:
 units sorted by (file, line); pairs emitted `i < j`; `A < B` by
@@ -117,8 +120,10 @@ rule §4).
 - Missing target: `ArgumentError`. Non-`.dart` file target or
   `.dart`-less directory: empty verdict (`passed`, zero counts).
 - Unreadable file: one `CheckError`, the run continues (same
-  tolerance as `checkPath`). `parseString` runs with
-  `throwIfDiagnostics: false`; partial ASTs still score.
+  tolerance as `checkPath`). Collection crashes (unexpected AST
+  shapes) also land one `CheckError` per file, never fatal — one
+  weird file must not kill an advisory scan. `parseString` runs
+  with `throwIfDiagnostics: false`; partial ASTs still score.
 - Span exactly 15 lines: skipped (strictly-greater rule);
   similarity exactly 0.8: flagged (`>=` rule).
 - Advisory v1: `passed` is always true; the blocking flip

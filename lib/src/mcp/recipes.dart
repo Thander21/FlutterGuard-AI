@@ -42,6 +42,21 @@ Bare `if (!mounted) return;` is accepted as a guard but never injected.''',
     emit(CartSaved());
   }
 ```''',
+  'FG-BUILD-014': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   Widget build(BuildContext context) {
+-    Future.delayed(const Duration(seconds: 1), _refresh);
++    // Moved to initState: runs once, not per frame.
+     return const StatusView();
+   }
++
++  @override
++  void initState() {
++    super.initState();
++    Future.delayed(const Duration(seconds: 1), _refresh);
++  }
+```''',
   'FG-CTX-006': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -236,6 +251,7 @@ const canonicalRecipeSpecs = <String, String>{
   'FG-ARCH-003': 'specs/TS-05-arch-layer-guard.md',
   'FG-ASYNC-002': 'specs/TS-06-async-context-guard.md',
   'FG-BLOC-001': 'specs/TS-01-bloc-emit-guard.md',
+  'FG-BUILD-014': 'specs/TS-14-async-in-build-guard.md',
   'FG-CTX-006': 'specs/TS-09-context-scope-guard.md',
   'FG-KEY-001r': 'specs/TS-12-list-key-guard.md',
   'FG-LAY-004': 'specs/TS-07-list-viewport-guard.md',
