@@ -1,0 +1,18 @@
+# FlutterGuard CI (SYS-REL-001 R9): minimal regression signal on push/PR.
+# Non-goals: Flutter/viewport job, grade job (repo-local doctrine),
+# publish job.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  dart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart analyze --fatal-infos lib bin test tool
+      - run: dart test
