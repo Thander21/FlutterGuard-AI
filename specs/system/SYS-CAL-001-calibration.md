@@ -282,6 +282,14 @@ SYS-TELE-001 first (canon rule §4).
   reaffirmed. MET set unchanged (new files MET-clean; corpus
   at 118 files). `bin/`/`tool/` verified 0 pairs. CRAP counts
   unchanged (3/0/0).
+- Flip evaluation: 2026-11-05 — Wave 3 F4 (fresh pass, corpus
+  118 files, every flag re-judged): params 1/1 N=1 (labeled TP),
+  depth 1/1 N=1 (labeled TP), DRY 0/5 actionable (all FP, known
+  classes), CRAP 3/3 N=3 (same v2 methods); sound measurement, no
+  FP pattern reopened, no new SKIPs. Flip bar (1.0 + N≥5)
+  unmet on all four → NO flips, HOLD reaffirmed everywhere. No
+  pin changes. No field corpus exists; repo+vectors fallback per
+  SYS-VAL-001.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).
