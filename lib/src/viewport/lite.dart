@@ -4,6 +4,7 @@
 // Pure library code (no stdout/stderr side effects), same walk/sort
 // discipline as `checkPath`, so the behavior is unit-testable.
 import '../cli/check.dart';
+import '../cli/config.dart';
 import '../cli/rules.dart';
 import '../util.dart';
 
@@ -50,6 +51,7 @@ bool isFlutterSdkAvailable({String? pathEnv}) => resolvesOnPath(
 /// One bad file never kills the run: per-file failures are collected
 /// in [Tier1LiteResult.errors]. Throws [ArgumentError] when [target]
 /// is missing, [StateError] when a lite rule id has no analyzer.
+/// Rules disabled by the nearest `flutterguard.yaml` are skipped.
 Tier1LiteResult runTier1Lite(String target) {
   final files = collectDartFiles(target);
 
@@ -61,7 +63,10 @@ Tier1LiteResult runTier1Lite(String target) {
     analyzers.add(analyzer);
   }
 
-  final (:findings, :errors) = analyzeFilesWithRules(files, analyzers);
+  final (:findings, :errors) = analyzeFilesWithRules(
+    files,
+    enabledAnalyzers(target, analyzers),
+  );
   return Tier1LiteResult(
     findings: findings,
     errors: errors,

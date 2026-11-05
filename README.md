@@ -164,6 +164,57 @@ skill — bundled in the plugin, or standalone via `muse skills install
 <checkout>/.agents/skills/fg-use --scope user` (add `--force` to
 overwrite an older copy).
 
+## 🧩 Selective Adoption: Rules, Overlaps & Config
+
+Projects with strong typed-lint setups keep full value by enabling only
+the rules their lints don't cover. `flutterguard.yaml` (schema v2,
+written by `init`) carries per-rule toggles — absent means enabled,
+unknown ids are ignored, and `all: false` allow-lists:
+
+```yaml
+version: 2
+gates:
+  validate-light: true
+  test: true
+  validate: true
+  commit-check: true
+rules:
+  all: false
+  FG-ST-001: true
+  FG-ST-005: true
+  FG-KEY-001r: true
+```
+
+`check` discovers the nearest `flutterguard.yaml` walking up from the
+target; a missing or broken file means all rules enabled (the gate
+never silently shrinks). `grade` always runs the full registry.
+
+Overlap guide — keep the rule, or disable it when a typed equivalent
+already runs:
+
+| Rule | What it adds | If you already run … |
+|---|---|---|
+| FG-ARCH-003 | layer-direction guard | a layer validator: disable |
+| FG-ASYNC-002 | post-await context safety | use_build_context_synchronously: disable |
+| FG-LAY-004 | unbounded scrollables in flex | a layout validator: disable |
+| FG-ST-005 | in-place state mutation | — : keep (no stock equivalent) |
+| FG-CTX-006 | context outside Widget/State | — : keep (no stock equivalent) |
+| FG-WID-008 | mutable widget fields | must_be_immutable: disable |
+| FG-LINT-009 | bare-ignore ban, empty catch | empty_catches covers catches only: keep for the ban |
+| FG-KEY-001r | keys on list children | — : keep (no stock equivalent) |
+| FG-MET-007 | depth/params budgets (advisory) | a complexity validator: disable |
+| FG-BLOC-001 | emit after async gap | Bloc-only; Riverpod projects: moot |
+| FG-RIV-001 | ref.watch in callbacks | Riverpod-only, no stock equivalent: keep |
+| FG-ST-001 | controllers created in build | — : keep (no stock equivalent) |
+| FG-LIFE-001 | dispose symmetry, ref.onDispose | — : keep (no stock equivalent) |
+| FG-BUILD-014 | async work directly in build | — : keep (no stock equivalent) |
+| FG-IMP-015 | mirrors ban, lib-escape imports | avoid_relative_lib_imports covers escape partly |
+| FG-FMT-016 | dart-format clean | dart format in CI: disable |
+| FG-SYN-017 | fail-closed syntax gate | dart analyze in CI: disable |
+
+(From the SYS-CAL-002 field pilot: only FG-ST-001, FG-ST-005, and
+FG-KEY-001r had no equivalent in the ERP's own validators.)
+
 ---
 
 ## 📚 Documentation Map

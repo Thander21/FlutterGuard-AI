@@ -175,5 +175,33 @@ void main() {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('skips config-disabled rules (immediate path)', () {
+      final root = Directory.systemTemp.createTempSync('check_test.');
+      try {
+        File('${root.path}/bloc.dart').writeAsStringSync(
+          File('benchmark/vectors/TC-01_bloc.bad.dart').readAsStringSync(),
+        );
+        expect(checkPath(root.path).findings, isNotEmpty);
+        File('${root.path}/flutterguard.yaml')
+            .writeAsStringSync('version: 2\nrules:\n  FG-BLOC-001: false\n');
+        expect(checkPath(root.path).findings, isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('skips config-disabled rules (batched FMT path)', () {
+      final root = Directory.systemTemp.createTempSync('check_test.');
+      try {
+        File('${root.path}/messy.dart').writeAsStringSync('void  main()  {}\n');
+        expect(checkPath(root.path).findings, isNotEmpty);
+        File('${root.path}/flutterguard.yaml')
+            .writeAsStringSync('version: 2\nrules:\n  FG-FMT-016: false\n');
+        expect(checkPath(root.path).findings, isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

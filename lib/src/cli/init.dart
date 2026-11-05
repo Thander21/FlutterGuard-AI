@@ -8,18 +8,22 @@ import 'package:args/args.dart';
 import '../mcp/client_config.dart';
 import '../util.dart';
 
-/// `flutterguard.yaml` schema v1 (SYS-CLI-001b §2). Written once, never
+/// `flutterguard.yaml` schema v2 (SYS-CLI-001b §2). Written once, never
 /// overwritten.
 const _flutterguardYaml =
-    '''# FlutterGuard configuration (SYS-CLI-001b). Schema v1: version + gate
-# toggles. Toggles are declared here; enforcement lands with the gate
-# runner — unknown keys are ignored for forward compatibility.
-version: 1
+    '''# FlutterGuard configuration (SYS-CLI-001b). Schema v2: version + gate
+# toggles + per-rule toggles. Gate toggles are declared here;
+# enforcement lands with the gate runner — unknown keys are ignored
+# for forward compatibility.
+version: 2
 gates:
   validate-light: true
   test: true
   validate: true
   commit-check: true
+# Per-rule toggles (absent = enabled; unknown ids ignored):
+# rules:
+#   FG-BLOC-001: false
 ''';
 
 /// Marker guarding the generated pre-commit hook (SYS-CLI-001b).

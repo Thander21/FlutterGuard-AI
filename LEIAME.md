@@ -166,6 +166,59 @@ diário com a skill `fg-use` — empacotada no plugin, ou avulsa via
 `muse skills install <checkout>/.agents/skills/fg-use --scope user`
 (adicione `--force` para sobrescrever uma cópia antiga).
 
+## 🧩 Adoção Seletiva: Regras, Sobreposições & Config
+
+Projetos com lints tipados fortes mantêm valor total habilitando só as
+regras que seus lints não cobrem. O `flutterguard.yaml` (schema v2,
+escrito pelo `init`) traz toggles por regra — ausente significa
+habilitada, ids desconhecidos são ignorados, e `all: false` vira
+allow-list:
+
+```yaml
+version: 2
+gates:
+  validate-light: true
+  test: true
+  validate: true
+  commit-check: true
+rules:
+  all: false
+  FG-ST-001: true
+  FG-ST-005: true
+  FG-KEY-001r: true
+```
+
+O `check` descobre o `flutterguard.yaml` mais próximo subindo do alvo;
+arquivo ausente ou quebrado significa todas as regras habilitadas (o
+gate nunca encolhe em silêncio). O `grade` sempre roda o registry
+completo.
+
+Guia de sobreposição — mantenha a regra, ou desabilite quando um
+equivalente tipado já roda:
+
+| Regra | O que adiciona | Se você já roda … |
+|---|---|---|
+| FG-ARCH-003 | guarda de direção de camadas | um validador de camadas: desabilite |
+| FG-ASYNC-002 | segurança de context pós-await | use_build_context_synchronously: desabilite |
+| FG-LAY-004 | scrollables ilimitados em flex | um validador de layout: desabilite |
+| FG-ST-005 | mutação de estado no lugar | — : mantenha (sem equivalente stock) |
+| FG-CTX-006 | context fora de Widget/State | — : mantenha (sem equivalente stock) |
+| FG-WID-008 | campos mutáveis em widget | must_be_immutable: desabilite |
+| FG-LINT-009 | ban de ignore bare, catch vazio | empty_catches cobre só catches: mantenha pelo ban |
+| FG-KEY-001r | keys em filhos de lista | — : mantenha (sem equivalente stock) |
+| FG-MET-007 | orçamentos depth/params (advisory) | um validador de complexidade: desabilite |
+| FG-BLOC-001 | emit após gap async | só Bloc; projetos Riverpod: moot |
+| FG-RIV-001 | ref.watch em callbacks | só Riverpod, sem equivalente stock: mantenha |
+| FG-ST-001 | controllers criados no build | — : mantenha (sem equivalente stock) |
+| FG-LIFE-001 | simetria de dispose, ref.onDispose | — : mantenha (sem equivalente stock) |
+| FG-BUILD-014 | trabalho async direto no build | — : mantenha (sem equivalente stock) |
+| FG-IMP-015 | ban de mirrors, imports fora de lib | avoid_relative_lib_imports cobre escape em parte |
+| FG-FMT-016 | dart-format limpo | dart format no CI: desabilite |
+| FG-SYN-017 | gate de sintaxe fail-closed | dart analyze no CI: desabilite |
+
+(Do piloto de campo SYS-CAL-002: só FG-ST-001, FG-ST-005 e
+FG-KEY-001r não tinham equivalente nos validadores do ERP.)
+
 ---
 
 ## 📚 Mapa da Documentação

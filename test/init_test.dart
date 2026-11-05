@@ -33,7 +33,7 @@ void main() {
       expect(yaml.existsSync(), isTrue);
       final yamlText = yaml.readAsStringSync();
       for (final key in [
-        'version: 1',
+        'version: 2',
         'validate-light',
         'test:',
         'validate:',

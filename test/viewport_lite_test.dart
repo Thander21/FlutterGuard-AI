@@ -73,5 +73,20 @@ void main() {
       expect(isFlutterSdkAvailable(pathEnv: dir.path), isFalse);
       expect(isFlutterSdkAvailable(pathEnv: ''), isFalse);
     });
+
+    test('skips config-disabled lite rules (SYS-CAL-002 P3-1)', () {
+      final root = Directory.systemTemp.createTempSync('lite_test.');
+      try {
+        File('${root.path}/lay.dart').writeAsStringSync(
+          File('benchmark/vectors/TC-07_lay.bad.dart').readAsStringSync(),
+        );
+        expect(runTier1Lite(root.path).findings, isNotEmpty);
+        File('${root.path}/flutterguard.yaml')
+            .writeAsStringSync('version: 2\nrules:\n  FG-LAY-004: false\n');
+        expect(runTier1Lite(root.path).findings, isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

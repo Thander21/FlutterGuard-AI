@@ -11,6 +11,7 @@ import 'package:args/args.dart';
 
 import '../ast/format_guard.dart';
 import '../util.dart';
+import 'config.dart';
 import 'rules.dart';
 
 /// One violation found by `check`.
@@ -81,12 +82,14 @@ const batchRuleId = 'FG-FMT-016';
 /// One bad file never kills the run: per-file failures are collected once
 /// per file in [CheckResult.errors]. Throws [ArgumentError] when [target]
 /// is missing. Generated files are skipped unless [includeGenerated]
-/// is true (see [collectDartFiles]).
+/// is true (see [collectDartFiles]). Rules disabled by the nearest
+/// `flutterguard.yaml` are skipped (see [enabledAnalyzers]).
 /// Results are sorted by file, then rule id, then line for determinism.
 CheckResult checkPath(String target, {bool includeGenerated = false}) {
   final files = collectDartFiles(target, includeGenerated: includeGenerated);
-  final batched = ruleAnalyzers.where((r) => r.id == batchRuleId).toList();
-  final immediate = ruleAnalyzers.where((r) => r.id != batchRuleId).toList();
+  final enabled = enabledAnalyzers(target, ruleAnalyzers);
+  final batched = enabled.where((r) => r.id == batchRuleId).toList();
+  final immediate = enabled.where((r) => r.id != batchRuleId).toList();
   final (:findings, :errors) = analyzeFilesWithRules(files, immediate);
   final all = [...findings];
   for (final rule in batched) {

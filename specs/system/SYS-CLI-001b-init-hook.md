@@ -67,19 +67,26 @@ gitignored; vectors stay pristine — only copies enter):
 - `check`: run `check` over the sandbox; exit follows `check` (1 =
   violations present, the expected state right after `load`).
 
-`flutterguard.yaml` schema v1 (written once, never overwritten):
+`flutterguard.yaml` schema v2 (written once, never overwritten):
 
 ```yaml
-version: 1
+version: 2
 gates:
   validate-light: true
   test: true
   validate: true
   commit-check: true
+# rules:
+#   FG-BLOC-001: false
 ```
 
-Toggles are declared here; enforcement lands with the gate runner.
-Unknown keys are ignored for forward compatibility.
+`rules` maps rule ids to booleans (SYS-CAL-002 P3-1): `false`
+skips the rule in `check` and the lite loop, absent means enabled,
+unknown ids and non-boolean values are ignored. The `all` key
+resets the default (`all: false` + explicit `true`s allow-lists).
+Gate toggles are declared here; enforcement lands with the gate
+runner. Unknown top-level keys are ignored for forward
+compatibility. v1 files (no `rules` key) behave as all-enabled.
 
 Agent mandate (printed by default; appended to `AGENTS.md` only with
 `--agents`, marker-guarded and idempotent):
