@@ -1,0 +1,29 @@
+{
+  "description": "FlutterGuard agent-loop gates: presence check before Dart/Flutter edits, `check` verdict after.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dart \"${CLAUDE_PLUGIN_ROOT}/hooks/check_guard.dart\" --presence",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dart \"${CLAUDE_PLUGIN_ROOT}/hooks/check_guard.dart\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

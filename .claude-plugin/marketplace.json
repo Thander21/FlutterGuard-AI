@@ -1,0 +1,15 @@
+{
+  "name": "flutterguard",
+  "owner": {
+    "name": "Rahman Brussolo"
+  },
+  "description": "FlutterGuard AI: deterministic AST quality gates for Dart/Flutter agent loops.",
+  "plugins": [
+    {
+      "name": "flutterguard",
+      "description": "Blocking AST quality harness for Dart/Flutter: MCP gate tools, the fg-use daily-loop skill, and agent-loop hooks that fail closed on violations.",
+      "category": "development",
+      "source": "./plugin"
+    }
+  ]
+}

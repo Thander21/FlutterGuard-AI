@@ -1,0 +1,24 @@
+{
+  "name": "flutterguard",
+  "version": "0.1.0",
+  "description": "Blocking AST quality harness for Dart/Flutter agent loops: 17 gate rules over MCP, the fg-use daily-loop skill, and hooks that fail closed on violations.",
+  "author": {
+    "name": "Rahman Brussolo",
+    "url": "https://github.com/Thander21/FlutterGuard-AI"
+  },
+  "homepage": "https://github.com/Thander21/FlutterGuard-AI",
+  "repository": "https://github.com/Thander21/FlutterGuard-AI",
+  "license": "MIT",
+  "keywords": [
+    "dart",
+    "flutter",
+    "lint",
+    "ast",
+    "quality-gate"
+  ],
+  "mcpServers": {
+    "flutterguard": {
+      "command": "flutterguard_mcp"
+    }
+  }
+}
