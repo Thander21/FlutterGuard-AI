@@ -11,7 +11,7 @@
 > a pre-commit hook, a heal dispatcher, a mutation runner, a
 > Tier-1 viewport runner (with Tier-1-lite AST fallback), a
 > coverage/CRAP pipeline, a structural duplication detector, and an
-> MCP server (5 typed tools, `init --mcp`, 4 chat-skills).
+> MCP server (5 typed tools, `init --mcp`, 5 chat-skills).
 > The Tier-2 visual gate is **[DEFERRED]** — endpoints unverified,
 > Tier-1 standing (see `specs/system/SYS-VIEW-002-tier2-visual.md`).
 > `specs/` is normative; `docs/` records direction and intent.
@@ -70,6 +70,41 @@ cd path/to/your_flutter_project
 flutterguard init --mcp
 ```
 
+> `dart pub global` installs exes into the pub-cache `bin/` directory
+> (`%LOCALAPPDATA%\Pub\Cache\bin` on Windows, `~/.pub-cache/bin`
+> elsewhere) — add it to your PATH or the `flutterguard` /
+> `flutterguard_mcp` commands, the plugin hooks, and the MCP server
+> entry will not resolve. `init --mcp` warns when the server exe is
+> missing.
+
+### One-install plugin (Claude Code)
+
+Prerequisite: the global install above (the plugin shells out to the
+`flutterguard` / `flutterguard_mcp` exes — it never vendors them).
+
+```bash
+# Channel 1: GitHub marketplace (recommended, no clone needed).
+claude plugin marketplace add Thander21/FlutterGuard-AI
+claude plugin install flutterguard@flutterguard
+
+# Channel 2: local folder (clone once, then point at it).
+git clone https://github.com/Thander21/FlutterGuard-AI.git
+claude plugin marketplace add ./FlutterGuard-AI
+claude plugin install flutterguard@flutterguard
+```
+
+One install wires three things: the `flutterguard` MCP server (the same
+5 tools, auto-registered), the `fg-use` daily-loop skill, and the
+agent-loop hooks. Before a Dart/Flutter edit the hook verifies the CLI
+is on PATH (missing → the edit is blocked with the install command);
+after the edit it runs `check` on that file (violations → findings +
+recipe pointers go back to the agent, which must fix them). The git
+pre-commit hook from `init` still enforces at commit time. The plugin
+version tracks the package version (`plugin.json` mirrors
+`pubspec.yaml`). Honest scope: the hooks only see `Edit`/`Write` tool
+calls — shell-command file writes bypass them. They are a tripwire,
+not a barrier: the pre-commit hook from `init` is the barrier.
+
 ### What happens automatically behind the scenes:
 
 1. **Native MCP Server:** the `flutterguard_mcp` stdio binary (JSON-RPC 2.0) with 5 typed tools, ready for IDEs and agents (Cursor, Claude Code, Gemini CLI, Antigravity).
@@ -79,9 +114,17 @@ flutterguard init --mcp
 
 ### MCP tools and agent usage
 
-`init --mcp` registers the `flutterguard_mcp` stdio server. Cursor is
-configured automatically (`.cursor/mcp.json`); other clients need the printed
-snippet merged into their MCP config (Claude Code shape):
+`init --mcp` registers the `flutterguard_mcp` stdio server. Per-client
+matrix (full contract: `specs/system/SYS-MCP-002-client-packaging.md`):
+
+| Client | Path | Notes |
+|---|---|---|
+| Claude Code | plugin (one-install above) | MCP server + `fg-use` skill + hooks |
+| Cursor | `flutterguard init --mcp` | `.cursor/mcp.json` written automatically |
+| Gemini CLI / Antigravity | printed snippet from `init --mcp` | merge into the client's MCP config |
+| Muse | `muse skills install <checkout>/.agents/skills/fg-use --scope user` | daily-loop skill; MCP tools via the snippet |
+
+The snippet shape (also what the plugin auto-registers):
 
 ```json
 {
@@ -108,7 +151,7 @@ re-run `analyze_ast` until `PASSED`. Verify the install by connecting a
 client: a healthy server answers `initialize` with
 `serverInfo flutterguard/0.1.0`.
 
-**Scope note:** mutation, coverage/CRAP, duplication, and heal ship as Dart
+**Scope note:** mutation, coverage/CRAP, and duplication ship as Dart
 API + tests + partial MCP (`run_mutation_check`, lite `verify_viewport`);
 the terminal surface is `check`/`grade`/`init`/`sandbox` — fuller CLI
 coverage is follow-up.
@@ -117,7 +160,9 @@ coverage is follow-up.
 in each project. MCP tools govern the agent loop (advise + verify); the
 pre-commit hook enforces the gate — it blocks error-severity commits
 without depending on the agent. Drive the daily loop with the `fg-use`
-skill (`.agents/skills/fg-use/`, promotable to user scope).
+skill — bundled in the plugin, or standalone via `muse skills install
+<checkout>/.agents/skills/fg-use --scope user` (add `--force` to
+overwrite an older copy).
 
 ---
 

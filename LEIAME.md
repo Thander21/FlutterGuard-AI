@@ -9,7 +9,7 @@
 > hook pre-commit, dispatcher de autocura, mutation runner, Tier-1
 > viewport runner (com fallback AST Tier-1-lite), pipeline de
 > cobertura/CRAP, detector de duplicação estrutural e servidor MCP
-> (5 ferramentas tipadas, `init --mcp`, 4 chat-skills). O visual
+> (5 ferramentas tipadas, `init --mcp`, 5 chat-skills). O visual
 > gate Tier-2 está **[ADIADO]** — endpoints não verificados,
 > Tier-1 vigente (ver `specs/system/SYS-VIEW-002-tier2-visual.md`).
 > `specs/` é normativo; `docs/` registra direção e intenção.
@@ -68,6 +68,41 @@ cd caminho/para/seu_projeto_flutter
 flutterguard init --mcp
 ```
 
+> O `dart pub global` instala os exes no `bin/` do pub cache
+> (`%LOCALAPPDATA%\Pub\Cache\bin` no Windows, `~/.pub-cache/bin` nos
+> demais) — adicione-o ao PATH ou os comandos `flutterguard` /
+> `flutterguard_mcp`, os hooks do plugin e a entrada do servidor MCP
+> não resolvem. O `init --mcp` avisa quando o exe do servidor falta.
+
+### Plugin one-install (Claude Code)
+
+Pré-requisito: a instalação global acima (o plugin chama os exes
+`flutterguard` / `flutterguard_mcp` — nunca os embute).
+
+```bash
+# Canal 1: marketplace GitHub (recomendado, sem clone).
+claude plugin marketplace add Thander21/FlutterGuard-AI
+claude plugin install flutterguard@flutterguard
+
+# Canal 2: pasta local (clone uma vez, depois aponte para ela).
+git clone https://github.com/Thander21/FlutterGuard-AI.git
+claude plugin marketplace add ./FlutterGuard-AI
+claude plugin install flutterguard@flutterguard
+```
+
+Uma instalação conecta três coisas: o servidor MCP `flutterguard` (as
+mesmas 5 ferramentas, auto-registrado), a skill de loop diário `fg-use`
+e os hooks do loop do agente. Antes de uma edição Dart/Flutter o hook
+verifica se o CLI está no PATH (ausente → a edição é bloqueada com o
+comando de instalação); depois da edição ele roda `check` naquele
+arquivo (violações → findings + ponteiros de receita voltam ao agente,
+que deve corrigi-los). O git pre-commit hook do `init` continua
+aplicando no commit. A versão do plugin acompanha a do pacote
+(`plugin.json` espelha o `pubspec.yaml`). Escopo honesto: os hooks só
+enxergam chamadas `Edit`/`Write` — escritas via shell passam batido.
+Eles são um tripwire, não a barreira: a barreira é o pre-commit hook
+do `init`.
+
 ### O que acontece automaticamente nos bastidores:
 
 1. **Servidor MCP Nativo:** o binário stdio `flutterguard_mcp` (JSON-RPC 2.0) com 5 ferramentas tipadas, pronto para IDEs e agentes (Cursor, Claude Code, Gemini CLI, Antigravity).
@@ -78,8 +113,17 @@ flutterguard init --mcp
 ### Ferramentas MCP e uso pelo agente
 
 `init --mcp` registra o servidor stdio `flutterguard_mcp`. O Cursor é
-configurado automaticamente (`.cursor/mcp.json`); outros clientes precisam do
-snippet impresso mesclado em sua config MCP (formato Claude Code):
+configurado automaticamente (`.cursor/mcp.json`). Matriz por cliente (contrato completo:
+`specs/system/SYS-MCP-002-client-packaging.md`):
+
+| Cliente | Caminho | Notas |
+|---|---|---|
+| Claude Code | plugin (one-install acima) | Servidor MCP + skill `fg-use` + hooks |
+| Cursor | `flutterguard init --mcp` | `.cursor/mcp.json` escrito automaticamente |
+| Gemini CLI / Antigravity | snippet impresso pelo `init --mcp` | mesclar na config MCP do cliente |
+| Muse | `muse skills install <checkout>/.agents/skills/fg-use --scope user` | skill de loop diário; ferramentas MCP via snippet |
+
+O formato do snippet (o plugin auto-registra o mesmo):
 
 ```json
 {
@@ -106,7 +150,7 @@ rode `analyze_ast` até `PASSED`. Verifique a instalação conectando um
 cliente: um servidor saudável responde `initialize` com
 `serverInfo flutterguard/0.1.0`.
 
-**Nota de escopo:** mutação, coverage/CRAP, duplicação e heal existem como
+**Nota de escopo:** mutação, coverage/CRAP e duplicação existem como
 API Dart + testes + MCP parcial (`run_mutation_check`, `verify_viewport`
 lite); a superfície de terminal é `check`/`grade`/`init`/`sandbox` — CLI
 mais ampla é follow-up.
@@ -115,8 +159,9 @@ mais ampla é follow-up.
 `flutterguard init --mcp` em cada projeto. As ferramentas MCP governam o
 loop do agente (aconselham + verificam); o hook pre-commit aplica o gate
 — bloqueia commits com erros sem depender do agente. Conduza o loop
-diário com a skill `fg-use` (`.agents/skills/fg-use/`, promovível ao
-escopo user).
+diário com a skill `fg-use` — empacotada no plugin, ou avulsa via
+`muse skills install <checkout>/.agents/skills/fg-use --scope user`
+(adicione `--force` para sobrescrever uma cópia antiga).
 
 ---
 
