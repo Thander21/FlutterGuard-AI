@@ -13,7 +13,8 @@ import 'dart:io';
 const _cli = 'flutterguard';
 
 /// Printed when the CLI is missing: fail with the fix, never silent.
-const _installHint = 'FlutterGuard CLI not found on PATH. Install it:\n'
+const _installHint =
+    'FlutterGuard CLI not found on PATH. Install it:\n'
     '  dart pub global activate --source git '
     'https://github.com/Thander21/FlutterGuard-AI.git\n'
     'then re-run the edit.';
@@ -66,8 +67,9 @@ String? _resolveOnPath(String name) {
   final path = Platform.environment['PATH'] ?? '';
   if (path.isEmpty) return null;
   final separator = Platform.isWindows ? ';' : ':';
-  final suffixes =
-      Platform.isWindows ? const ['', '.exe', '.bat', '.cmd'] : const [''];
+  final suffixes = Platform.isWindows
+      ? const ['', '.exe', '.bat', '.cmd']
+      : const [''];
   for (final entry in path.split(separator)) {
     final dir = entry.trim();
     if (dir.isEmpty) continue;
@@ -89,9 +91,11 @@ String _report(String path, String checkJson) {
     final decoded = jsonDecode(checkJson);
     if (decoded is Map) {
       for (final entry in _rows(decoded['findings'])) {
-        buffer.writeln('- ${entry['rule_id']} ${entry['file']}:'
-            '${entry['line']}: ${entry['message']} '
-            '[${entry['severity']}]');
+        buffer.writeln(
+          '- ${entry['rule_id']} ${entry['file']}:'
+          '${entry['line']}: ${entry['message']} '
+          '[${entry['severity']}]',
+        );
         buffer.writeln("  fix: ${entry['recipe']}");
         detailed = true;
       }
@@ -104,8 +108,10 @@ String _report(String path, String checkJson) {
     detailed = false;
   }
   if (!detailed) buffer.writeln(checkJson.trim());
-  buffer.writeln('Fix the findings above, then continue. '
-      'Do not finish with error-severity findings open.');
+  buffer.writeln(
+    'Fix the findings above, then continue. '
+    'Do not finish with error-severity findings open.',
+  );
   return buffer.toString();
 }
 

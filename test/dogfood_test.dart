@@ -15,16 +15,20 @@ void main() {
     test('lib, bin, test, tool carry zero error-severity findings', () {
       for (final root in _roots) {
         final result = checkPath(root);
-        final errors =
-            result.findings.where((f) => f.severity == 'error').toList();
+        final errors = result.findings
+            .where((f) => f.severity == 'error')
+            .toList();
         expect(errors, isEmpty, reason: '$root must be self-clean: $errors');
       }
     });
 
     test('vector exclusion is load-bearing (not vacuous)', () {
       final vectors = checkPath('benchmark/vectors');
-      expect(vectors.findings.any((f) => f.severity == 'error'), isTrue,
-          reason: 'golden .bad vectors must flag — exclusion is real');
+      expect(
+        vectors.findings.any((f) => f.severity == 'error'),
+        isTrue,
+        reason: 'golden .bad vectors must flag — exclusion is real',
+      );
     });
   });
 
@@ -36,8 +40,11 @@ void main() {
         checkPath(root);
       }
       checkPath('benchmark/vectors');
-      expect(_treeHash(watched), before,
-          reason: 'check must not write anywhere');
+      expect(
+        _treeHash(watched),
+        before,
+        reason: 'check must not write anywhere',
+      );
     });
 
     test('relative vs absolute paths find the same violations', () {
@@ -45,9 +52,8 @@ void main() {
       final relative = checkPath('lib');
       final absoluteResult = checkPath(absolute);
       Set<String> triples(CheckResult result) => {
-            for (final f in result.findings)
-              '${f.ruleId}:${f.line}:${f.message}'
-          };
+        for (final f in result.findings) '${f.ruleId}:${f.line}:${f.message}',
+      };
       expect(triples(absoluteResult), triples(relative));
       expect(absoluteResult.errors, isEmpty);
     });

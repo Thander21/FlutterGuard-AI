@@ -17,8 +17,9 @@ import 'package:flutterguard_ai/flutterguard_ai.dart';
 import 'package:stream_channel/stream_channel.dart';
 
 Future<void> main() async {
-  final requests =
-      stdin.transform(utf8.decoder).transform(const LineSplitter());
+  final requests = stdin
+      .transform(utf8.decoder)
+      .transform(const LineSplitter());
   final responses = StreamController<String>();
   responses.stream.listen(stdout.writeln);
   final channel = StreamChannel<String>(requests, responses.sink);

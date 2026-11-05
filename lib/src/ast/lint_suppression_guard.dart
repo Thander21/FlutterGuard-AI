@@ -42,11 +42,13 @@ List<LintSuppressionViolation> analyzeLintSuppressionFile(String path) {
 
 /// Walks every comment in [unit] outside the AST visitor walk.
 ///
-/// `CommentToken` is not exported by package:analyzer (6.4.1), so the
+/// `CommentToken` is not exported by package:analyzer, so the
 /// `precedingComments` chain is walked with one contained dynamic
 /// variable; only the stable `lexeme`/`offset`/`next` members are read.
 void _scanComments(
-    CompilationUnit unit, void Function(String lexeme, int offset) onComment) {
+  CompilationUnit unit,
+  void Function(String lexeme, int offset) onComment,
+) {
   Token? token = unit.beginToken;
   while (token != null && !token.isEof) {
     dynamic comment = token.precedingComments;
@@ -81,21 +83,26 @@ class LintSuppressionGuard extends RecursiveAstVisitor<void> {
     } else {
       return;
     }
-    violations.add(LintSuppressionViolation(
-      line: _lineInfo.getLocation(offset).lineNumber,
-      message: "'//$directive' suppressions are forbidden; "
-          'fix the root cause instead',
-    ));
+    violations.add(
+      LintSuppressionViolation(
+        line: _lineInfo.getLocation(offset).lineNumber,
+        message:
+            "'//$directive' suppressions are forbidden; "
+            'fix the root cause instead',
+      ),
+    );
   }
 
   @override
   void visitCatchClause(CatchClause node) {
     if (node.body.statements.every((s) => s is EmptyStatement)) {
-      violations.add(LintSuppressionViolation(
-        line: _lineInfo.getLocation(node.offset).lineNumber,
-        message:
-            'empty catch block swallows errors; handle the error or rethrow',
-      ));
+      violations.add(
+        LintSuppressionViolation(
+          line: _lineInfo.getLocation(node.offset).lineNumber,
+          message:
+              'empty catch block swallows errors; handle the error or rethrow',
+        ),
+      );
     }
     super.visitCatchClause(node);
   }

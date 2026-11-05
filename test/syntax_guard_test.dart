@@ -8,15 +8,17 @@ import 'package:test/test.dart';
 void main() {
   group('FG-SYN-017 syntax guard', () {
     test('flags the .bad vector at the error line', () {
-      final violations =
-          analyzeSyntaxFile('benchmark/vectors/TC-17_syn.bad.dart');
+      final violations = analyzeSyntaxFile(
+        'benchmark/vectors/TC-17_syn.bad.dart',
+      );
       expect(violations.map((v) => v.line), [5]);
-      expect(violations.first.message, contains('MISSING_IDENTIFIER'));
+      expect(violations.first.message, contains('missing_identifier'));
     });
 
     test('spares the .good vector (zero false positives)', () {
-      final violations =
-          analyzeSyntaxFile('benchmark/vectors/TC-17_syn.good.dart');
+      final violations = analyzeSyntaxFile(
+        'benchmark/vectors/TC-17_syn.good.dart',
+      );
       expect(violations, isEmpty);
     });
 
@@ -43,6 +45,22 @@ import 'dart:convert';
 class A {
   @override
   void missing() {}
+}
+''');
+        expect(analyzeSyntaxFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('spares Dart 3.13 primary constructors (SYS-CAL-002 P0-1)', () {
+      final root = Directory.systemTemp.createTempSync('syn_test.');
+      try {
+        final path = '${root.path}/primary.dart';
+        File(path).writeAsStringSync('''
+class SetupService {
+  new(this._ref);
+  final Object _ref;
 }
 ''');
         expect(analyzeSyntaxFile(path), isEmpty);

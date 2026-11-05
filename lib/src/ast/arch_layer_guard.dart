@@ -111,11 +111,14 @@ class ArchLayerGuard extends RecursiveAstVisitor<void> {
   void _checkDirective(String? uri, int offset) {
     final package = _packageName(uri);
     if (package != null && archLayerDenyList.contains(package)) {
-      _pending.add(ArchLayerViolation(
-        line: _lineInfo.getLocation(offset).lineNumber,
-        message: "UI file imports '$package'; "
-            'move data access to the data layer (repository/provider)',
-      ));
+      _pending.add(
+        ArchLayerViolation(
+          line: _lineInfo.getLocation(offset).lineNumber,
+          message:
+              "UI file imports '$package'; "
+              'move data access to the data layer (repository/provider)',
+        ),
+      );
     }
   }
 }

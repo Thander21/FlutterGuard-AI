@@ -3,10 +3,10 @@ description: Autonomous reactive and blocking quality harness for Flutter/Dart.
 version: 0.1.0
 
 environment:
-  sdk: ^3.4.0
+  sdk: ^3.13.0
 
 dependencies:
-  analyzer: ^6.0.0
+  analyzer: ^14.0.0
   args: ^2.7.0
   json_rpc_2: ^4.1.0
   stream_channel: ^2.1.4

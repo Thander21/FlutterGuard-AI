@@ -29,13 +29,14 @@ List<String> collectDartFiles(String target) {
 
 /// Sorted `.dart` files under directory [target].
 List<String> _walkDir(String target) {
-  final files = Directory(target)
-      .listSync(recursive: true)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.dart'))
-      .map((file) => _normalize(file.path))
-      .toList()
-    ..sort();
+  final files =
+      Directory(target)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.dart'))
+          .map((file) => _normalize(file.path))
+          .toList()
+        ..sort();
   return files;
 }
 
@@ -70,7 +71,10 @@ class BreakerResult {
 /// [timeout]. Exact historical shape (Timer + trip flag + SIGKILL +
 /// joined drains) shared by the mutation and coverage runners.
 Future<BreakerResult> runWithBreaker(
-    String executable, List<String> args, Duration timeout) async {
+  String executable,
+  List<String> args,
+  Duration timeout,
+) async {
   final process = await Process.start(executable, args);
   final stdoutDone = process.stdout.transform(utf8.decoder).join();
   final stderrDone = process.stderr.transform(utf8.decoder).join();
@@ -95,8 +99,11 @@ Future<BreakerResult> runWithBreaker(
 /// for tests; the ambient machine is never asserted on. [extensions]
 /// lists the probed suffixes (callers keep their historical sets:
 /// the SDK probe includes `.sh`, the generic probe `.cmd`).
-bool resolvesOnPath(String name,
-    {String? pathEnv, List<String> extensions = const []}) {
+bool resolvesOnPath(
+  String name, {
+  String? pathEnv,
+  List<String> extensions = const [],
+}) {
   final path = pathEnv ?? Platform.environment['PATH'] ?? '';
   if (path.isEmpty) return false;
   final separator = Platform.isWindows ? ';' : ':';

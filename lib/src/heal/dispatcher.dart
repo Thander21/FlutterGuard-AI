@@ -14,15 +14,17 @@ enum HealStrategy { insertBeforeInvocation, replaceInvocation }
 class HealRecipe {
   /// Insert [guard] as its own line above the violation's line.
   const HealRecipe.insert({required this.ruleId, required this.guard})
-      : strategy = HealStrategy.insertBeforeInvocation,
-        from = null,
-        to = null;
+    : strategy = HealStrategy.insertBeforeInvocation,
+      from = null,
+      to = null;
 
   /// Replace the first [from] with [to] on the violation's line.
-  const HealRecipe.replace(
-      {required this.ruleId, required this.from, required this.to})
-      : strategy = HealStrategy.replaceInvocation,
-        guard = null;
+  const HealRecipe.replace({
+    required this.ruleId,
+    required this.from,
+    required this.to,
+  }) : strategy = HealStrategy.replaceInvocation,
+       guard = null;
 
   final String ruleId;
   final HealStrategy strategy;
@@ -48,12 +50,12 @@ class HealError {
   final String error;
 
   Map<String, Object?> toJson() => {
-        'attempt': attempt,
-        'phase': phase,
-        'target': target,
-        'rule_id': ruleId,
-        'error': error,
-      };
+    'attempt': attempt,
+    'phase': phase,
+    'target': target,
+    'rule_id': ruleId,
+    'error': error,
+  };
 }
 
 /// Outcome of [HealDispatcher.healFile].
@@ -97,13 +99,15 @@ class HealDispatcher {
       try {
         return analyze(path);
       } catch (error) {
-        errors.add(HealError(
-          attempt: attempt,
-          phase: phase,
-          target: path,
-          ruleId: recipe.ruleId,
-          error: '$error',
-        ));
+        errors.add(
+          HealError(
+            attempt: attempt,
+            phase: phase,
+            target: path,
+            ruleId: recipe.ruleId,
+            error: '$error',
+          ),
+        );
         return null;
       }
     }
@@ -122,13 +126,15 @@ class HealDispatcher {
         );
       }
       if (!_apply(path, violations.first, recipe)) {
-        errors.add(HealError(
-          attempt: attempt,
-          phase: 'patch',
-          target: path,
-          ruleId: recipe.ruleId,
-          error: 'no-op: premise exhausted',
-        ));
+        errors.add(
+          HealError(
+            attempt: attempt,
+            phase: 'patch',
+            target: path,
+            ruleId: recipe.ruleId,
+            error: 'no-op: premise exhausted',
+          ),
+        );
         break;
       }
       final reverified = detect(attempt, 'verify');
@@ -178,8 +184,13 @@ class HealDispatcher {
 
   String _indentOf(String line) => RegExp(r'^\s*').firstMatch(line)!.group(0)!;
 
-  String _report(String path, HealRecipe recipe, int attempts, int cap,
-      List<HealError> errors) {
+  String _report(
+    String path,
+    HealRecipe recipe,
+    int attempts,
+    int cap,
+    List<HealError> errors,
+  ) {
     final rows = errors
         .map((e) => '| ${e.attempt} | ${e.phase} | ${e.error} |')
         .join('\n');

@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('FG-LINT-009 lint suppression guard', () {
     test('flags suppressions and the empty catch', () {
-      final violations =
-          analyzeLintSuppressionFile('benchmark/vectors/TC-11_lint.bad.dart');
+      final violations = analyzeLintSuppressionFile(
+        'benchmark/vectors/TC-11_lint.bad.dart',
+      );
       expect(violations.map((v) => v.line), [6, 12, 15]);
       expect(violations.first.message, contains('ignore:'));
       expect(violations.first.message, contains('root cause'));
@@ -16,8 +17,9 @@ void main() {
     });
 
     test('spares handled errors (zero false positives)', () {
-      final violations =
-          analyzeLintSuppressionFile('benchmark/vectors/TC-11_lint.good.dart');
+      final violations = analyzeLintSuppressionFile(
+        'benchmark/vectors/TC-11_lint.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

@@ -73,13 +73,15 @@ class _MutantCollector extends RecursiveAstVisitor<void> {
   final List<Mutant> mutants = [];
 
   void _add(Token token, String replacement) {
-    mutants.add(Mutant(
-      offset: token.offset,
-      line: _lineInfo.getLocation(token.offset).lineNumber,
-      operator: token.lexeme,
-      original: token.lexeme,
-      replacement: replacement,
-    ));
+    mutants.add(
+      Mutant(
+        offset: token.offset,
+        line: _lineInfo.getLocation(token.offset).lineNumber,
+        operator: token.lexeme,
+        original: token.lexeme,
+        replacement: replacement,
+      ),
+    );
   }
 
   @override

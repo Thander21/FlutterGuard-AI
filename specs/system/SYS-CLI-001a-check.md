@@ -126,6 +126,6 @@ SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
   green) is closed.
 - Formatter oracle (TS-16, 2026-11-04): the ambient `dart format`
   subprocess on the original paths; no new dependency (rejected:
-  `dart_style` 3.x needs analyzer ^7+ vs ^6.0.0 here, 2.x formats
-  short style; temp copies lose package context and flip the
-  language version).
+  in-process `dart_style` pins a second formatting
+  implementation that can skew from the ambient SDK; temp
+  copies lose package context and flip the language version).

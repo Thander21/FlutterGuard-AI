@@ -8,15 +8,17 @@ import 'package:test/test.dart';
 void main() {
   group('FG-IMP-015 import guard', () {
     test('flags the .bad vector at exact lines', () {
-      final violations =
-          analyzeImportFile('benchmark/vectors/TC-15_imp.bad.dart');
+      final violations = analyzeImportFile(
+        'benchmark/vectors/TC-15_imp.bad.dart',
+      );
       expect(violations.map((v) => v.line), [2, 4]);
       expect(violations.first.message, contains('dart:mirrors'));
     });
 
     test('spares the .good vector (zero false positives)', () {
-      final violations =
-          analyzeImportFile('benchmark/vectors/TC-15_imp.good.dart');
+      final violations = analyzeImportFile(
+        'benchmark/vectors/TC-15_imp.good.dart',
+      );
       expect(violations, isEmpty);
     });
 
@@ -46,7 +48,8 @@ void main() {
         final inLib = File('${root.path}/lib/ui/ok.dart')
           ..createSync(recursive: true)
           ..writeAsStringSync(
-              "import './sibling.dart';\nimport 'package:x/y.dart';\n");
+            "import './sibling.dart';\nimport 'package:x/y.dart';\n",
+          );
         final outside = File('${root.path}/test/x_test.dart')
           ..createSync(recursive: true)
           ..writeAsStringSync("import '../lib/a.dart';\n");
@@ -73,12 +76,14 @@ void main() {
       try {
         final cond = File('${root.path}/lib/cond.dart')
           ..createSync(recursive: true)
-          ..writeAsStringSync("import './ok.dart'\n"
-              "    if (dart.library.io) 'dart:mirrors';\n"
-              "import 'package:x/y.dart'\n"
-              "    if (dart.library.html) '../escape.dart';\n"
-              "import 'file:///x.dart';\n"
-              "import '/absolute/path.dart';\n");
+          ..writeAsStringSync(
+            "import './ok.dart'\n"
+            "    if (dart.library.io) 'dart:mirrors';\n"
+            "import 'package:x/y.dart'\n"
+            "    if (dart.library.html) '../escape.dart';\n"
+            "import 'file:///x.dart';\n"
+            "import '/absolute/path.dart';\n",
+          );
         expect(analyzeImportFile(cond.path).map((v) => v.line), [2, 4]);
       } finally {
         root.deleteSync(recursive: true);

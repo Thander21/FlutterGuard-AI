@@ -157,11 +157,14 @@ class StateMutationGuard extends RecursiveAstVisitor<void> {
   }
 
   void _flag(AstNode node, String verb) {
-    violations.add(StateMutationViolation(
-      line: _lineInfo.getLocation(node.offset).lineNumber,
-      message: '$verb mutates state in place; '
-          'assign a new state instead (state = state.copyWith(...))',
-    ));
+    violations.add(
+      StateMutationViolation(
+        line: _lineInfo.getLocation(node.offset).lineNumber,
+        message:
+            '$verb mutates state in place; '
+            'assign a new state instead (state = state.copyWith(...))',
+      ),
+    );
   }
 }
 

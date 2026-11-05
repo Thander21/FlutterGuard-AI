@@ -69,11 +69,19 @@ int grade({String root = '.'}) {
       continue;
     }
     failures += _gradeVector(
-        lines, spec.id, analyzer, joinRoot(root, spec.failing),
-        expectFlagged: true);
+      lines,
+      spec.id,
+      analyzer,
+      joinRoot(root, spec.failing),
+      expectFlagged: true,
+    );
     failures += _gradeVector(
-        lines, spec.id, analyzer, joinRoot(root, spec.passing),
-        expectFlagged: false);
+      lines,
+      spec.id,
+      analyzer,
+      joinRoot(root, spec.passing),
+      expectFlagged: false,
+    );
   }
   File(joinRoot(root, 'evidence.jsonl'))
       .writeAsStringSync('${lines.join('\n')}\n', mode: FileMode.append);
@@ -81,8 +89,9 @@ int grade({String root = '.'}) {
   if (failures == 0 && specErrors == 0) {
     stdout.writeln('All golden evals passed.');
   } else {
-    stdout
-        .writeln('$failures golden eval(s) failed, $specErrors spec error(s).');
+    stdout.writeln(
+      '$failures golden eval(s) failed, $specErrors spec error(s).',
+    );
   }
   return failures == 0 && specErrors == 0 ? 0 : 1;
 }
@@ -90,9 +99,13 @@ int grade({String root = '.'}) {
 /// Grades one vector: a `.bad` file passes only when flagged, a `.good`
 /// file passes only when clean. Returns 1 on eval failure, else 0.
 /// An analyzer crash fails the eval but never kills the run.
-int _gradeVector(List<String> lines, String ruleId,
-    List<RuleViolation> Function(String path) analyzer, String file,
-    {required bool expectFlagged}) {
+int _gradeVector(
+  List<String> lines,
+  String ruleId,
+  List<RuleViolation> Function(String path) analyzer,
+  String file, {
+  required bool expectFlagged,
+}) {
   List<RuleViolation> violations;
   try {
     violations = analyzer(file);
@@ -103,17 +116,19 @@ int _gradeVector(List<String> lines, String ruleId,
   final flagged = violations.isNotEmpty;
   final gateStatus = flagged ? 'FAILED' : 'PASSED';
   final passed = flagged == expectFlagged;
-  lines.add(jsonEncode({
-    'timestamp': DateTime.now().toUtc().toIso8601String(),
-    'phase': 'DETERMINISTIC_GATE',
-    'rule_id': ruleId,
-    'file': file,
-    'status': gateStatus,
-    'error_message': flagged ? violations.first.message : '',
-    'recipe_injected': '',
-    'iteration': 1,
-    'action': 'EVAL_RECORDED',
-  }));
+  lines.add(
+    jsonEncode({
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
+      'phase': 'DETERMINISTIC_GATE',
+      'rule_id': ruleId,
+      'file': file,
+      'status': gateStatus,
+      'error_message': flagged ? violations.first.message : '',
+      'recipe_injected': '',
+      'iteration': 1,
+      'action': 'EVAL_RECORDED',
+    }),
+  );
   stdout.writeln('${passed ? 'PASS' : 'FAIL'} $file (gate: $gateStatus)');
   return passed ? 0 : 1;
 }
@@ -160,5 +175,9 @@ _Spec _readSpec(File file) {
     throw StateError('Incomplete front matter in ${file.path}.');
   }
   return _Spec(
-      id: id, failing: failing, passing: passing, kind: kind ?? 'rule');
+    id: id,
+    failing: failing,
+    passing: passing,
+    kind: kind ?? 'rule',
+  );
 }

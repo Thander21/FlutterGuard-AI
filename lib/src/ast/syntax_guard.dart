@@ -30,13 +30,16 @@ class SyntaxViolation implements RuleViolation {
 /// syntactic error (empty when the file parses cleanly).
 List<SyntaxViolation> analyzeSyntaxFile(String path) {
   final source = File(path).readAsStringSync();
-  final result =
-      parseString(content: source, path: path, throwIfDiagnostics: false);
+  final result = parseString(
+    content: source,
+    path: path,
+    throwIfDiagnostics: false,
+  );
   final violations = [
     for (final error in result.errors)
       SyntaxViolation(
         line: result.lineInfo.getLocation(error.offset).lineNumber,
-        message: '${error.errorCode.name}: ${error.message}',
+        message: '${error.diagnosticCode.lowerCaseName}: ${error.message}',
       ),
   ]..sort((a, b) => a.line.compareTo(b.line));
   return violations;

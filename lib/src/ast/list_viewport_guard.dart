@@ -100,9 +100,8 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
   void _checkChildren(ArgumentList arguments, {required bool isRow}) {
     _inRow = isRow;
     for (final argument in arguments.arguments) {
-      if (argument is NamedExpression &&
-          argument.name.label.name == 'children') {
-        _scanCollectionValue(argument.expression);
+      if (argument is NamedArgument && argument.name.lexeme == 'children') {
+        _scanCollectionValue(argument.argumentExpression);
       }
     }
   }
@@ -139,15 +138,18 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
     final name = _scrollableName(descended.target);
     if (name == null) return;
     if (!_inRow && _hasShrinkWrapTrue(descended.target)) return;
-    final axis =
-        _inRow ? 'Row() has unbounded width' : 'Column() has unbounded height';
+    final axis = _inRow
+        ? 'Row() has unbounded width'
+        : 'Column() has unbounded height';
     final via = descended.chain.isEmpty
         ? 'directly inside $axis'
         : 'inside $axis (through ${descended.chain.join(' > ')})';
-    violations.add(ListViewportViolation(
-      line: _lineInfo.getLocation(descended.target.offset).lineNumber,
-      message: '$name() $via; wrap it in Expanded',
-    ));
+    violations.add(
+      ListViewportViolation(
+        line: _lineInfo.getLocation(descended.target.offset).lineNumber,
+        message: '$name() $via; wrap it in Expanded',
+      ),
+    );
   }
 }
 
@@ -156,7 +158,8 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
 /// non-transparent creation (judged as a scrollable or ignored) or
 /// when `child:` is absent.
 ({Expression target, List<String> chain}) _descendTransparent(
-    Expression widget) {
+  Expression widget,
+) {
   final chain = <String>[];
   var target = widget;
   while (true) {
@@ -211,8 +214,8 @@ Expression? _namedArgumentValue(Expression widget, String name) {
     return null;
   }
   for (final argument in arguments.arguments) {
-    if (argument is NamedExpression && argument.name.label.name == name) {
-      return argument.expression;
+    if (argument is NamedArgument && argument.name.lexeme == name) {
+      return argument.argumentExpression;
     }
   }
   return null;

@@ -87,7 +87,7 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
 
   void _checkClass(ClassDeclaration node) {
     final fields = <String, _Field>{};
-    for (final member in node.members) {
+    for (final member in node.body.members) {
       if (member is FieldDeclaration) {
         final declared = member.fields.type;
         for (final variable in member.fields.variables) {
@@ -102,34 +102,41 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
     }
     final releases = <String>{};
     final adds = <_AddListener>[];
-    for (final member in node.members) {
+    for (final member in node.body.members) {
       if (member is MethodDeclaration) {
-        member.body.accept(_MemberScanner(
-          fields: fields,
-          isDispose: member.name.lexeme == 'dispose',
-          releases: releases,
-          adds: adds,
-          source: _source,
-          lineInfo: _lineInfo,
-        ));
+        member.body.accept(
+          _MemberScanner(
+            fields: fields,
+            isDispose: member.name.lexeme == 'dispose',
+            releases: releases,
+            adds: adds,
+            source: _source,
+            lineInfo: _lineInfo,
+          ),
+        );
       }
     }
     for (final field in fields.values) {
       final type = field.type;
       if (type != null && !releases.contains(field.name)) {
-        violations.add(LifecycleViolation(
-          line: field.line,
-          message: '$type field ${field.name} is never released in dispose()',
-        ));
+        violations.add(
+          LifecycleViolation(
+            line: field.line,
+            message: '$type field ${field.name} is never released in dispose()',
+          ),
+        );
       }
     }
     for (final add in adds) {
       if (!releases.contains('${add.receiver}#${add.argSource}')) {
-        violations.add(LifecycleViolation(
-          line: add.line,
-          message: 'addListener on ${add.receiver} '
-              'has no paired removeListener in dispose()',
-        ));
+        violations.add(
+          LifecycleViolation(
+            line: add.line,
+            message:
+                'addListener on ${add.receiver} '
+                'has no paired removeListener in dispose()',
+          ),
+        );
       }
     }
   }
@@ -137,9 +144,9 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
   /// Explicit known type wins, otherwise the initializer shape infers it.
   String? _fieldType(VariableDeclaration variable, TypeAnnotation? declared) {
     if (declared is NamedType &&
-        (_cancelTypes.contains(declared.name2.lexeme) ||
-            _disposeTypes.contains(declared.name2.lexeme))) {
-      return declared.name2.lexeme;
+        (_cancelTypes.contains(declared.name.lexeme) ||
+            _disposeTypes.contains(declared.name.lexeme))) {
+      return declared.name.lexeme;
     }
     return _inferType(variable.initializer);
   }
@@ -187,20 +194,26 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
           node.argumentList.arguments.isNotEmpty) {
         final arg = node.argumentList.arguments.first;
         if (arg is SimpleIdentifier || arg is PrefixedIdentifier) {
-          adds.add(_AddListener(receiver, _argSource(arg),
-              lineInfo.getLocation(node.offset).lineNumber));
+          adds.add(
+            _AddListener(
+              receiver,
+              _argSource(arg),
+              lineInfo.getLocation(node.offset).lineNumber,
+            ),
+          );
         }
       } else if (isDispose &&
           name == 'removeListener' &&
           node.argumentList.arguments.isNotEmpty) {
-        releases
-            .add('$receiver#${_argSource(node.argumentList.arguments.first)}');
+        releases.add(
+          '$receiver#${_argSource(node.argumentList.arguments.first)}',
+        );
       }
     }
     super.visitMethodInvocation(node);
   }
 
-  String _argSource(Expression arg) => source.substring(arg.offset, arg.end);
+  String _argSource(AstNode arg) => source.substring(arg.offset, arg.end);
 }
 
 /// Unwraps a release/listener receiver: `field` or `this.field`.
@@ -227,7 +240,7 @@ String? _inferType(Expression? expression) {
     return null;
   }
   if (expression is InstanceCreationExpression) {
-    final typeName = expression.constructorName.type.name2.lexeme;
+    final typeName = expression.constructorName.type.name.lexeme;
     if (_cancelTypes.contains(typeName) || _disposeTypes.contains(typeName)) {
       return typeName;
     }

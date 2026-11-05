@@ -93,7 +93,7 @@ class ContextScopeGuard extends RecursiveAstVisitor<void> {
     final wasScope = _inScope;
     final wasUi = _inUi;
     _inScope = true;
-    _inUi = _isUiExtension(node.extendedType);
+    _inUi = _isUiExtension(node.onClause?.extendedType);
     super.visitExtensionDeclaration(node);
     _inScope = wasScope;
     _inUi = wasUi;
@@ -117,7 +117,7 @@ class ContextScopeGuard extends RecursiveAstVisitor<void> {
 
   @override
   void visitNamedType(NamedType node) {
-    if (node.name2.lexeme == 'BuildContext' && _inScope && !_inUi) {
+    if (node.name.lexeme == 'BuildContext' && _inScope && !_inUi) {
       _flag(
         node.offset,
         'BuildContext outside Widget/State; pass data instead of context',
@@ -133,17 +133,20 @@ class ContextScopeGuard extends RecursiveAstVisitor<void> {
     type.accept(collector);
     for (final offset in collector.offsets) {
       _flag(
-          offset,
-          'BuildContext must not be stored; '
-          'pass data instead of context');
+        offset,
+        'BuildContext must not be stored; '
+        'pass data instead of context',
+      );
     }
   }
 
   void _flag(int offset, String message) {
-    violations.add(ContextScopeViolation(
-      line: _lineInfo.getLocation(offset).lineNumber,
-      message: message,
-    ));
+    violations.add(
+      ContextScopeViolation(
+        line: _lineInfo.getLocation(offset).lineNumber,
+        message: message,
+      ),
+    );
   }
 }
 
@@ -153,7 +156,7 @@ class _StoredTypeCollector extends RecursiveAstVisitor<void> {
 
   @override
   void visitNamedType(NamedType node) {
-    if (node.name2.lexeme == 'BuildContext') {
+    if (node.name.lexeme == 'BuildContext') {
       offsets.add(node.offset);
     }
     super.visitNamedType(node);
@@ -164,14 +167,14 @@ class _StoredTypeCollector extends RecursiveAstVisitor<void> {
 /// `State`/`ConsumerState` (Bloc states stay out of scope by design).
 bool _isUiClass(NamedType? superclass) {
   if (superclass == null) return false;
-  final name = superclass.name2.lexeme;
+  final name = superclass.name.lexeme;
   return name == 'State' || name == 'ConsumerState' || isWidgetTypeName(name);
 }
 
 /// True for extensions on BuildContext, State, or a widget.
-bool _isUiExtension(TypeAnnotation extendedType) {
+bool _isUiExtension(TypeAnnotation? extendedType) {
   if (extendedType is! NamedType) return false;
-  final name = extendedType.name2.lexeme;
+  final name = extendedType.name.lexeme;
   return name == 'BuildContext' ||
       name == 'State' ||
       name == 'ConsumerState' ||

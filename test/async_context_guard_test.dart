@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('FG-ASYNC-002 async context guard', () {
     test('flags context and setState used after an async gap', () {
-      final violations =
-          analyzeAsyncFile('benchmark/vectors/TC-06_async.bad.dart');
+      final violations = analyzeAsyncFile(
+        'benchmark/vectors/TC-06_async.bad.dart',
+      );
       expect(violations.map((v) => v.line), [16, 21]);
       expect(violations.first.message, contains('BuildContext'));
       expect(violations.first.message, contains('mounted'));
@@ -15,8 +16,9 @@ void main() {
     });
 
     test('spares guarded uses (zero false positives)', () {
-      final violations =
-          analyzeAsyncFile('benchmark/vectors/TC-06_async.good.dart');
+      final violations = analyzeAsyncFile(
+        'benchmark/vectors/TC-06_async.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

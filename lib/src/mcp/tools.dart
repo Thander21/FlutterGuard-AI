@@ -38,17 +38,18 @@ class McpToolDef {
   final Map<String, Object?> inputSchema;
 
   Map<String, Object?> toJson() => {
-        'name': name,
-        'description': description,
-        'inputSchema': inputSchema,
-      };
+    'name': name,
+    'description': description,
+    'inputSchema': inputSchema,
+  };
 }
 
 /// The reconciled 5-tool surface (SYS-MCP-001 §2).
 const mcpToolDefs = <McpToolDef>[
   McpToolDef(
     name: 'analyze_ast',
-    description: 'Run every FlutterGuard AST rule over a .dart file or '
+    description:
+        'Run every FlutterGuard AST rule over a .dart file or '
         'directory (recursive). FAILED means a violation was caught.',
     inputSchema: {
       'type': 'object',
@@ -63,7 +64,8 @@ const mcpToolDefs = <McpToolDef>[
   ),
   McpToolDef(
     name: 'get_canonical_recipe',
-    description: 'Return the Before/After auto-heal recipe (§2) for a '
+    description:
+        'Return the Before/After auto-heal recipe (§2) for a '
         'rule id (e.g. FG-BLOC-001). Apply it in one turn.',
     inputSchema: {
       'type': 'object',
@@ -78,7 +80,8 @@ const mcpToolDefs = <McpToolDef>[
   ),
   McpToolDef(
     name: 'verify_viewport',
-    description: 'Viewport gate v1 (Tier-1-lite AST vocabulary) over a '
+    description:
+        'Viewport gate v1 (Tier-1-lite AST vocabulary) over a '
         '.dart file or directory. Degraded stand-in: PASS never claims '
         'rendered-clean; see the note.',
     inputSchema: {
@@ -94,7 +97,8 @@ const mcpToolDefs = <McpToolDef>[
   ),
   McpToolDef(
     name: 'run_mutation_check',
-    description: 'Judge a test file against surgical mutants of its '
+    description:
+        'Judge a test file against surgical mutants of its '
         'source. passed=false means a complacent test survived. Writes '
         'volatile fixtures/mutation/ sandboxes under the server cwd.',
     inputSchema: {
@@ -114,15 +118,13 @@ const mcpToolDefs = <McpToolDef>[
   ),
   McpToolDef(
     name: 'get_telemetry',
-    description: 'Read the newest evidence.jsonl lines under the server '
+    description:
+        'Read the newest evidence.jsonl lines under the server '
         'cwd, optionally filtered. A query, never a gate.',
     inputSchema: {
       'type': 'object',
       'properties': {
-        'rule_id': {
-          'type': 'string',
-          'description': 'Keep only this rule id.',
-        },
+        'rule_id': {'type': 'string', 'description': 'Keep only this rule id.'},
         'status': {
           'type': 'string',
           'description': 'Keep only this status (PASSED/FAILED).',
@@ -139,7 +141,9 @@ const mcpToolDefs = <McpToolDef>[
 /// Dispatches the tool [name] with [args]; throws [McpError] on any
 /// tool-level failure.
 Future<Map<String, Object?>> callTool(
-    String name, Map<String, Object?> args) async {
+  String name,
+  Map<String, Object?> args,
+) async {
   switch (name) {
     case 'analyze_ast':
       return _analyzeAst(args);
@@ -165,8 +169,9 @@ Map<String, Object?> _analyzeAst(Map<String, Object?> args) {
     throw McpError(-32602, '$error');
   }
   return {
-    'status':
-        result.findings.any((f) => f.severity == 'error') ? 'FAILED' : 'PASSED',
+    'status': result.findings.any((f) => f.severity == 'error')
+        ? 'FAILED'
+        : 'PASSED',
     'findings': [for (final f in result.findings) f.toJson()],
     'errors': [for (final e in result.errors) e.toJson()],
   };
@@ -176,8 +181,10 @@ Map<String, Object?> _recipe(Map<String, Object?> args) {
   final id = _stringArg(args, 'get_canonical_recipe', 'rule_id');
   final recipe = canonicalRecipes[id];
   if (recipe == null) {
-    throw McpError(-32602,
-        'Unknown rule_id "$id". Known: ${canonicalRecipes.keys.join(', ')}.');
+    throw McpError(
+      -32602,
+      'Unknown rule_id "$id". Known: ${canonicalRecipes.keys.join(', ')}.',
+    );
   }
   return {
     'rule_id': id,
@@ -197,8 +204,9 @@ Map<String, Object?> _viewport(Map<String, Object?> args) {
     throw McpError(-32603, 'Lite vocabulary unwired: $error');
   }
   return {
-    'status':
-        result.findings.any((f) => f.severity == 'error') ? 'FAILED' : 'PASSED',
+    'status': result.findings.any((f) => f.severity == 'error')
+        ? 'FAILED'
+        : 'PASSED',
     'findings': [for (final f in result.findings) f.toJson()],
     'errors': [for (final e in result.errors) e.toJson()],
     'files_scanned': result.filesScanned,
@@ -228,7 +236,7 @@ Future<Map<String, Object?>> _mutation(Map<String, Object?> args) async {
           'replacement': r.mutant.replacement,
           'status': r.status.name,
           'exit_code': r.exitCode,
-        }
+        },
     ],
   };
 }

@@ -100,11 +100,14 @@ class ControllerBuildGuard extends RecursiveAstVisitor<void> {
 
   void _flag(AstNode node, String type) {
     final line = _lineInfo.getLocation(node.offset).lineNumber;
-    violations.add(ControllerBuildViolation(
-      line: line,
-      message: '$type() created inside build(); '
-          'create it in initState and dispose it',
-    ));
+    violations.add(
+      ControllerBuildViolation(
+        line: line,
+        message:
+            '$type() created inside build(); '
+            'create it in initState and dispose it',
+      ),
+    );
   }
 }
 

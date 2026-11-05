@@ -33,10 +33,7 @@ class OrderList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReorderableListView(
       onReorder: (oldIndex, newIndex) {},
-      children: [
-        CartTile('a'),
-        const Text('b'),
-      ],
+      children: [CartTile('a'), const Text('b')],
     );
   }
 }

@@ -45,8 +45,8 @@ List<ImportViolation> analyzeImportFile(String path) {
 /// Flags banned URIs and lib-escape relative directives.
 class ImportGuard extends RecursiveAstVisitor<void> {
   ImportGuard(this._lineInfo, String path)
-      : _fileDir = _dirSegments(path),
-        _libDir = _nearestLibDir(path);
+    : _fileDir = _dirSegments(path),
+      _libDir = _nearestLibDir(path);
 
   final LineInfo _lineInfo;
 
@@ -80,8 +80,10 @@ class ImportGuard extends RecursiveAstVisitor<void> {
   void _checkUri(String? uri, AstNode site, String kind) {
     if (uri == null) return;
     if (uri == importBannedUri) {
-      _flag(site,
-          "$kind of 'dart:mirrors' is banned on Flutter; use explicit serialization or code generation");
+      _flag(
+        site,
+        "$kind of 'dart:mirrors' is banned on Flutter; use explicit serialization or code generation",
+      );
       return;
     }
     final libDir = _libDir;
@@ -92,10 +94,12 @@ class ImportGuard extends RecursiveAstVisitor<void> {
   }
 
   void _flag(AstNode node, String message) {
-    violations.add(ImportViolation(
-      line: _lineInfo.getLocation(node.offset).lineNumber,
-      message: message,
-    ));
+    violations.add(
+      ImportViolation(
+        line: _lineInfo.getLocation(node.offset).lineNumber,
+        message: message,
+      ),
+    );
   }
 }
 

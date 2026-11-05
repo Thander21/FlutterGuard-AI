@@ -20,9 +20,6 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: save,
-      child: const Text('Save'),
-    );
+    return ElevatedButton(onPressed: save, child: const Text('Save'));
   }
 }

@@ -30,23 +30,26 @@ Server createMcpServer(StreamChannel<String> channel) {
   });
   server.registerMethod('notifications/initialized', (_) {});
   server.registerMethod(
-      'tools/list',
-      (_) => {
-            'tools': [for (final t in mcpToolDefs) t.toJson()]
-          });
+    'tools/list',
+    (_) => {
+      'tools': [for (final t in mcpToolDefs) t.toJson()],
+    },
+  );
   server.registerMethod('tools/call', (Parameters params) async {
     final map = params.asMap;
     final name = map['name'];
     if (name is! String || name.isEmpty) {
       throw RpcException.invalidParams(
-          'tools/call needs "name: string" (non-empty).');
+        'tools/call needs "name: string" (non-empty).',
+      );
     }
     final raw = map['arguments'];
     final args = <String, Object?>{};
     if (raw != null) {
       if (raw is! Map) {
         throw RpcException.invalidParams(
-            'tools/call "arguments" must be an object.');
+          'tools/call "arguments" must be an object.',
+        );
       }
       raw.forEach((key, value) => args['$key'] = value);
     }
@@ -54,8 +57,8 @@ Server createMcpServer(StreamChannel<String> channel) {
       final result = await callTool(name, args);
       return {
         'content': [
-          {'type': 'text', 'text': jsonEncode(result)}
-        ]
+          {'type': 'text', 'text': jsonEncode(result)},
+        ],
       };
     } on McpError catch (error) {
       throw RpcException(error.code, error.message);

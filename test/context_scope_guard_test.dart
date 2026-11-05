@@ -6,16 +6,18 @@ import 'package:test/test.dart';
 void main() {
   group('FG-CTX-006 context scope guard', () {
     test('flags context bound to service objects', () {
-      final violations =
-          analyzeContextScopeFile('benchmark/vectors/TC-09_ctx.bad.dart');
+      final violations = analyzeContextScopeFile(
+        'benchmark/vectors/TC-09_ctx.bad.dart',
+      );
       expect(violations.map((v) => v.line), [9, 20]);
       expect(violations.first.message, contains('BuildContext'));
       expect(violations.first.message, contains('pass data'));
     });
 
     test('spares widgets and free helpers (zero false positives)', () {
-      final violations =
-          analyzeContextScopeFile('benchmark/vectors/TC-09_ctx.good.dart');
+      final violations = analyzeContextScopeFile(
+        'benchmark/vectors/TC-09_ctx.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

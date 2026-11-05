@@ -9,22 +9,36 @@ void main() {
       expect(ruleAnalyzers, isNotEmpty);
       for (final rule in ruleAnalyzers) {
         final file = File(rule.spec);
-        expect(file.existsSync(), isTrue,
-            reason: '${rule.id}: missing spec file ${rule.spec}');
-        final text = file.readAsStringSync();
-        expect(_frontMatterId(text), rule.id,
-            reason: '${rule.id}: front-matter id mismatch in ${rule.spec}');
-        expect(text, contains('# 2. Canonical Auto-Heal Recipe'),
-            reason: '${rule.id}: ${rule.spec} carries no §2 recipe');
-        final diff = _firstDiffBlock(text);
-        expect(diff, isNotNull,
-            reason: '${rule.id}: §2 without a Before/After diff block');
         expect(
-            diff!.any((l) =>
-                (l.startsWith('-') || l.startsWith('+')) &&
-                l.trim().length > 1),
-            isTrue,
-            reason: '${rule.id}: §2 diff without a changed line');
+          file.existsSync(),
+          isTrue,
+          reason: '${rule.id}: missing spec file ${rule.spec}',
+        );
+        final text = file.readAsStringSync();
+        expect(
+          _frontMatterId(text),
+          rule.id,
+          reason: '${rule.id}: front-matter id mismatch in ${rule.spec}',
+        );
+        expect(
+          text,
+          contains('# 2. Canonical Auto-Heal Recipe'),
+          reason: '${rule.id}: ${rule.spec} carries no §2 recipe',
+        );
+        final diff = _firstDiffBlock(text);
+        expect(
+          diff,
+          isNotNull,
+          reason: '${rule.id}: §2 without a Before/After diff block',
+        );
+        expect(
+          diff!.any(
+            (l) =>
+                (l.startsWith('-') || l.startsWith('+')) && l.trim().length > 1,
+          ),
+          isTrue,
+          reason: '${rule.id}: §2 diff without a changed line',
+        );
       }
     });
 
@@ -33,14 +47,18 @@ void main() {
           .listSync()
           .whereType<File>()
           .where(
-              (f) => f.path.endsWith('.md') && !f.path.endsWith('_template.md'))
+            (f) => f.path.endsWith('.md') && !f.path.endsWith('_template.md'),
+          )
           .map((f) => f.path.replaceAll(r'\', '/'))
           .toList();
       expect(specs, isNotEmpty);
       final registered = {for (final rule in ruleAnalyzers) rule.spec};
       for (final spec in specs) {
-        expect(registered, contains(spec),
-            reason: '$spec has no registry entry');
+        expect(
+          registered,
+          contains(spec),
+          reason: '$spec has no registry entry',
+        );
       }
     });
 
@@ -52,7 +70,9 @@ void main() {
 
     test('methodology catalog stays resolvable as frozen reference', () {
       expect(
-          File('docs/_origem/CanonicalRecipesCatalog.md').existsSync(), isTrue);
+        File('docs/_origem/CanonicalRecipesCatalog.md').existsSync(),
+        isTrue,
+      );
     });
   });
 }

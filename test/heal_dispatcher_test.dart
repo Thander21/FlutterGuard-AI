@@ -94,8 +94,10 @@ void main() {
     });
 
     test('insert no-op stops without burning the cap, rolls back', () {
-      final path =
-          writeFixture('noop.dart', 'guard();\nline two\nline three\n');
+      final path = writeFixture(
+        'noop.dart',
+        'guard();\nline two\nline three\n',
+      );
       List<RuleViolation> alwaysRed(String _) => [_StubViolation()];
 
       final result = HealDispatcher().healFile(
@@ -108,8 +110,11 @@ void main() {
       );
 
       expect(result.success, isFalse);
-      expect(result.attempts, 1,
-          reason: 'premise exhausted: the cap is not burned');
+      expect(
+        result.attempts,
+        1,
+        reason: 'premise exhausted: the cap is not burned',
+      );
       expect(result.rolledBack, isTrue);
       expect(result.errors, hasLength(1));
       expect(result.errors.single.phase, 'patch');
@@ -121,8 +126,10 @@ void main() {
     });
 
     test('replace no-op stops without burning the cap, rolls back', () {
-      final path =
-          writeFixture('noop.dart', 'line one\nline two\nline three\n');
+      final path = writeFixture(
+        'noop.dart',
+        'line one\nline two\nline three\n',
+      );
       List<RuleViolation> alwaysRed(String _) => [_StubViolation()];
 
       final result = HealDispatcher().healFile(
@@ -143,8 +150,10 @@ void main() {
     });
 
     test('detect crash rolls back immediately with a report', () {
-      final path =
-          writeFixture('crash.dart', 'line one\nline two\nline three\n');
+      final path = writeFixture(
+        'crash.dart',
+        'line one\nline two\nline three\n',
+      );
       List<RuleViolation> crashing(String _) => throw StateError('boom');
 
       final result = HealDispatcher().healFile(
@@ -191,8 +200,10 @@ void main() {
     });
 
     test('persistent failure burns the cap, rolls back, reports', () {
-      final path =
-          writeFixture('stub.dart', 'line one\nline two\nline three\n');
+      final path = writeFixture(
+        'stub.dart',
+        'line one\nline two\nline three\n',
+      );
       List<RuleViolation> alwaysRed(String _) => [_StubViolation()];
 
       final result = HealDispatcher().healFile(
@@ -217,14 +228,18 @@ void main() {
 
     group('fast-path recipe table (SYS-REL-001 R4)', () {
       test('table pins exactly the closed mechanical list', () {
-        expect(fastPathRecipes.keys,
-            unorderedEquals(['FG-BLOC-001', 'FG-RIV-001', 'FG-ASYNC-002']));
+        expect(
+          fastPathRecipes.keys,
+          unorderedEquals(['FG-BLOC-001', 'FG-RIV-001', 'FG-ASYNC-002']),
+        );
         expect(healRecipeFor('FG-NOPE-000'), isNull);
         expect(healRecipeFor('FG-BLOC-001')!.guard, 'if (isClosed) return;');
         expect(healRecipeFor('FG-RIV-001')!.from, 'ref.watch');
         expect(healRecipeFor('FG-RIV-001')!.to, 'ref.read');
-        expect(healRecipeFor('FG-ASYNC-002')!.guard,
-            'if (!context.mounted) return;');
+        expect(
+          healRecipeFor('FG-ASYNC-002')!.guard,
+          'if (!context.mounted) return;',
+        );
       });
 
       test('table recipe heals an ASYNC-002 fixture red to green', () {

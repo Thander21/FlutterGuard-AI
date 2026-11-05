@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('FG-ARCH-003 arch layer guard', () {
     test('flags persistence/network imports in a widget file', () {
-      final violations =
-          analyzeArchFile('benchmark/vectors/TC-05_arch.bad.dart');
+      final violations = analyzeArchFile(
+        'benchmark/vectors/TC-05_arch.bad.dart',
+      );
       expect(violations.map((v) => v.line), [4, 6]);
       expect(violations.first.message, contains('drift'));
       expect(violations.last.message, contains('dio'));
@@ -15,8 +16,9 @@ void main() {
     });
 
     test('spares the delegating widget (zero false positives)', () {
-      final violations =
-          analyzeArchFile('benchmark/vectors/TC-05_arch.good.dart');
+      final violations = analyzeArchFile(
+        'benchmark/vectors/TC-05_arch.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

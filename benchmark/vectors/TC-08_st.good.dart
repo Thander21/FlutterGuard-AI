@@ -17,9 +17,7 @@ class CartItems extends Notifier<CartState> {
   CartState build() => CartState([]);
 
   void addItem(String item) {
-    state = state.copyWith(
-      items: [...state.items, item],
-    );
+    state = state.copyWith(items: [...state.items, item]);
   }
 
   int get count {

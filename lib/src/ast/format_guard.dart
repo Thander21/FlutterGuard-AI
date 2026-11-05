@@ -58,8 +58,10 @@ Map<String, List<FormatViolation>> analyzeFormatBatch(List<String> files) {
     ...files,
   ]);
   if (!_verdictExitCodes.contains(result.exitCode)) {
-    throw StateError('dart format failed with exit ${result.exitCode} '
-        'over ${files.length} file(s)');
+    throw StateError(
+      'dart format failed with exit ${result.exitCode} '
+      'over ${files.length} file(s)',
+    );
   }
   final byPath = {for (final file in files) _normalizePath(file): file};
   final changed = <String>{};
@@ -77,8 +79,10 @@ Map<String, List<FormatViolation>> analyzeFormatBatch(List<String> files) {
       file: changed.contains(file)
           ? const [
               FormatViolation(
-                  message: 'file is not dart-format clean; '
-                      'run `dart format` to heal')
+                message:
+                    'file is not dart-format clean; '
+                    'run `dart format` to heal',
+              ),
             ]
           : const <FormatViolation>[],
   };

@@ -427,8 +427,11 @@ void main() {
       write('diff_a.dart', _diffA);
       write('diff_b.dart', _diffB);
       final verdict = findDuplication(dir.path);
-      expect(verdict.pairs, isEmpty,
-          reason: 'despite equal size, shapes differ: ${verdict.pairs}');
+      expect(
+        verdict.pairs,
+        isEmpty,
+        reason: 'despite equal size, shapes differ: ${verdict.pairs}',
+      );
       expect(verdict.unitsCompared, 2);
     });
 
@@ -452,8 +455,11 @@ void main() {
       write('alpha.dart', _alpha);
       write('beta.dart', _beta);
       final verdict = findDuplication(dir.path);
-      expect(verdict.pairs, hasLength(1),
-          reason: 'only the class pair survives: ${verdict.pairs}');
+      expect(
+        verdict.pairs,
+        hasLength(1),
+        reason: 'only the class pair survives: ${verdict.pairs}',
+      );
       final pair = verdict.pairs.single;
       expect([pair.nameA, pair.nameB], ['Alpha', 'Beta']);
       expect(pair.similarity, 1.0);

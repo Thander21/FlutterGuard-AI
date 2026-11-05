@@ -37,7 +37,7 @@ void main() {
         'validate-light',
         'test:',
         'validate:',
-        'commit-check'
+        'commit-check',
       ]) {
         expect(yamlText, contains(key));
       }
@@ -53,11 +53,13 @@ void main() {
 
     test('reinstall is idempotent', () {
       expect(cli.init([], root: root.path), isZero);
-      final before =
-          File('${root.path}/.git/hooks/pre-commit').readAsStringSync();
+      final before = File('${root.path}/.git/hooks/pre-commit')
+          .readAsStringSync();
       expect(cli.init([], root: root.path), isZero);
-      expect(File('${root.path}/.git/hooks/pre-commit').readAsStringSync(),
-          before);
+      expect(
+        File('${root.path}/.git/hooks/pre-commit').readAsStringSync(),
+        before,
+      );
     });
 
     test('scaffold and agents flags are opt-in and idempotent', () {
@@ -85,8 +87,10 @@ void main() {
     test('refuses to overwrite a foreign hook', () {
       File('${root.path}/.git/hooks/pre-commit').writeAsStringSync('foreign\n');
       expect(cli.init([], root: root.path), 1);
-      expect(File('${root.path}/.git/hooks/pre-commit').readAsStringSync(),
-          'foreign\n');
+      expect(
+        File('${root.path}/.git/hooks/pre-commit').readAsStringSync(),
+        'foreign\n',
+      );
     });
 
     test('usage errors', () {
@@ -100,7 +104,9 @@ void main() {
       expect(generic.existsSync(), isTrue);
       final decoded = jsonDecode(generic.readAsStringSync());
       expect(
-          decoded['mcpServers']['flutterguard']['command'], 'flutterguard_mcp');
+        decoded['mcpServers']['flutterguard']['command'],
+        'flutterguard_mcp',
+      );
       expect(File('${root.path}/.cursor/mcp.json').existsSync(), isFalse);
     });
 
@@ -109,11 +115,14 @@ void main() {
       File('${root.path}/.cursor/mcp.json')
           .writeAsStringSync('{"mcpServers": {"other": {"command": "x"}}}');
       expect(cli.init(['--mcp'], root: root.path), isZero);
-      final decoded =
-          jsonDecode(File('${root.path}/.cursor/mcp.json').readAsStringSync());
+      final decoded = jsonDecode(
+        File('${root.path}/.cursor/mcp.json').readAsStringSync(),
+      );
       expect(decoded['mcpServers']['other'], {'command': 'x'});
       expect(
-          decoded['mcpServers']['flutterguard']['command'], 'flutterguard_mcp');
+        decoded['mcpServers']['flutterguard']['command'],
+        'flutterguard_mcp',
+      );
     });
 
     test('--mcp fails closed on unparseable config', () {
@@ -125,8 +134,10 @@ void main() {
     test('existing yaml is left untouched', () {
       File('${root.path}/flutterguard.yaml').writeAsStringSync('custom\n');
       expect(cli.init([], root: root.path), isZero);
-      expect(File('${root.path}/flutterguard.yaml').readAsStringSync(),
-          'custom\n');
+      expect(
+        File('${root.path}/flutterguard.yaml').readAsStringSync(),
+        'custom\n',
+      );
     });
   });
 
@@ -137,9 +148,11 @@ void main() {
       root = Directory.systemTemp.createTempSync('sandbox_test.');
       Directory('${root.path}/benchmark/vectors').createSync(recursive: true);
       File('${root.path}/benchmark/vectors/x.bad.dart').writeAsStringSync(
-          File('benchmark/vectors/TC-01_bloc.bad.dart').readAsStringSync());
+        File('benchmark/vectors/TC-01_bloc.bad.dart').readAsStringSync(),
+      );
       File('${root.path}/benchmark/vectors/y.good.dart').writeAsStringSync(
-          File('benchmark/vectors/TC-01_bloc.good.dart').readAsStringSync());
+        File('benchmark/vectors/TC-01_bloc.good.dart').readAsStringSync(),
+      );
     });
 
     tearDown(() {
@@ -150,8 +163,11 @@ void main() {
       expect(cli.sandbox(['load'], root: root.path), isZero);
       final box = Directory('${root.path}/fixtures/sandbox');
       expect(box.listSync().map((e) => e.path), hasLength(1));
-      expect(cli.sandbox(['check'], root: root.path), 1,
-          reason: 'violations are the expected state right after load');
+      expect(
+        cli.sandbox(['check'], root: root.path),
+        1,
+        reason: 'violations are the expected state right after load',
+      );
       expect(cli.sandbox(['reset'], root: root.path), isZero);
       expect(box.listSync(), isEmpty);
     });
@@ -185,8 +201,10 @@ void main() {
     test('hook blocks a planted violation commit in a scratch clone', () async {
       final scratch = Directory.systemTemp.createTempSync('hook_clone.');
       try {
-        Future<ProcessResult> git(List<String> args,
-            {Map<String, String>? env}) {
+        Future<ProcessResult> git(
+          List<String> args, {
+          Map<String, String>? env,
+        }) {
           return Process.run(
             'git',
             args,
@@ -202,24 +220,27 @@ void main() {
         expect(cli.init([], root: scratch.path), isZero);
 
         final repo = Directory.current.path.replaceAll(r'\', '/');
-        final env = {
-          ...Platform.environment,
-          'FLUTTERGUARD_ROOT': repo,
-        };
+        final env = {...Platform.environment, 'FLUTTERGUARD_ROOT': repo};
 
         File('${scratch.path}/bad.dart').writeAsStringSync(_blocBad);
         await git(['add', '-A']);
         final blocked = await git(['commit', '-m', 'planted'], env: env);
-        expect(blocked.exitCode, isNot(0),
-            reason: 'hook must block the violation commit');
+        expect(
+          blocked.exitCode,
+          isNot(0),
+          reason: 'hook must block the violation commit',
+        );
 
         File('${scratch.path}/bad.dart').deleteSync();
         File('${scratch.path}/clean.dart')
             .writeAsStringSync('void main() {}\n');
         await git(['add', '-A']);
         final allowed = await git(['commit', '-m', 'clean'], env: env);
-        expect(allowed.exitCode, isZero,
-            reason: 'hook must allow the clean commit');
+        expect(
+          allowed.exitCode,
+          isZero,
+          reason: 'hook must allow the clean commit',
+        );
       } finally {
         scratch.deleteSync(recursive: true);
       }

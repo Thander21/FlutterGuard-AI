@@ -17,10 +17,7 @@ class FeedScreen extends StatelessWidget {
             itemBuilder: (context, index) => Text('Item $index'),
           ),
         ),
-        ListView(
-          shrinkWrap: true,
-          children: [Text('a')],
-        ),
+        ListView(shrinkWrap: true, children: [Text('a')]),
       ],
     );
   }
@@ -31,13 +28,7 @@ class RowBoundedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ListView(),
-        ),
-      ],
-    );
+    return Row(children: [Expanded(child: ListView())]);
   }
 }
 
@@ -47,12 +38,7 @@ class GridShrinkScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-        ),
-      ],
+      children: [GridView.count(crossAxisCount: 2, shrinkWrap: true)],
     );
   }
 }
@@ -63,12 +49,7 @@ class SliverShrinkScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        CustomScrollView(
-          shrinkWrap: true,
-          slivers: const [],
-        ),
-      ],
+      children: [CustomScrollView(shrinkWrap: true, slivers: const [])],
     );
   }
 }
@@ -78,13 +59,7 @@ class FlexWrapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Flexible(
-          child: ListView(),
-        ),
-      ],
-    );
+    return Column(children: [Flexible(child: ListView())]);
   }
 }
 
@@ -95,10 +70,7 @@ class BoxWrapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(
-          height: 200,
-          child: GridView.count(crossAxisCount: 2),
-        ),
+        SizedBox(height: 200, child: GridView.count(crossAxisCount: 2)),
       ],
     );
   }
@@ -113,10 +85,7 @@ class PaddedShrinkScreen extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.all(8),
-          child: ListView(
-            shrinkWrap: true,
-            children: [Text('a')],
-          ),
+          child: ListView(shrinkWrap: true, children: [Text('a')]),
         ),
       ],
     );
@@ -128,9 +97,6 @@ class OutsideFlexScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(8),
-      child: ListView(),
-    );
+    return Padding(padding: EdgeInsets.all(8), child: ListView());
   }
 }

@@ -6,16 +6,18 @@ import 'package:test/test.dart';
 void main() {
   group('FG-WID-008 widget immutable guard', () {
     test('flags mutable fields in a StatelessWidget', () {
-      final violations =
-          analyzeWidgetImmutableFile('benchmark/vectors/TC-10_wid.bad.dart');
+      final violations = analyzeWidgetImmutableFile(
+        'benchmark/vectors/TC-10_wid.bad.dart',
+      );
       expect(violations.map((v) => v.line), [9, 10]);
       expect(violations.first.message, contains("'count'"));
       expect(violations.first.message, contains('immutable'));
     });
 
     test('spares immutable widgets (zero false positives)', () {
-      final violations =
-          analyzeWidgetImmutableFile('benchmark/vectors/TC-10_wid.good.dart');
+      final violations = analyzeWidgetImmutableFile(
+        'benchmark/vectors/TC-10_wid.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

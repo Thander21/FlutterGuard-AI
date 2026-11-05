@@ -84,15 +84,19 @@ class MetricGuard extends RecursiveAstVisitor<void> {
     final count = node.parameters.parameters.length;
     if (count > maxConstructorParams && !_inDataHolder(node)) {
       final name = node.name;
-      violations.add(MetricViolation(
-        line: _lineInfo
-            .getLocation(
-                (name ?? node.firstTokenAfterCommentAndMetadata).offset)
-            .lineNumber,
-        message: 'constructor has $count parameters, exceeding the '
-            'advisory budget of $maxConstructorParams; '
-            'group them into a config object',
-      ));
+      violations.add(
+        MetricViolation(
+          line: _lineInfo
+              .getLocation(
+                (name ?? node.firstTokenAfterCommentAndMetadata).offset,
+              )
+              .lineNumber,
+          message:
+              'constructor has $count parameters, exceeding the '
+              'advisory budget of $maxConstructorParams; '
+              'group them into a config object',
+        ),
+      );
     }
     super.visitConstructorDeclaration(node);
   }
@@ -121,11 +125,14 @@ class MetricGuard extends RecursiveAstVisitor<void> {
     if (scope is ConstructorDeclaration) return;
     if (!_isMeasured(scope)) return;
     if (depth > maxWidgetDepth) {
-      violations.add(MetricViolation(
-        line: _lineInfo.getLocation(creation.offset).lineNumber,
-        message: 'widget nesting depth $depth exceeds the advisory '
-            'budget of $maxWidgetDepth; extract a sub-widget',
-      ));
+      violations.add(
+        MetricViolation(
+          line: _lineInfo.getLocation(creation.offset).lineNumber,
+          message:
+              'widget nesting depth $depth exceeds the advisory '
+              'budget of $maxWidgetDepth; extract a sub-widget',
+        ),
+      );
     }
   }
 }
@@ -144,7 +151,7 @@ bool _isMeasured(AstNode? scope) {
 
 /// True for a `Widget` return type (exact simple name).
 bool _isWidgetType(TypeAnnotation? type) =>
-    type is NamedType && type.name2.lexeme == 'Widget';
+    type is NamedType && type.name.lexeme == 'Widget';
 
 /// True for constructor-shaped calls (bare `Tile(…)` or `Tile.named(…)`).
 bool _isCreationLike(MethodInvocation node) {
@@ -158,7 +165,7 @@ bool _isCreationLike(MethodInvocation node) {
 /// shape is unknown (unknown shapes keep counting: fail-closed).
 String? _creationName(AstNode node) {
   if (node is InstanceCreationExpression) {
-    return node.constructorName.type.name2.lexeme;
+    return node.constructorName.type.name.lexeme;
   }
   if (node is MethodInvocation) {
     if (node.target == null) return node.methodName.name;

@@ -27,9 +27,7 @@ class SplitScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ListView(
-          children: [Text('a')],
-        ),
+        ListView(children: [Text('a')]),
       ],
     );
   }
@@ -40,11 +38,7 @@ class RowListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ListView(),
-      ],
-    );
+    return Row(children: [ListView()]);
   }
 }
 
@@ -53,11 +47,7 @@ class RowShrinkTrapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ListView(shrinkWrap: true),
-      ],
-    );
+    return Row(children: [ListView(shrinkWrap: true)]);
   }
 }
 
@@ -66,11 +56,7 @@ class GridColumnScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        GridView.count(crossAxisCount: 2),
-      ],
-    );
+    return Column(children: [GridView.count(crossAxisCount: 2)]);
   }
 }
 
@@ -79,11 +65,7 @@ class GridRowScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        GridView.count(crossAxisCount: 2),
-      ],
-    );
+    return Row(children: [GridView.count(crossAxisCount: 2)]);
   }
 }
 
@@ -92,11 +74,7 @@ class SliverColumnScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CustomScrollView(slivers: const []),
-      ],
-    );
+    return Column(children: [CustomScrollView(slivers: const [])]);
   }
 }
 
@@ -105,11 +83,7 @@ class SliverRowScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CustomScrollView(slivers: const []),
-      ],
-    );
+    return Row(children: [CustomScrollView(slivers: const [])]);
   }
 }
 
@@ -119,12 +93,7 @@ class PaddedListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.all(8),
-          child: ListView(),
-        ),
-      ],
+      children: [Padding(padding: EdgeInsets.all(8), child: ListView())],
     );
   }
 }
@@ -134,13 +103,7 @@ class CenteredGridScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Center(
-          child: GridView.count(crossAxisCount: 2),
-        ),
-      ],
-    );
+    return Column(children: [Center(child: GridView.count(crossAxisCount: 2))]);
   }
 }
 
@@ -150,11 +113,7 @@ class AlignedSliverRowScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: [
-        Align(
-          child: CustomScrollView(slivers: const []),
-        ),
-      ],
+      children: [Align(child: CustomScrollView(slivers: const []))],
     );
   }
 }
@@ -168,9 +127,7 @@ class NestedWrapScreen extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.all(8),
-          child: Center(
-            child: ListView(),
-          ),
+          child: Center(child: ListView()),
         ),
       ],
     );

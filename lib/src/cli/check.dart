@@ -38,14 +38,14 @@ class CheckFinding {
   String get recipe => '$spec (§2)';
 
   Map<String, Object?> toJson() => {
-        'rule_id': ruleId,
-        'spec': spec,
-        'recipe': recipe,
-        'file': file,
-        'line': line,
-        'message': message,
-        'severity': severity,
-      };
+    'rule_id': ruleId,
+    'spec': spec,
+    'recipe': recipe,
+    'file': file,
+    'line': line,
+    'message': message,
+    'severity': severity,
+  };
 }
 
 /// One file `check` could not analyze (unreadable or unparseable).
@@ -66,9 +66,9 @@ class CheckResult {
   final List<CheckError> errors;
 
   Map<String, Object?> toJson() => {
-        'findings': [for (final f in findings) f.toJson()],
-        'errors': [for (final e in errors) e.toJson()],
-      };
+    'findings': [for (final f in findings) f.toJson()],
+    'errors': [for (final e in errors) e.toJson()],
+  };
 }
 
 /// Rule id judged by subprocess batch instead of the per-file loop
@@ -93,14 +93,16 @@ CheckResult checkPath(String target) {
       final verdicts = analyzeFormatBatch(files);
       for (final entry in verdicts.entries) {
         for (final violation in entry.value) {
-          all.add(CheckFinding(
-            ruleId: rule.id,
-            spec: rule.spec,
-            file: entry.key,
-            line: violation.line,
-            message: violation.message,
-            severity: rule.severity,
-          ));
+          all.add(
+            CheckFinding(
+              ruleId: rule.id,
+              spec: rule.spec,
+              file: entry.key,
+              line: violation.line,
+              message: violation.message,
+              severity: rule.severity,
+            ),
+          );
         }
       }
     } catch (error) {
@@ -124,7 +126,9 @@ int _byFileRuleLine(CheckFinding a, CheckFinding b) {
 /// per broken file. Shared `check`/lite loop: findings sort by file,
 /// then rule id, then line for determinism.
 ({List<CheckFinding> findings, List<CheckError> errors}) analyzeFilesWithRules(
-    List<String> files, List<RuleAnalyzer> analyzers) {
+  List<String> files,
+  List<RuleAnalyzer> analyzers,
+) {
   final findings = <CheckFinding>[];
   final errors = <CheckError>[];
   final seenErrors = <(String, String)>{};
@@ -132,14 +136,16 @@ int _byFileRuleLine(CheckFinding a, CheckFinding b) {
     for (final rule in analyzers) {
       try {
         for (final violation in rule.analyze(file)) {
-          findings.add(CheckFinding(
-            ruleId: rule.id,
-            spec: rule.spec,
-            file: file,
-            line: violation.line,
-            message: violation.message,
-            severity: rule.severity,
-          ));
+          findings.add(
+            CheckFinding(
+              ruleId: rule.id,
+              spec: rule.spec,
+              file: file,
+              line: violation.line,
+              message: violation.message,
+              severity: rule.severity,
+            ),
+          );
         }
       } catch (error) {
         // One broken file fails every visitor the same way; record it once.
@@ -199,10 +205,12 @@ int check(List<String> args) {
     for (final finding in result.findings) {
       final prefix = finding.severity == 'warning' ? 'warning: ' : '';
       stdout.writeln(
-          '$prefix${finding.ruleId} ${finding.file}:${finding.line} ${finding.message}');
+        '$prefix${finding.ruleId} ${finding.file}:${finding.line} ${finding.message}',
+      );
     }
     stdout.writeln(
-        '${result.findings.length} violation(s) in ${targets.single}.');
+      '${result.findings.length} violation(s) in ${targets.single}.',
+    );
   }
   return result.findings.any((f) => f.severity == 'error') ? 1 : 0;
 }

@@ -78,7 +78,7 @@ precision is vacuously 1.0 on a trivial sample.
 
 | flag | judgment |
 |---|---|
-| `TC-13_met.bad:32` (6-deep) | TP (labeled positive by design) |
+| `TC-13_met.bad:29` (6-deep) | TP (labeled positive by design) |
 | `good_layout.dart:18` (6-deep) | FP — idiomatic `MaterialApp>Scaffold>scroll>Row>Box>SizedBox`; every real screen carries 2–3 scaffold levels |
 
 Recall 1.0 by exhaustiveness; 5-deep boundary clean. Open FP
@@ -87,7 +87,7 @@ fitted to N=2 (that would be overfitting, not calibration).
 
 v2 (2026-11-04, TS-13 scaffold transparency): `good_layout.dart:18`
 verified clean (`MaterialApp`/`Scaffold` discounted, 4
-non-scaffold levels); sole flag is `TC-13_met.bad:32` (TP,
+non-scaffold levels); sole flag is `TC-13_met.bad:29` (TP,
 labeled positive by design). Precision on emitted flags 1/1; the
 scaffolding FP pattern is CLOSED for the observed closed set.
 HOLD reaffirmed: N=1 < 5 (flip bar).
@@ -290,6 +290,21 @@ SYS-TELE-001 first (canon rule §4).
   unmet on all four → NO flips, HOLD reaffirmed everywhere. No
   pin changes. No field corpus exists; repo+vectors fallback per
   SYS-VAL-001.
+- Re-ratifications: 2026-11-05 — SYS-CAL-002 P0-1 analyzer
+  6→14 migration + tall-style reformat (language floor
+  3.4→3.13): MET depth key `TC-13_met.bad:32` → `:29` (same
+  6-deep TP, formatter collapsed the tree); params key
+  unchanged. DRY: 3 pair keys shifted by reformat reflows
+  (`init.dart:59` → `:60` ×2, `tools.dart:189/210` →
+  `:196/218`; same pairs, same FP judgments, similarities
+  0.824/0.805/0.818); the `metric:82~widget:74` guard-idiom
+  pair (@0.802) fell below threshold after the `name2`→`name`
+  token change — re-judged eliminated-FP (was FP, still 0
+  actionable). 4 pairs pinned, 0 actionable, HOLD reaffirmed.
+  `bin/`/`tool/` verified 0 pairs; skip set unchanged
+  (TC-17 still the designed negative); corpus still 118
+  files. CRAP re-measured on green: 3/0/0, same methods
+  (line shifts only).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

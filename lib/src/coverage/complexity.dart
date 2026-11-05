@@ -84,12 +84,14 @@ class _ComplexityCollector extends RecursiveAstVisitor<void> {
     _branchStack.add(0);
     superVisit(node);
     final branches = _branchStack.removeLast();
-    methods.add(MethodComplexity(
-      name: name,
-      line: _lineInfo.getLocation(node.offset).lineNumber,
-      endLine: _lineInfo.getLocation(node.end).lineNumber,
-      complexity: 1 + branches,
-    ));
+    methods.add(
+      MethodComplexity(
+        name: name,
+        line: _lineInfo.getLocation(node.offset).lineNumber,
+        endLine: _lineInfo.getLocation(node.end).lineNumber,
+        complexity: 1 + branches,
+      ),
+    );
   }
 
   /// Recurses without re-entering the entry logic. Each override calls
@@ -108,22 +110,34 @@ class _ComplexityCollector extends RecursiveAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) => _pushClass(
-      node.name.lexeme, node, () => super.visitClassDeclaration(node));
+    node.namePart.typeName.lexeme,
+    node,
+    () => super.visitClassDeclaration(node),
+  );
 
   @override
   void visitMixinDeclaration(MixinDeclaration node) => _pushClass(
-      node.name.lexeme, node, () => super.visitMixinDeclaration(node));
+    node.name.lexeme,
+    node,
+    () => super.visitMixinDeclaration(node),
+  );
 
   @override
   void visitEnumDeclaration(EnumDeclaration node) => _pushClass(
-      node.name.lexeme, node, () => super.visitEnumDeclaration(node));
+    node.namePart.typeName.lexeme,
+    node,
+    () => super.visitEnumDeclaration(node),
+  );
 
   // No extension-type override: the AST node is experimental in the
   // pinned analyzer, and suppression comments violate FG-LINT-009.
   // Methods inside extension types are scored with bare names.
   @override
   void visitExtensionDeclaration(ExtensionDeclaration node) => _pushClass(
-      node.name?.lexeme, node, () => super.visitExtensionDeclaration(node));
+    node.name?.lexeme,
+    node,
+    () => super.visitExtensionDeclaration(node),
+  );
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {

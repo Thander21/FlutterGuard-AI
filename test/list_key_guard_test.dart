@@ -6,17 +6,19 @@ import 'package:test/test.dart';
 void main() {
   group('FG-KEY-001r list key guard', () {
     test('flags keyless items in map, builder, and reorderable', () {
-      final violations =
-          analyzeListKeyFile('benchmark/vectors/TC-12_key.bad.dart');
-      expect(violations.map((v) => v.line), [15, 19, 37, 38]);
+      final violations = analyzeListKeyFile(
+        'benchmark/vectors/TC-12_key.bad.dart',
+      );
+      expect(violations.map((v) => v.line), [15, 19, 36, 36]);
       expect(violations.first.message, contains('CartTile'));
       expect(violations.first.message, contains('no key'));
       expect(violations.first.message, contains('ValueKey'));
     });
 
     test('spares keyed items (zero false positives)', () {
-      final violations =
-          analyzeListKeyFile('benchmark/vectors/TC-12_key.good.dart');
+      final violations = analyzeListKeyFile(
+        'benchmark/vectors/TC-12_key.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

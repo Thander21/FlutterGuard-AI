@@ -6,10 +6,23 @@ import 'package:test/test.dart';
 void main() {
   group('FG-LAY-004 list viewport guard', () {
     test('flags unbounded scrollables in every flex cell', () {
-      final violations =
-          analyzeListViewportFile('benchmark/vectors/TC-07_lay.bad.dart');
-      expect(violations.map((v) => v.line),
-          [14, 30, 45, 58, 71, 84, 97, 110, 125, 140, 155, 172]);
+      final violations = analyzeListViewportFile(
+        'benchmark/vectors/TC-07_lay.bad.dart',
+      );
+      expect(violations.map((v) => v.line), [
+        14,
+        30,
+        41,
+        50,
+        59,
+        68,
+        77,
+        86,
+        96,
+        106,
+        116,
+        130,
+      ]);
       expect(violations.first.message, contains('ListView'));
       expect(violations.first.message, contains('Expanded'));
       expect(violations[2].message, contains('Row'));
@@ -24,8 +37,9 @@ void main() {
     });
 
     test('spares bounded lists (zero false positives)', () {
-      final violations =
-          analyzeListViewportFile('benchmark/vectors/TC-07_lay.good.dart');
+      final violations = analyzeListViewportFile(
+        'benchmark/vectors/TC-07_lay.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

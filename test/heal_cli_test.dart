@@ -86,15 +86,21 @@ void main() {
     test('returns 2 on unknown or non-mechanical rules', () {
       final path = writeFixture('bloc.dart', _blocFixture);
       expect(heal([path, '--rule', 'FG-NOPE-999']), 2);
-      expect(heal([path, '--rule', 'FG-ST-001']), 2,
-          reason: 'registry rule without a fast-path recipe');
+      expect(
+        heal([path, '--rule', 'FG-ST-001']),
+        2,
+        reason: 'registry rule without a fast-path recipe',
+      );
     });
 
     test('returns 2 on out-of-range --attempts', () {
       final path = writeFixture('clean.dart', 'void main() {}\n');
       for (final attempts in ['0', '-1', '11', 'abc']) {
-        expect(heal([path, '--attempts', attempts]), 2,
-            reason: 'attempts=$attempts');
+        expect(
+          heal([path, '--attempts', attempts]),
+          2,
+          reason: 'attempts=$attempts',
+        );
       }
     });
 
@@ -150,8 +156,9 @@ void main() {
       expect(heal(['--json', clean, '--rule', 'FG-BLOC-001']), isZero);
       final double = writeFixture('double.dart', _blocDoubleFixture);
       expect(
-          heal([double, '--rule', 'FG-BLOC-001', '--attempts', '1', '--json']),
-          1);
+        heal([double, '--rule', 'FG-BLOC-001', '--attempts', '1', '--json']),
+        1,
+      );
     });
 
     test('healResultJson carries the documented shape', () {

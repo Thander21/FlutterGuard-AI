@@ -12,7 +12,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 /// constructors. A config object there adds indirection without
 /// benefit, and its shape similarity is structural coincidence.
 bool isDataHolderClass(ClassDeclaration node) {
-  for (final member in node.members) {
+  for (final member in node.body.members) {
     if (member is ConstructorDeclaration) continue;
     if (member is FieldDeclaration) {
       if (!member.fields.isFinal && !member.fields.isConst) return false;

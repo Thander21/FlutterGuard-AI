@@ -26,13 +26,7 @@ class BigForm extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Container(
-                    child: Text('deep'),
-                  ),
-                ],
-              ),
+              Row(children: [Container(child: Text('deep'))]),
             ],
           ),
         ),

@@ -6,17 +6,19 @@ import 'package:test/test.dart';
 void main() {
   group('FG-MET-007 metric guard', () {
     test('flags over-deep trees and over-wide constructors', () {
-      final violations =
-          analyzeMetricFile('benchmark/vectors/TC-13_met.bad.dart');
-      expect(violations.map((v) => v.line), [7, 32]);
+      final violations = analyzeMetricFile(
+        'benchmark/vectors/TC-13_met.bad.dart',
+      );
+      expect(violations.map((v) => v.line), [7, 29]);
       expect(violations.first.message, contains('9 parameters'));
       expect(violations.first.message, contains('advisory'));
       expect(violations.last.message, contains('depth 6'));
     });
 
     test('spares shallow trees (zero false positives)', () {
-      final violations =
-          analyzeMetricFile('benchmark/vectors/TC-13_met.good.dart');
+      final violations = analyzeMetricFile(
+        'benchmark/vectors/TC-13_met.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

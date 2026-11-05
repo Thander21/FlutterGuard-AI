@@ -95,21 +95,34 @@ class MutationRunner {
     final source = sourceFile.readAsStringSync();
     final test = testFile.readAsStringSync();
     final siblingTest = _siblingImport(
-        test, testAbs, sourceAbs, _basenameOf(sourceAbs), testPath, sourcePath);
+      test,
+      testAbs,
+      sourceAbs,
+      _basenameOf(sourceAbs),
+      testPath,
+      sourcePath,
+    );
 
     final id = runId ?? _slug();
     final runDir = Directory('$sandboxRoot/$id');
     if (runDir.existsSync()) {
       throw ArgumentError('run id already exists: $id');
     }
-    final baselineTest = _stage(runDir, 'baseline', _basenameOf(sourceAbs),
-        source, _basenameOf(testAbs), siblingTest);
+    final baselineTest = _stage(
+      runDir,
+      'baseline',
+      _basenameOf(sourceAbs),
+      source,
+      _basenameOf(testAbs),
+      siblingTest,
+    );
 
     final baselineExit = await _runTest(baselineTest);
     if (baselineExit != 0) {
       throw StateError(
-          'test fails on unmutated code (exit $baselineExit) — refusing '
-          'to judge mutants; see ${runDir.path}/baseline/');
+        'test fails on unmutated code (exit $baselineExit) — refusing '
+        'to judge mutants; see ${runDir.path}/baseline/',
+      );
     }
 
     final results = <MutantResult>[];
@@ -117,18 +130,26 @@ class MutationRunner {
     for (var i = 0; i < mutants.length; i++) {
       final mutant = mutants[i];
       final dir = 'mutant_${i.toString().padLeft(2, '0')}';
-      final staged = _stage(runDir, dir, _basenameOf(sourceAbs),
-          applyMutant(source, mutant), _basenameOf(testAbs), siblingTest);
+      final staged = _stage(
+        runDir,
+        dir,
+        _basenameOf(sourceAbs),
+        applyMutant(source, mutant),
+        _basenameOf(testAbs),
+        siblingTest,
+      );
       final exit = await _runTest(staged);
-      results.add(MutantResult(
-        mutant: mutant,
-        status: exit == breakerTimeoutExit
-            ? MutantStatus.timeout
-            : exit == 0
-                ? MutantStatus.survived
-                : MutantStatus.killed,
-        exitCode: exit,
-      ));
+      results.add(
+        MutantResult(
+          mutant: mutant,
+          status: exit == breakerTimeoutExit
+              ? MutantStatus.timeout
+              : exit == 0
+              ? MutantStatus.survived
+              : MutantStatus.killed,
+          exitCode: exit,
+        ),
+      );
     }
     return MutationVerdict(
       passed: results.every((r) => r.status == MutantStatus.killed),
@@ -138,8 +159,14 @@ class MutationRunner {
 
   /// Copies one unmutated-or-mutated pair into [runDir]/[dir]; returns
   /// the staged test path.
-  String _stage(Directory runDir, String dir, String sourceName,
-      String sourceContent, String testName, String testContent) {
+  String _stage(
+    Directory runDir,
+    String dir,
+    String sourceName,
+    String sourceContent,
+    String testName,
+    String testContent,
+  ) {
     final target = Directory('${runDir.path}/$dir')
       ..createSync(recursive: true);
     File('${target.path}/$sourceName').writeAsStringSync(sourceContent);
@@ -153,8 +180,11 @@ class MutationRunner {
     final executable = Platform.resolvedExecutable.isNotEmpty
         ? Platform.resolvedExecutable
         : 'dart';
-    final result = await runWithBreaker(
-        executable, ['test', testPath, '--concurrency=1'], timeout);
+    final result = await runWithBreaker(executable, [
+      'test',
+      testPath,
+      '--concurrency=1',
+    ], timeout);
     return result.exitCode;
   }
 }
@@ -163,8 +193,14 @@ class MutationRunner {
 /// [sourceAbs] so the staged sibling copy keeps compiling: any layout
 /// in, `'<sourceBase>'` out. Throws [ArgumentError] when no relative
 /// import reaches the source.
-String _siblingImport(String testSource, String testAbs, String sourceAbs,
-    String sourceBase, String testPath, String sourcePath) {
+String _siblingImport(
+  String testSource,
+  String testAbs,
+  String sourceAbs,
+  String sourceBase,
+  String testPath,
+  String sourcePath,
+) {
   final unit = parseString(content: testSource, throwIfDiagnostics: false).unit;
   final collector = _ImportCollector();
   unit.accept(collector);
@@ -175,21 +211,27 @@ String _siblingImport(String testSource, String testAbs, String sourceAbs,
     if (raw == null || raw.startsWith('dart:') || raw.startsWith('package:')) {
       continue;
     }
-    final resolved =
-        Uri.directory(testDir).resolve(raw).normalizePath().toFilePath();
+    final resolved = Uri.directory(testDir)
+        .resolve(raw)
+        .normalizePath()
+        .toFilePath();
     if (_absoluteNormalized(resolved) == sourceAbs) {
       hits.add((offset: uri.offset, length: uri.length));
     }
   }
   if (hits.isEmpty) {
     throw ArgumentError(
-        'test does not relatively import the source: $testPath -> $sourcePath');
+      'test does not relatively import the source: $testPath -> $sourcePath',
+    );
   }
   hits.sort((a, b) => b.offset.compareTo(a.offset));
   var staged = testSource;
   for (final hit in hits) {
     staged = staged.replaceRange(
-        hit.offset, hit.offset + hit.length, "'$sourceBase'");
+      hit.offset,
+      hit.offset + hit.length,
+      "'$sourceBase'",
+    );
   }
   return staged;
 }
@@ -218,8 +260,12 @@ String _basenameOf(String absolutePath) =>
 
 String _dirOf(String absolutePath) {
   final file = Uri.file(absolutePath);
-  return file.replace(pathSegments: [
-    ...file.pathSegments.sublist(0, file.pathSegments.length - 1),
-    ''
-  ]).toFilePath();
+  return file
+      .replace(
+        pathSegments: [
+          ...file.pathSegments.sublist(0, file.pathSegments.length - 1),
+          '',
+        ],
+      )
+      .toFilePath();
 }

@@ -20,12 +20,15 @@ void main(List<String> args) {
     exit(2);
   }
   final root = File(Platform.script.toFilePath()).parent.parent.absolute.path;
-  final specs = Directory('$root/specs')
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.md') && !f.path.endsWith('_template.md'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final specs =
+      Directory('$root/specs')
+          .listSync()
+          .whereType<File>()
+          .where(
+            (f) => f.path.endsWith('.md') && !f.path.endsWith('_template.md'),
+          )
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
   if (specs.isEmpty) {
     stderr.writeln('error: no rule specs found under $root/specs');
     exit(1);
@@ -64,16 +67,19 @@ void main(List<String> args) {
 
 /// Rule ids whose embedded recipe differs (or is absent) in [committed].
 List<String> _drifted(
-    String committed, List<({String id, String spec, String recipe})> entries) {
+  String committed,
+  List<({String id, String spec, String recipe})> entries,
+) {
   return [
     for (final e in entries)
-      if (!committed.contains("'${e.id}': r'''${e.recipe}'''")) e.id
+      if (!committed.contains("'${e.id}': r'''${e.recipe}'''")) e.id,
   ];
 }
 
 String _render(List<({String id, String spec, String recipe})> entries) {
-  final recipes =
-      entries.map((e) => "  '${e.id}': r'''${e.recipe}''',").join('\n');
+  final recipes = entries
+      .map((e) => "  '${e.id}': r'''${e.recipe}''',")
+      .join('\n');
   final specs = entries.map((e) => "  '${e.id}': '${e.spec}',").join('\n');
   return '''// SYS-MCP-001: embedded §2 canonical recipes, keyed by rule id.
 //

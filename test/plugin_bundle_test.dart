@@ -12,7 +12,8 @@ const _hookScript = 'plugin/hooks/check_guard.dart';
 
 /// Canned `check --json` payload served by the stub CLI in fail mode
 /// (single line, `cmd`-safe: no `%`, no block-breaking parens).
-const _stubPayload = '{"findings":[{"rule_id":"FG-ST-001",'
+const _stubPayload =
+    '{"findings":[{"rule_id":"FG-ST-001",'
     '"spec":"specs/TS-08.md","recipe":"specs/TS-08.md #2",'
     '"file":"C:/stub/victim.dart","line":3,'
     '"message":"setState outside handler","severity":"error"}],'
@@ -24,8 +25,10 @@ Future<({int exitCode, String stdout, String stderr})> _runHook(
   List<String> args = const [],
   Map<String, String>? environment,
 }) async {
-  final process = await Process.start('dart', [_hookScript, ...args],
-      environment: environment);
+  final process = await Process.start('dart', [
+    _hookScript,
+    ...args,
+  ], environment: environment);
   process.stdin.write(stdinPayload);
   await process.stdin.close();
   final out = process.stdout.transform(utf8.decoder).join();
@@ -36,27 +39,31 @@ Future<({int exitCode, String stdout, String stderr})> _runHook(
 
 /// Minimal hook event for an edit of [path].
 String _event(String path) => jsonEncode({
-      'hook_event_name': 'PostToolUse',
-      'tool_name': 'Edit',
-      'tool_input': {'file_path': path},
-    });
+  'hook_event_name': 'PostToolUse',
+  'tool_name': 'Edit',
+  'tool_input': {'file_path': path},
+});
 
 /// Writes a stub `flutterguard` into [dir] (shell on POSIX, `.bat` on
 /// Windows). `FG_STUB=fail` prints canned violations + exit 1, any
 /// other value exits 0. Returns [dir] for PATH wiring.
 String _writeStub(Directory dir) {
   if (Platform.isWindows) {
-    File('${dir.path}/flutterguard.bat').writeAsStringSync('@echo off\r\n'
-        'if not "%FG_STUB%"=="fail" exit /b 0\r\n'
-        'echo $_stubPayload\r\n'
-        'exit /b 1\r\n');
+    File('${dir.path}/flutterguard.bat').writeAsStringSync(
+      '@echo off\r\n'
+      'if not "%FG_STUB%"=="fail" exit /b 0\r\n'
+      'echo $_stubPayload\r\n'
+      'exit /b 1\r\n',
+    );
     return dir.path;
   }
   final stub = File('${dir.path}/flutterguard')
-    ..writeAsStringSync("#!/bin/sh\n"
-        'if [ "\$FG_STUB" = "fail" ]; then echo \'$_stubPayload\'; '
-        'exit 1; fi\n'
-        'exit 0\n');
+    ..writeAsStringSync(
+      "#!/bin/sh\n"
+      'if [ "\$FG_STUB" = "fail" ]; then echo \'$_stubPayload\'; '
+      'exit 1; fi\n'
+      'exit 0\n',
+    );
   Process.runSync('chmod', ['+x', stub.path]);
   return dir.path;
 }
@@ -64,9 +71,9 @@ String _writeStub(Directory dir) {
 void main() {
   group('marketplace + manifest', () {
     test('marketplace catalogs the plugin at ./plugin', () {
-      final catalog =
-          jsonDecode(File('.claude-plugin/marketplace.json').readAsStringSync())
-              as Map;
+      final catalog = jsonDecode(
+        File('.claude-plugin/marketplace.json').readAsStringSync(),
+      ) as Map;
       expect(catalog['name'], 'flutterguard');
       final plugins = catalog['plugins'] as List;
       expect(plugins, hasLength(1));
@@ -77,9 +84,12 @@ void main() {
 
     test('plugin manifest mirrors pubspec and wires the MCP server', () {
       final manifest = jsonDecode(
-          File('plugin/.claude-plugin/plugin.json').readAsStringSync()) as Map;
-      final match = RegExp(r'^version:\s*(\S+)\s*$', multiLine: true)
-          .firstMatch(File('pubspec.yaml').readAsStringSync());
+        File('plugin/.claude-plugin/plugin.json').readAsStringSync(),
+      ) as Map;
+      final match = RegExp(
+        r'^version:\s*(\S+)\s*$',
+        multiLine: true,
+      ).firstMatch(File('pubspec.yaml').readAsStringSync());
       expect(match, isNotNull);
       expect(manifest['version'], match!.group(1));
       expect(manifest['name'], 'flutterguard');
@@ -87,8 +97,10 @@ void main() {
       for (final key in ['description', 'author', 'homepage', 'repository']) {
         expect(manifest[key], isNotNull, reason: key);
       }
-      expect(manifest['mcpServers']['flutterguard']['command'],
-          'flutterguard_mcp');
+      expect(
+        manifest['mcpServers']['flutterguard']['command'],
+        'flutterguard_mcp',
+      );
     });
   });
 
@@ -168,10 +180,13 @@ void main() {
       final empty = Directory('${scratch.path}/empty')..createSync();
       for (final args in [
         const ['--presence'],
-        const <String>[]
+        const <String>[],
       ]) {
-        final run = await _runHook(_event('/tmp/a.dart'),
-            args: args, environment: {'PATH': empty.path});
+        final run = await _runHook(
+          _event('/tmp/a.dart'),
+          args: args,
+          environment: {'PATH': empty.path},
+        );
         expect(run.exitCode, 2, reason: '$args');
         expect(run.stderr, contains('dart pub global activate'));
       }
@@ -179,9 +194,11 @@ void main() {
 
     test('presence mode never runs the gate', () async {
       final stubDir = _writeStub(scratch);
-      final run = await _runHook(_event('/tmp/a.dart'),
-          args: const ['--presence'],
-          environment: {'PATH': stubDir, 'FG_STUB': 'fail'});
+      final run = await _runHook(
+        _event('/tmp/a.dart'),
+        args: const ['--presence'],
+        environment: {'PATH': stubDir, 'FG_STUB': 'fail'},
+      );
       expect(run.exitCode, 0);
       expect(run.stderr, isEmpty);
     });
@@ -189,8 +206,10 @@ void main() {
     test('clean verdict exits 0', () async {
       final stubDir = _writeStub(scratch);
       final target = File(_hookScript).absolute.path;
-      final run = await _runHook(_event(target),
-          environment: {'PATH': stubDir, 'FG_STUB': 'pass'});
+      final run = await _runHook(
+        _event(target),
+        environment: {'PATH': stubDir, 'FG_STUB': 'pass'},
+      );
       expect(run.exitCode, 0);
       expect(run.stderr, isEmpty);
     });
@@ -198,8 +217,10 @@ void main() {
     test('violations exit 2 with findings plus recipe pointers', () async {
       final stubDir = _writeStub(scratch);
       final target = File(_hookScript).absolute.path;
-      final run = await _runHook(_event(target),
-          environment: {'PATH': stubDir, 'FG_STUB': 'fail'});
+      final run = await _runHook(
+        _event(target),
+        environment: {'PATH': stubDir, 'FG_STUB': 'fail'},
+      );
       expect(run.exitCode, 2);
       expect(run.stderr, contains('FG-ST-001'));
       expect(run.stderr, contains('fix:'));
@@ -208,8 +229,10 @@ void main() {
 
     test('missing file exits 0 (nothing to verify)', () async {
       final stubDir = _writeStub(scratch);
-      final run = await _runHook(_event('${scratch.path}/gone.dart'),
-          environment: {'PATH': stubDir, 'FG_STUB': 'fail'});
+      final run = await _runHook(
+        _event('${scratch.path}/gone.dart'),
+        environment: {'PATH': stubDir, 'FG_STUB': 'fail'},
+      );
       expect(run.exitCode, 0);
     });
   });
@@ -227,8 +250,9 @@ void main() {
 
     test('plugin/ is self-clean under check', () {
       final result = checkPath('plugin');
-      final errors =
-          result.findings.where((f) => f.severity == 'error').toList();
+      final errors = result.findings
+          .where((f) => f.severity == 'error')
+          .toList();
       expect(errors, isEmpty, reason: 'shipped hook must be self-clean');
     });
 

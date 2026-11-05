@@ -8,15 +8,17 @@ import 'package:test/test.dart';
 void main() {
   group('FG-FMT-016 format guard', () {
     test('flags the .bad vector at line 1 (whole-file verdict)', () {
-      final violations =
-          analyzeFormatFile('benchmark/vectors/TC-16_fmt.bad.dart');
+      final violations = analyzeFormatFile(
+        'benchmark/vectors/TC-16_fmt.bad.dart',
+      );
       expect(violations.map((v) => v.line), [1]);
       expect(violations.first.message, contains('dart format'));
     });
 
     test('spares the .good vector (zero false positives)', () {
-      final violations =
-          analyzeFormatFile('benchmark/vectors/TC-16_fmt.good.dart');
+      final violations = analyzeFormatFile(
+        'benchmark/vectors/TC-16_fmt.good.dart',
+      );
       expect(violations, isEmpty);
     });
 
@@ -24,9 +26,11 @@ void main() {
       final root = Directory.systemTemp.createTempSync('fmt_test.');
       try {
         final clean = File('${root.path}/clean.dart')
-          ..writeAsStringSync(File('benchmark/vectors/TC-16_fmt.good.dart')
-              .readAsStringSync()
-              .replaceAll('\n', '\r\n'));
+          ..writeAsStringSync(
+            File('benchmark/vectors/TC-16_fmt.good.dart')
+                .readAsStringSync()
+                .replaceAll('\n', '\r\n'),
+          );
         expect(analyzeFormatFile(clean.path), isEmpty);
       } finally {
         root.deleteSync(recursive: true);
@@ -58,8 +62,10 @@ void main() {
     });
 
     test('throws on missing files (never silently clean)', () {
-      expect(() => analyzeFormatFile('does/not/exist.dart'),
-          throwsA(isA<FileSystemException>()));
+      expect(
+        () => analyzeFormatFile('does/not/exist.dart'),
+        throwsA(isA<FileSystemException>()),
+      );
     });
 
     test('batch equals per-file CLI verdicts (mapping test)', () {
@@ -75,14 +81,18 @@ void main() {
           ..writeAsStringSync('void main() {}\r\n');
         final files = [clean.path, dirty.path, broken.path, crlf.path];
 
-        int cliExit(String path) => Process.runSync(Platform.resolvedExecutable,
-                ['format', '--output=none', '--set-exit-if-changed', path])
-            .exitCode;
+        int cliExit(String path) => Process.runSync(
+          Platform.resolvedExecutable,
+          ['format', '--output=none', '--set-exit-if-changed', path],
+        ).exitCode;
         expect(cliExit(clean.path), 0);
         expect(cliExit(dirty.path), 1);
         expect(cliExit(broken.path), 65);
-        expect(cliExit(crlf.path), 0,
-            reason: 'CLI and gate agree: endings never attribute');
+        expect(
+          cliExit(crlf.path),
+          0,
+          reason: 'CLI and gate agree: endings never attribute',
+        );
 
         final batched = analyzeFormatBatch(files);
         expect(batched[clean.path] ?? [], isEmpty);
@@ -91,9 +101,11 @@ void main() {
         expect(batched[crlf.path] ?? [], isEmpty);
 
         for (final file in files) {
-          expect(batched[file]?.map((v) => v.line),
-              analyzeFormatFile(file).map((v) => v.line),
-              reason: 'batch/single equivalence for $file');
+          expect(
+            batched[file]?.map((v) => v.line),
+            analyzeFormatFile(file).map((v) => v.line),
+            reason: 'batch/single equivalence for $file',
+          );
         }
       } finally {
         root.deleteSync(recursive: true);

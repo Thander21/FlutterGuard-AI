@@ -17,11 +17,7 @@ import 'rule_violation.dart';
 const asyncBuildSocketTypes = <String>{'HttpClient', 'Socket', 'WebSocket'};
 
 /// Future chaining methods flagged on any target in build scope.
-const asyncBuildChainMethods = <String>{
-  'then',
-  'catchError',
-  'whenComplete',
-};
+const asyncBuildChainMethods = <String>{'then', 'catchError', 'whenComplete'};
 
 /// A single FG-BUILD-014 violation.
 class AsyncBuildViolation implements RuleViolation {
@@ -96,7 +92,7 @@ class AsyncBuildGuard extends RecursiveAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     if (_inDirectBuildScope) {
-      final typeName = node.constructorName.type.name2.lexeme;
+      final typeName = node.constructorName.type.name.lexeme;
       final ctorName = node.constructorName.name?.name;
       final trigger = _creationTrigger(typeName, ctorName);
       if (trigger != null) _flag(node, trigger);
@@ -160,11 +156,14 @@ class AsyncBuildGuard extends RecursiveAstVisitor<void> {
   }
 
   void _flag(AstNode node, String trigger) {
-    violations.add(AsyncBuildViolation(
-      line: _lineInfo.getLocation(node.offset).lineNumber,
-      message: '$trigger in build() schedules work per frame; '
-          'hoist to initState, a handler, or a FutureBuilder',
-    ));
+    violations.add(
+      AsyncBuildViolation(
+        line: _lineInfo.getLocation(node.offset).lineNumber,
+        message:
+            '$trigger in build() schedules work per frame; '
+            'hoist to initState, a handler, or a FutureBuilder',
+      ),
+    );
   }
 }
 
@@ -182,4 +181,4 @@ bool _isMeasured(AstNode scope) {
 
 /// True for a `Widget` return type (exact simple name).
 bool _isWidgetType(TypeAnnotation? type) =>
-    type is NamedType && type.name2.lexeme == 'Widget';
+    type is NamedType && type.name.lexeme == 'Widget';

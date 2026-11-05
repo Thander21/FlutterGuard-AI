@@ -33,9 +33,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Column(
       children: [
         TextField(controller: _searchController),
-        Expanded(
-          child: ListView(controller: _scrollController),
-        ),
+        Expanded(child: ListView(controller: _scrollController)),
       ],
     );
   }

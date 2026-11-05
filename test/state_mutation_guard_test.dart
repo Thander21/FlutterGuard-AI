@@ -6,8 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('FG-ST-005 state mutation guard', () {
     test('flags in-place mutations in Notifier and Cubit', () {
-      final violations =
-          analyzeStateMutationFile('benchmark/vectors/TC-08_st.bad.dart');
+      final violations = analyzeStateMutationFile(
+        'benchmark/vectors/TC-08_st.bad.dart',
+      );
       expect(violations.map((v) => v.line), [11, 25]);
       expect(violations.first.message, contains("'add'"));
       expect(violations.first.message, contains('in place'));
@@ -15,8 +16,9 @@ void main() {
     });
 
     test('spares replaced state (zero false positives)', () {
-      final violations =
-          analyzeStateMutationFile('benchmark/vectors/TC-08_st.good.dart');
+      final violations = analyzeStateMutationFile(
+        'benchmark/vectors/TC-08_st.good.dart',
+      );
       expect(violations, isEmpty);
     });
 

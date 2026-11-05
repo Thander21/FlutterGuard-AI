@@ -16,15 +16,13 @@ import 'package:test/test.dart';
 /// labeled TPs remain.
 const _ratifiedMetFlags = {
   'benchmark/vectors/TC-13_met.bad.dart:7',
-  'benchmark/vectors/TC-13_met.bad.dart:32',
+  'benchmark/vectors/TC-13_met.bad.dart:29',
 };
 
 /// Ratified unparseable-skip set (SYS-CAL-001 §2): corpus files the
 /// MET scan skips (they cannot be measured). Exactly one by design:
 /// TS-17's golden negative.
-const _ratifiedSkipped = {
-  'benchmark/vectors/TC-17_syn.bad.dart',
-};
+const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 
 /// Ratified DRY pairs over `lib/` (SYS-CAL-001 §2):
 /// `fileA:lineA~fileB:lineB` in canonical order. The 3 TPs were
@@ -34,12 +32,13 @@ const _ratifiedSkipped = {
 /// (guard idiom ×2, thin wrappers).
 /// REL-001 R3: +1 procedural-flow twin (moved `init()`); 4 pinned.
 /// Wave 2: +1 procedural-flow twin (new `heal()`); 5 pinned.
+/// SYS-CAL-002 P0-1: analyzer-14 token change eliminated the
+/// metric~widget guard-idiom pair; reformat shifted 3 keys; 4 pinned.
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
-  'lib/src/ast/metric_guard.dart:82~lib/src/ast/widget_immutable_guard.dart:74',
-  'lib/src/cli/heal.dart:43~lib/src/cli/init.dart:59',
-  'lib/src/cli/init.dart:59~lib/src/coverage/runner.dart:70',
-  'lib/src/mcp/tools.dart:189~lib/src/mcp/tools.dart:210',
+  'lib/src/cli/heal.dart:43~lib/src/cli/init.dart:60',
+  'lib/src/cli/init.dart:60~lib/src/coverage/runner.dart:70',
+  'lib/src/mcp/tools.dart:196~lib/src/mcp/tools.dart:218',
 };
 
 const _ratifiedViewportPairs = {
@@ -70,11 +69,18 @@ void main() {
           skipped.add(file);
         }
       }
-      expect(skipped, _ratifiedSkipped,
-          reason: 'unparseable corpus files must stay exactly the designed one'
-              ' — re-calibrate per SYS-CAL-001 §5');
-      expect(flags, _ratifiedMetFlags,
-          reason: 'MET numbers moved — re-calibrate per SYS-CAL-001 §5');
+      expect(
+        skipped,
+        _ratifiedSkipped,
+        reason:
+            'unparseable corpus files must stay exactly the designed one'
+            ' — re-calibrate per SYS-CAL-001 §5',
+      );
+      expect(
+        flags,
+        _ratifiedMetFlags,
+        reason: 'MET numbers moved — re-calibrate per SYS-CAL-001 §5',
+      );
     });
 
     test('DRY pair membership is exactly the ratified set', () {
@@ -83,8 +89,11 @@ void main() {
 
       final lib = findDuplication('lib');
       expect(lib.errors, isEmpty);
-      expect({for (final p in lib.pairs) keyOf(p)}, _ratifiedLibPairs,
-          reason: 'DRY/lib numbers moved — re-calibrate per SYS-CAL-001 §5');
+      expect(
+        {for (final p in lib.pairs) keyOf(p)},
+        _ratifiedLibPairs,
+        reason: 'DRY/lib numbers moved — re-calibrate per SYS-CAL-001 §5',
+      );
 
       for (final root in ['bin', 'tool']) {
         final verdict = findDuplication(root);
@@ -94,9 +103,11 @@ void main() {
 
       final viewport = findDuplication('viewport');
       expect(viewport.errors, isEmpty);
-      expect({for (final p in viewport.pairs) keyOf(p)}, _ratifiedViewportPairs,
-          reason:
-              'DRY/viewport numbers moved — re-calibrate per SYS-CAL-001 §5');
+      expect(
+        {for (final p in viewport.pairs) keyOf(p)},
+        _ratifiedViewportPairs,
+        reason: 'DRY/viewport numbers moved — re-calibrate per SYS-CAL-001 §5',
+      );
     });
   });
 }

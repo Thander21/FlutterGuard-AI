@@ -25,7 +25,8 @@ gates:
 /// Marker guarding the generated pre-commit hook (SYS-CLI-001b).
 const _hookMarker = '# FlutterGuard pre-commit hook (SYS-CLI-001b)';
 
-const _hookScript = '''#!/bin/sh
+const _hookScript =
+    '''#!/bin/sh
 $_hookMarker: blocks commits with violations.
 # Override the CLI checkout for tests and custom installs:
 # FLUTTERGUARD_ROOT="/path/to/flutterguard-ai" (quoted: spaces safe).
@@ -61,10 +62,16 @@ Usage: dart run bin/flutterguard.dart init [--scaffold] [--agents] [--mcp] [--he
 int init(List<String> args, {String root = '.'}) {
   final parser = ArgParser()
     ..addFlag('scaffold', negatable: false, help: 'Create .flutterguard/.')
-    ..addFlag('agents',
-        negatable: false, help: 'Append the mandate to AGENTS.md.')
-    ..addFlag('mcp',
-        negatable: false, help: 'Register the MCP server in IDE clients.')
+    ..addFlag(
+      'agents',
+      negatable: false,
+      help: 'Append the mandate to AGENTS.md.',
+    )
+    ..addFlag(
+      'mcp',
+      negatable: false,
+      help: 'Register the MCP server in IDE clients.',
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -121,7 +128,8 @@ int init(List<String> args, {String root = '.'}) {
       stdout.writeln('exists: ${agents.path} (mandate already present)');
     } else {
       agents.writeAsStringSync(
-          prior.isEmpty ? _agentsMandate : '$prior\n$_agentsMandate');
+        prior.isEmpty ? _agentsMandate : '$prior\n$_agentsMandate',
+      );
       stdout.writeln('wrote: ${agents.path}');
     }
   } else {
@@ -137,12 +145,16 @@ int init(List<String> args, {String root = '.'}) {
       failed = true;
     }
     if (!resolvesOnPath(mcpServerCommand)) {
-      stdout.writeln('warning: $mcpServerCommand is not on PATH — '
-          'registration lands once the package is installed '
-          '(dart pub global activate).');
+      stdout.writeln(
+        'warning: $mcpServerCommand is not on PATH — '
+        'registration lands once the package is installed '
+        '(dart pub global activate).',
+      );
     }
-    stdout.writeln('global-client snippet (manual install, never '
-        'written outside the root):');
+    stdout.writeln(
+      'global-client snippet (manual install, never '
+      'written outside the root):',
+    );
     stdout.writeln(mcpGlobalSnippet);
   }
   return failed ? 1 : 0;

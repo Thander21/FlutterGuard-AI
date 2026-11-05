@@ -51,8 +51,10 @@ bool no() => false;
     test('rejects a mutant from another source', () {
       const source = 'bool gt(int a, int b) => a > b;\n';
       final mutant = findMutants(source).single;
-      expect(() => applyMutant('bool other() => true;\n', mutant),
-          throwsStateError);
+      expect(
+        () => applyMutant('bool other() => true;\n', mutant),
+        throwsStateError,
+      );
     });
   });
 
@@ -93,8 +95,10 @@ bool no() => false;
     }
 
     test('canary: complacent test survives the mutant (FAIL)', () async {
-      final pair =
-          writePair('complacent', 'bool isAboveZero(int n) => n > 0;\n', '''
+      final pair = writePair(
+        'complacent',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
 import 'package:test/test.dart';
 import '../lib/target.dart';
 void main() {
@@ -102,9 +106,13 @@ void main() {
     expect(isAboveZero, isNotNull);
   });
 }
-''');
-      final verdict = await MutationRunner()
-          .run(sourcePath: pair[0], testPath: pair[1], runId: nextId('compl'));
+''',
+      );
+      final verdict = await MutationRunner().run(
+        sourcePath: pair[0],
+        testPath: pair[1],
+        runId: nextId('compl'),
+      );
       expect(verdict.passed, isFalse);
       expect(verdict.results, hasLength(1));
       expect(verdict.results.single.status, MutantStatus.survived);
@@ -112,8 +120,10 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 60)));
 
     test('honest test kills the mutant (PASS)', () async {
-      final pair =
-          writePair('honest', 'bool isAboveZero(int n) => n > 0;\n', '''
+      final pair = writePair(
+        'honest',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
 import 'package:test/test.dart';
 import '../lib/target.dart';
 void main() {
@@ -122,9 +132,13 @@ void main() {
     expect(isAboveZero(-1), isFalse);
   });
 }
-''');
-      final verdict = await MutationRunner()
-          .run(sourcePath: pair[0], testPath: pair[1], runId: nextId('honest'));
+''',
+      );
+      final verdict = await MutationRunner().run(
+        sourcePath: pair[0],
+        testPath: pair[1],
+        runId: nextId('honest'),
+      );
       expect(verdict.passed, isTrue);
       expect(verdict.results.single.status, MutantStatus.killed);
       expect(verdict.results.single.exitCode, isNot(0));
@@ -140,15 +154,20 @@ void main() {
   });
 }
 ''');
-      final verdict = await MutationRunner()
-          .run(sourcePath: pair[0], testPath: pair[1], runId: nextId('clean'));
+      final verdict = await MutationRunner().run(
+        sourcePath: pair[0],
+        testPath: pair[1],
+        runId: nextId('clean'),
+      );
       expect(verdict.passed, isTrue);
       expect(verdict.results, isEmpty);
     }, timeout: const Timeout(Duration(seconds: 60)));
 
     test('breaker kills a hanging mutant run (timeout FAIL)', () async {
-      final pair =
-          writePair('hang', 'bool flag = true;\nbool getFlag() => flag;\n', '''
+      final pair = writePair(
+        'hang',
+        'bool flag = true;\nbool getFlag() => flag;\n',
+        '''
 import 'dart:async';
 import 'package:test/test.dart';
 import '../lib/target.dart';
@@ -159,9 +178,13 @@ void main() {
     }
   });
 }
-''');
-      final verdict = await MutationRunner()
-          .run(sourcePath: pair[0], testPath: pair[1], runId: nextId('hang'));
+''',
+      );
+      final verdict = await MutationRunner().run(
+        sourcePath: pair[0],
+        testPath: pair[1],
+        runId: nextId('hang'),
+      );
       expect(verdict.passed, isFalse);
       expect(verdict.results.single.status, MutantStatus.timeout);
       expect(verdict.results.single.exitCode, -1);
@@ -178,9 +201,13 @@ void main() {
 }
 ''');
       await expectLater(
-          MutationRunner().run(
-              sourcePath: pair[0], testPath: pair[1], runId: nextId('red')),
-          throwsStateError);
+        MutationRunner().run(
+          sourcePath: pair[0],
+          testPath: pair[1],
+          runId: nextId('red'),
+        ),
+        throwsStateError,
+      );
     }, timeout: const Timeout(Duration(seconds: 60)));
 
     test('rejects a test that does not relatively import the source', () async {
@@ -198,26 +225,32 @@ void main() {
 }
 ''');
       await expectLater(
-          MutationRunner().run(
-              sourcePath: source.path,
-              testPath: test.path,
-              runId: nextId('orphan')),
-          throwsArgumentError);
+        MutationRunner().run(
+          sourcePath: source.path,
+          testPath: test.path,
+          runId: nextId('orphan'),
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('rejects missing files, identical paths, and bad timeouts', () async {
       final runner = MutationRunner();
       await expectLater(
-          runner.run(sourcePath: 'nope.dart', testPath: 'nope_test.dart'),
-          throwsArgumentError);
+        runner.run(sourcePath: 'nope.dart', testPath: 'nope_test.dart'),
+        throwsArgumentError,
+      );
       await expectLater(
-          MutationRunner(timeout: Duration.zero)
-              .run(sourcePath: 'a.dart', testPath: 'b.dart'),
-          throwsArgumentError);
+        MutationRunner(timeout: Duration.zero)
+            .run(sourcePath: 'a.dart', testPath: 'b.dart'),
+        throwsArgumentError,
+      );
       final same = File('${inputs.path}/same.dart')
         ..writeAsStringSync('int x = 1;\n');
-      await expectLater(runner.run(sourcePath: same.path, testPath: same.path),
-          throwsArgumentError);
+      await expectLater(
+        runner.run(sourcePath: same.path, testPath: same.path),
+        throwsArgumentError,
+      );
     });
   });
 }

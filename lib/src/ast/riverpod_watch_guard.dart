@@ -52,7 +52,7 @@ class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   @override
   void visitFunctionExpression(FunctionExpression node) {
     final parent = node.parent;
-    final isCallback = parent is ArgumentList || parent is NamedExpression;
+    final isCallback = parent is ArgumentList || parent is NamedArgument;
     if (isCallback) _callbackDepth++;
     super.visitFunctionExpression(node);
     if (isCallback) _callbackDepth--;
@@ -62,10 +62,12 @@ class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   void visitMethodInvocation(MethodInvocation node) {
     if (_callbackDepth > 0 && _isRefWatch(node)) {
       final line = _lineInfo.getLocation(node.offset).lineNumber;
-      violations.add(RiverpodWatchViolation(
-        line: line,
-        message: 'ref.watch() inside event callback; use ref.read() instead',
-      ));
+      violations.add(
+        RiverpodWatchViolation(
+          line: line,
+          message: 'ref.watch() inside event callback; use ref.read() instead',
+        ),
+      );
     }
     super.visitMethodInvocation(node);
   }

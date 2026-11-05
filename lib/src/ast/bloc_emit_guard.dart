@@ -53,8 +53,11 @@ class BlocEmitGuard extends RecursiveAstVisitor<void> {
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     // toSource-based extraction avoids version-sensitive NamedType APIs.
-    final superclass =
-        node.extendsClause?.superclass.toSource().split('<').first.trim();
+    final superclass = node.extendsClause?.superclass
+        .toSource()
+        .split('<')
+        .first
+        .trim();
     final wasInBloc = _inBlocClass;
     if (superclass == 'Cubit' || superclass == 'Bloc') {
       _inBlocClass = true;
@@ -81,10 +84,12 @@ class BlocEmitGuard extends RecursiveAstVisitor<void> {
       for (final emit in _emitCalls(statement)) {
         if (armed) {
           final line = _lineInfo.getLocation(emit.offset).lineNumber;
-          violations.add(BlocEmitViolation(
-            line: line,
-            message: 'emit() called after async gap without isClosed check',
-          ));
+          violations.add(
+            BlocEmitViolation(
+              line: line,
+              message: 'emit() called after async gap without isClosed check',
+            ),
+          );
         }
       }
     }

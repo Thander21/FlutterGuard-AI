@@ -65,14 +65,9 @@ class C {
 }
 ''';
       final byName = {
-        for (final m in analyzeComplexity(source)) m.name: m.complexity
+        for (final m in analyzeComplexity(source)) m.name: m.complexity,
       };
-      expect(byName, {
-        'build': 3,
-        'sum': 2,
-        'C.named': 2,
-        'C.g': 1,
-      });
+      expect(byName, {'build': 3, 'sum': 2, 'C.named': 2, 'C.g': 1});
     });
 
     test('skips bodiless declarations, reports exact ranges', () {
@@ -115,12 +110,18 @@ end_of_record
 
     test('rejects malformed input', () {
       expect(() => parseLcov('DA:1,1\nend_of_record'), throwsFormatException);
-      expect(() => parseLcov('SF:/a.dart\nDA:1\nend_of_record'),
-          throwsFormatException);
-      expect(() => parseLcov('SF:/a.dart\nDA:x,1\nend_of_record'),
-          throwsFormatException);
-      expect(() => parseLcov('SF:/a.dart\nDA:0,1\nend_of_record'),
-          throwsFormatException);
+      expect(
+        () => parseLcov('SF:/a.dart\nDA:1\nend_of_record'),
+        throwsFormatException,
+      );
+      expect(
+        () => parseLcov('SF:/a.dart\nDA:x,1\nend_of_record'),
+        throwsFormatException,
+      );
+      expect(
+        () => parseLcov('SF:/a.dart\nDA:0,1\nend_of_record'),
+        throwsFormatException,
+      );
       expect(() => parseLcov('SF:\nend_of_record'), throwsFormatException);
     });
   });
@@ -128,25 +129,50 @@ end_of_record
   group('MethodScore', () {
     test('CRAP formula and budget flag', () {
       const half = MethodScore(
-          name: 'm', file: 'f', line: 1, complexity: 2, coverage: 0.5);
+        name: 'm',
+        file: 'f',
+        line: 1,
+        complexity: 2,
+        coverage: 0.5,
+      );
       expect(half.crap, 2.5);
       expect(half.overBudget, isFalse);
       const risky = MethodScore(
-          name: 'm', file: 'f', line: 1, complexity: 5, coverage: 0.0);
+        name: 'm',
+        file: 'f',
+        line: 1,
+        complexity: 5,
+        coverage: 0.0,
+      );
       expect(risky.crap, 30.0);
       expect(risky.overBudget, isTrue);
       const clean = MethodScore(
-          name: 'm', file: 'f', line: 1, complexity: 1, coverage: 1.0);
+        name: 'm',
+        file: 'f',
+        line: 1,
+        complexity: 1,
+        coverage: 1.0,
+      );
       expect(clean.crap, 1.0);
     });
 
     test('full coverage absolves complexity (CC floor decision)', () {
       const absolved = MethodScore(
-          name: 'm', file: 'f', line: 1, complexity: 12, coverage: 1.0);
+        name: 'm',
+        file: 'f',
+        line: 1,
+        complexity: 12,
+        coverage: 1.0,
+      );
       expect(absolved.crap, 12.0);
       expect(absolved.overBudget, isFalse);
       const exposed = MethodScore(
-          name: 'm', file: 'f', line: 1, complexity: 12, coverage: 0.9);
+        name: 'm',
+        file: 'f',
+        line: 1,
+        complexity: 12,
+        coverage: 0.9,
+      );
       expect(exposed.crap, closeTo(12.144, 1e-9));
       expect(exposed.overBudget, isTrue);
     });
@@ -177,27 +203,31 @@ end_of_record
 
     test('red suite refuses to score', () async {
       await expectLater(
-          CoverageRunner().run(
-            testPath: 'samples/coverage/red_test.dart',
-            reportOn: ['samples/coverage/sample.dart'],
-          ),
-          throwsStateError);
+        CoverageRunner().run(
+          testPath: 'samples/coverage/red_test.dart',
+          reportOn: ['samples/coverage/sample.dart'],
+        ),
+        throwsStateError,
+      );
     }, timeout: const Timeout(Duration(seconds: 120)));
 
     test('rejects bad inputs without running', () async {
       final runner = CoverageRunner();
       await expectLater(
-          runner.run(testPath: 'nope.dart', reportOn: ['samples/coverage']),
-          throwsArgumentError);
+        runner.run(testPath: 'nope.dart', reportOn: ['samples/coverage']),
+        throwsArgumentError,
+      );
       await expectLater(
-          runner
-              .run(testPath: 'samples/coverage/sample_test.dart', reportOn: []),
-          throwsArgumentError);
+        runner.run(testPath: 'samples/coverage/sample_test.dart', reportOn: []),
+        throwsArgumentError,
+      );
       await expectLater(
-          runner.run(
-              testPath: 'samples/coverage/sample_test.dart',
-              reportOn: ['no/such/entry']),
-          throwsArgumentError);
+        runner.run(
+          testPath: 'samples/coverage/sample_test.dart',
+          reportOn: ['no/such/entry'],
+        ),
+        throwsArgumentError,
+      );
     });
   });
 }

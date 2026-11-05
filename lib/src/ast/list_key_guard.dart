@@ -104,7 +104,8 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    final strict = _simpleName(node.constructorName.type.toSource()) ==
+    final strict =
+        _simpleName(node.constructorName.type.toSource()) ==
         'ReorderableListView';
     _checkItemBuilder(node.argumentList, strict: strict);
     if (strict) {
@@ -131,12 +132,14 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
   /// Scans an `itemBuilder:` callback (strict under ReorderableListView).
   void _checkItemBuilder(ArgumentList arguments, {required bool strict}) {
     for (final argument in arguments.arguments) {
-      if (argument is NamedExpression &&
-          argument.name.label.name == 'itemBuilder' &&
-          argument.expression is FunctionExpression) {
+      if (argument is NamedArgument &&
+          argument.name.lexeme == 'itemBuilder' &&
+          argument.argumentExpression is FunctionExpression) {
         _scanCallback(
-            argument.expression as FunctionExpression, 'via itemBuilder',
-            allowlist: !strict);
+          argument.argumentExpression as FunctionExpression,
+          'via itemBuilder',
+          allowlist: !strict,
+        );
       }
     }
   }
@@ -144,9 +147,8 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
   /// Walks `children:` strictly (every Reorderable child needs a key).
   void _checkReorderableChildren(ArgumentList arguments) {
     for (final argument in arguments.arguments) {
-      if (argument is NamedExpression &&
-          argument.name.label.name == 'children') {
-        _scanCollectionValue(argument.expression);
+      if (argument is NamedArgument && argument.name.lexeme == 'children') {
+        _scanCollectionValue(argument.argumentExpression);
       }
     }
   }
@@ -183,13 +185,17 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
     if (info == null) return;
     if (_hasKey(info.arguments)) return;
     _flag(
-        child.offset,
-        "'${info.type}' built in ReorderableListView "
-        'has no key; add a key (ValueKey(item.id))');
+      child.offset,
+      "'${info.type}' built in ReorderableListView "
+      'has no key; add a key (ValueKey(item.id))',
+    );
   }
 
-  void _scanCallback(FunctionExpression callback, String via,
-      {required bool allowlist}) {
+  void _scanCallback(
+    FunctionExpression callback,
+    String via, {
+    required bool allowlist,
+  }) {
     final collector = _RootCollector();
     callback.body.accept(collector);
     for (final root in collector.roots) {
@@ -197,16 +203,20 @@ class ListKeyGuard extends RecursiveAstVisitor<void> {
       if (info == null) continue;
       if (allowlist && _keylessAllowlist.contains(info.type)) continue;
       if (_hasKey(info.arguments)) continue;
-      _flag(root.offset,
-          "'${info.type}' built $via has no key; add a key (ValueKey(item.id))");
+      _flag(
+        root.offset,
+        "'${info.type}' built $via has no key; add a key (ValueKey(item.id))",
+      );
     }
   }
 
   void _flag(int offset, String message) {
-    violations.add(ListKeyViolation(
-      line: _lineInfo.getLocation(offset).lineNumber,
-      message: message,
-    ));
+    violations.add(
+      ListKeyViolation(
+        line: _lineInfo.getLocation(offset).lineNumber,
+        message: message,
+      ),
+    );
   }
 }
 
@@ -236,7 +246,9 @@ class _RootCollector extends RecursiveAstVisitor<void> {
 _Creation? _creationInfo(Expression node) {
   if (node is InstanceCreationExpression) {
     return _Creation(
-        _simpleName(node.constructorName.type.toSource()), node.argumentList);
+      _simpleName(node.constructorName.type.toSource()),
+      node.argumentList,
+    );
   }
   if (node is MethodInvocation) {
     if (node.target == null) {
@@ -277,9 +289,9 @@ bool _isReorderableCall(MethodInvocation node) {
 /// True for an explicit non-null `key:` argument.
 bool _hasKey(ArgumentList arguments) {
   for (final argument in arguments.arguments) {
-    if (argument is NamedExpression &&
-        argument.name.label.name == 'key' &&
-        argument.expression is! NullLiteral) {
+    if (argument is NamedArgument &&
+        argument.name.lexeme == 'key' &&
+        argument.argumentExpression is! NullLiteral) {
       return true;
     }
   }
@@ -322,9 +334,9 @@ bool _flowsIntoChildren(MethodInvocation node) {
       current = parent;
       continue;
     }
-    return parent is NamedExpression &&
-        parent.name.label.name == 'children' &&
-        parent.expression == current;
+    return parent is NamedArgument &&
+        parent.name.lexeme == 'children' &&
+        parent.argumentExpression == current;
   }
 }
 

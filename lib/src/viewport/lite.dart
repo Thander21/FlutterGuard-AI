@@ -11,7 +11,8 @@ import '../util.dart';
 const tier1LiteRules = <String>['FG-LAY-004'];
 
 /// Degraded-mode note: lite PASS never claims rendered-clean.
-const tier1LiteNote = 'Tier-1-lite: AST stand-in; rendered overflow '
+const tier1LiteNote =
+    'Tier-1-lite: AST stand-in; rendered overflow '
     'needs the full harness (Flutter SDK).';
 
 /// Result of [runTier1Lite]: AST viewport findings plus the
@@ -37,8 +38,11 @@ class Tier1LiteResult {
 /// True when a `flutter` executable resolves on PATH. [pathEnv]
 /// injects a fake PATH for tests; the ambient machine is never
 /// asserted on. Historical candidate set kept (`.sh` included).
-bool isFlutterSdkAvailable({String? pathEnv}) => resolvesOnPath('flutter',
-    pathEnv: pathEnv, extensions: const ['', '.exe', '.bat', '.sh']);
+bool isFlutterSdkAvailable({String? pathEnv}) => resolvesOnPath(
+  'flutter',
+  pathEnv: pathEnv,
+  extensions: const ['', '.exe', '.bat', '.sh'],
+);
 
 /// Runs the Tier-1-lite vocabulary over [target] (one `.dart` file or
 /// a directory scanned recursively, sorted).

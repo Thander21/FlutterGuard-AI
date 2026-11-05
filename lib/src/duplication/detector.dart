@@ -153,13 +153,17 @@ DuplicationVerdict findDuplication(String target) {
   for (final file in files) {
     try {
       final source = File(file).readAsStringSync();
-      final result =
-          parseString(content: source, path: file, throwIfDiagnostics: false);
+      final result = parseString(
+        content: source,
+        path: file,
+        throwIfDiagnostics: false,
+      );
       final collector = _UnitCollector(result.lineInfo);
       result.unit.accept(collector);
       for (final unit in collector.units) {
         units.add(
-            _Unit(unit: unit.unit, file: file, isClassLike: unit.isClassLike));
+          _Unit(unit: unit.unit, file: file, isClassLike: unit.isClassLike),
+        );
       }
     } catch (error) {
       errors.add(CheckError(file: file, error: '$error'));
@@ -226,17 +230,19 @@ DuplicationVerdict findDuplication(String target) {
         if (matchedClasses.contains(pair)) continue;
       }
     }
-    pairs.add(ClonePair(
-      nameA: a.unit.name,
-      fileA: a.file,
-      lineA: a.unit.line,
-      endLineA: a.unit.endLine,
-      nameB: b.unit.name,
-      fileB: b.file,
-      lineB: b.unit.line,
-      endLineB: b.unit.endLine,
-      similarity: c.similarity,
-    ));
+    pairs.add(
+      ClonePair(
+        nameA: a.unit.name,
+        fileA: a.file,
+        lineA: a.unit.line,
+        endLineA: a.unit.endLine,
+        nameB: b.unit.name,
+        fileB: b.file,
+        lineB: b.unit.line,
+        endLineB: b.unit.endLine,
+        similarity: c.similarity,
+      ),
+    );
   }
   return DuplicationVerdict(
     passed: true,
@@ -287,8 +293,11 @@ String _normalize(String path) => path.replaceAll(r'\', '/');
 
 /// A collected unit with the file and class-likeness the verdict needs.
 class _Unit {
-  const _Unit(
-      {required this.unit, required this.file, required this.isClassLike});
+  const _Unit({
+    required this.unit,
+    required this.file,
+    required this.isClassLike,
+  });
 
   final DuplicationUnit unit;
   final String file;
@@ -314,10 +323,17 @@ class _UnitCollector extends RecursiveAstVisitor<void> {
     final line = _lineInfo.getLocation(node.offset).lineNumber;
     final endLine = _lineInfo.getLocation(node.end).lineNumber;
     if (endLine - line + 1 <= duplicationMinLines) return;
-    units.add(_Collected(
+    units.add(
+      _Collected(
         unit: DuplicationUnit(
-            name: name, line: line, endLine: endLine, bag: _bagOf(node)),
-        isClassLike: isClassLike));
+          name: name,
+          line: line,
+          endLine: endLine,
+          bag: _bagOf(node),
+        ),
+        isClassLike: isClassLike,
+      ),
+    );
   }
 
   void _classLike(String name, AstNode node, void Function() visit) {
@@ -335,21 +351,31 @@ class _UnitCollector extends RecursiveAstVisitor<void> {
     if (isDataHolderClass(node)) {
       // Data-holder class-likes never become units (SYS-DRY-001
       // §2); members below them are still collected.
-      _classStack.add(node.name.lexeme);
+      _classStack.add(node.namePart.typeName.lexeme);
       super.visitClassDeclaration(node);
       _classStack.removeLast();
       return;
     }
-    _classLike(node.name.lexeme, node, () => super.visitClassDeclaration(node));
+    _classLike(
+      node.namePart.typeName.lexeme,
+      node,
+      () => super.visitClassDeclaration(node),
+    );
   }
 
   @override
   void visitMixinDeclaration(MixinDeclaration node) => _classLike(
-      node.name.lexeme, node, () => super.visitMixinDeclaration(node));
+    node.name.lexeme,
+    node,
+    () => super.visitMixinDeclaration(node),
+  );
 
   @override
   void visitEnumDeclaration(EnumDeclaration node) => _classLike(
-      node.name.lexeme, node, () => super.visitEnumDeclaration(node));
+    node.namePart.typeName.lexeme,
+    node,
+    () => super.visitEnumDeclaration(node),
+  );
 
   // No extension-type override: the AST node is experimental in the
   // pinned analyzer, and suppression comments violate FG-LINT-009.
@@ -407,10 +433,10 @@ Map<String, int> _bagOf(AstNode node) {
     final key = type == TokenType.IDENTIFIER
         ? 'ID'
         : type == TokenType.STRING ||
-                type == TokenType.INT ||
-                type == TokenType.DOUBLE
-            ? 'LIT'
-            : token.lexeme;
+              type == TokenType.INT ||
+              type == TokenType.DOUBLE
+        ? 'LIT'
+        : token.lexeme;
     bag[key] = (bag[key] ?? 0) + 1;
     if (identical(token, end)) break;
     final next = token.next;

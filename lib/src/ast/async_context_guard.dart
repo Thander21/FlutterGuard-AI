@@ -94,10 +94,12 @@ class AsyncContextGuard extends RecursiveAstVisitor<void> {
       }
       for (final sink in _contextSinks(statement)) {
         if (preArmed) {
-          violations.add(AsyncContextViolation(
-            line: _lineInfo.getLocation(sink.offset).lineNumber,
-            message: sink.message,
-          ));
+          violations.add(
+            AsyncContextViolation(
+              line: _lineInfo.getLocation(sink.offset).lineNumber,
+              message: sink.message,
+            ),
+          );
         }
       }
       armed = _scanChildren(statement, armed);
@@ -109,15 +111,19 @@ class AsyncContextGuard extends RecursiveAstVisitor<void> {
   void _scanLeading(Statement branch) {
     if (branch is Block && branch.statements.length > 1) {
       _scanStatements(
-          branch.statements.sublist(0, branch.statements.length - 1), true);
+        branch.statements.sublist(0, branch.statements.length - 1),
+        true,
+      );
     }
   }
 
   /// Threads the armed state through a compound statement's children.
   bool _scanChildren(Statement statement, bool armed) {
     if (statement is IfStatement) {
-      armed =
-          _scanStatements(_branchStatements(statement.thenStatement), armed);
+      armed = _scanStatements(
+        _branchStatements(statement.thenStatement),
+        armed,
+      );
       final elseBranch = statement.elseStatement;
       if (elseBranch != null) {
         armed = _scanStatements(_branchStatements(elseBranch), armed);
@@ -240,8 +246,12 @@ class _SinkCollector extends RecursiveAstVisitor<void> {
         !_isDeclaration(node) &&
         !_isMethodName(node) &&
         !_isMountedReceiver(node)) {
-      sinks.add(_Sink(node.offset,
-          'BuildContext used after async gap without mounted check'));
+      sinks.add(
+        _Sink(
+          node.offset,
+          'BuildContext used after async gap without mounted check',
+        ),
+      );
     }
     super.visitSimpleIdentifier(node);
   }
@@ -250,8 +260,12 @@ class _SinkCollector extends RecursiveAstVisitor<void> {
   void visitMethodInvocation(MethodInvocation node) {
     if (node.methodName.name == 'setState' &&
         (node.target == null || node.target is ThisExpression)) {
-      sinks.add(_Sink(node.offset,
-          'setState() called after async gap without mounted check'));
+      sinks.add(
+        _Sink(
+          node.offset,
+          'setState() called after async gap without mounted check',
+        ),
+      );
     }
     super.visitMethodInvocation(node);
   }
@@ -260,7 +274,7 @@ class _SinkCollector extends RecursiveAstVisitor<void> {
 /// True when [node] declares something rather than reading `context`.
 bool _isDeclaration(SimpleIdentifier node) {
   final parent = node.parent;
-  return parent is NormalFormalParameter ||
+  return parent is FormalParameter ||
       parent is VariableDeclaration ||
       parent is FunctionDeclaration ||
       parent is MethodDeclaration ||

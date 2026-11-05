@@ -18,10 +18,7 @@ import 'rule_violation.dart';
 ///
 /// Closed v0 set: `ConsumerWidget` carries the same immutability contract
 /// as `StatelessWidget`.
-const _statelessSuperclasses = <String>{
-  'StatelessWidget',
-  'ConsumerWidget',
-};
+const _statelessSuperclasses = <String>{'StatelessWidget', 'ConsumerWidget'};
 
 /// A single FG-WID-008 violation.
 class WidgetImmutableViolation implements RuleViolation {
@@ -63,7 +60,7 @@ class WidgetImmutableGuard extends RecursiveAstVisitor<void> {
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     final wasScope = _scope;
-    final superclass = node.extendsClause?.superclass.name2.lexeme;
+    final superclass = node.extendsClause?.superclass.name.lexeme;
     if (superclass != null && _statelessSuperclasses.contains(superclass)) {
       _scope = superclass;
     }
@@ -77,11 +74,14 @@ class WidgetImmutableGuard extends RecursiveAstVisitor<void> {
     if (scope != null && !node.isStatic) {
       for (final variable in node.fields.variables) {
         if (!variable.isFinal) {
-          violations.add(WidgetImmutableViolation(
-            line: _lineInfo.getLocation(variable.name.offset).lineNumber,
-            message: "non-final field '${variable.name.lexeme}' "
-                'in $scope; widgets must be immutable',
-          ));
+          violations.add(
+            WidgetImmutableViolation(
+              line: _lineInfo.getLocation(variable.name.offset).lineNumber,
+              message:
+                  "non-final field '${variable.name.lexeme}' "
+                  'in $scope; widgets must be immutable',
+            ),
+          );
         }
       }
     }

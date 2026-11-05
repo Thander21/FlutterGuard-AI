@@ -23,13 +23,18 @@ void main() {
     });
 
     test('returns 0 on warnings-only targets (advisories never block)', () {
-      expect(cli.check(['benchmark/vectors/TC-13_met.bad.dart']), isZero,
-          reason: 'FG-MET-007 is advisory until SYS-CAL-001 calibrates it');
+      expect(
+        cli.check(['benchmark/vectors/TC-13_met.bad.dart']),
+        isZero,
+        reason: 'FG-MET-007 is advisory until SYS-CAL-001 calibrates it',
+      );
     });
 
     test('accepts --json without changing exit codes', () {
-      expect(cli.check(['--json', 'benchmark/vectors/TC-01_bloc.good.dart']),
-          isZero);
+      expect(
+        cli.check(['--json', 'benchmark/vectors/TC-01_bloc.good.dart']),
+        isZero,
+      );
       expect(cli.check(['benchmark/vectors/TC-01_bloc.bad.dart', '--json']), 1);
     });
   });

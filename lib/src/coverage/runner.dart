@@ -119,7 +119,8 @@ class CoverageRunner {
       }
       if (testExit != 0) {
         throw StateError(
-            'test suite failed (exit $testExit) — refusing to score coverage');
+          'test suite failed (exit $testExit) — refusing to score coverage',
+        );
       }
       final lcovPath = '${tmp.path}/lcov.info';
       final formatted = await _runCapture([
@@ -139,7 +140,8 @@ class CoverageRunner {
       }
       if (formatted.exit != 0) {
         throw StateError(
-            'format_coverage failed (exit ${formatted.exit}): ${_tail(formatted.stderr)}');
+          'format_coverage failed (exit ${formatted.exit}): ${_tail(formatted.stderr)}',
+        );
       }
       final lcov = parseLcov(File(lcovPath).readAsStringSync());
       final methods = <MethodScore>[];
@@ -155,13 +157,15 @@ class CoverageRunner {
               if (count > 0) covered++;
             }
           });
-          methods.add(MethodScore(
-            name: m.name,
-            file: file,
-            line: m.line,
-            complexity: m.complexity,
-            coverage: total == 0 ? 0.0 : covered / total,
-          ));
+          methods.add(
+            MethodScore(
+              name: m.name,
+              file: file,
+              line: m.line,
+              complexity: m.complexity,
+              coverage: total == 0 ? 0.0 : covered / total,
+            ),
+          );
         }
       }
       methods.sort((a, b) {
@@ -169,7 +173,10 @@ class CoverageRunner {
         return byFile != 0 ? byFile : a.line.compareTo(b.line);
       });
       return CoverageVerdict(
-          passed: true, methods: methods, filesScored: files.length);
+        passed: true,
+        methods: methods,
+        filesScored: files.length,
+      );
     } finally {
       if (tmp.existsSync()) tmp.deleteSync(recursive: true);
     }

@@ -15,7 +15,8 @@ import '../heal/recipes.dart';
 import 'rules.dart';
 
 /// CLI usage for `heal` (SYS-HEAL-001 §2).
-const _healUsage = 'Usage: dart run bin/flutterguard.dart heal <file.dart> '
+const _healUsage =
+    'Usage: dart run bin/flutterguard.dart heal <file.dart> '
     '--rule <RULE-ID> [--attempts N] [--json] [--help]';
 
 /// Default ForceField attempt cap (SYS-HEAL-001 §2).
@@ -29,24 +30,26 @@ Map<String, Object?> healResultJson({
   required String target,
   required String ruleId,
   required HealResult result,
-}) =>
-    {
-      'success': result.success,
-      'attempts': result.attempts,
-      'rolled_back': result.rolledBack,
-      'rule_id': ruleId,
-      'target': target,
-      'errors': [for (final e in result.errors) e.toJson()],
-      'report': result.report,
-    };
+}) => {
+  'success': result.success,
+  'attempts': result.attempts,
+  'rolled_back': result.rolledBack,
+  'rule_id': ruleId,
+  'target': target,
+  'errors': [for (final e in result.errors) e.toJson()],
+  'report': result.report,
+};
 
 /// Heals one file with a fast-path recipe. Returns 0 when healed (or
 /// already green), 1 on rollback, 2 on bad arguments or rules.
 int heal(List<String> args) {
   final parser = ArgParser()
     ..addOption('rule', help: 'Rule id to heal (fast-path only).')
-    ..addOption('attempts',
-        defaultsTo: '$_defaultAttempts', help: 'Attempt cap, 1..10.')
+    ..addOption(
+      'attempts',
+      defaultsTo: '$_defaultAttempts',
+      help: 'Attempt cap, 1..10.',
+    )
     ..addFlag('json', negatable: false, help: 'Report the outcome as JSON.')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
@@ -85,14 +88,18 @@ int heal(List<String> args) {
   if (ruleId == null) return _guide(target, byId);
   final analyzer = byId[ruleId];
   if (analyzer == null) {
-    stderr.writeln('unknown rule: $ruleId '
-        '(mechanical: ${fastPathRecipes.keys.join(', ')})');
+    stderr.writeln(
+      'unknown rule: $ruleId '
+      '(mechanical: ${fastPathRecipes.keys.join(', ')})',
+    );
     return 2;
   }
   final recipe = healRecipeFor(ruleId);
   if (recipe == null) {
-    stderr.writeln('no fast-path recipe for $ruleId (agent-dispatched); '
-        'canonical recipe: ${analyzer.spec} (§2)');
+    stderr.writeln(
+      'no fast-path recipe for $ruleId (agent-dispatched); '
+      'canonical recipe: ${analyzer.spec} (§2)',
+    );
     return 2;
   }
   List<RuleViolation>? before;
@@ -106,37 +113,46 @@ int heal(List<String> args) {
   final asJson = parsed['json'] as bool;
   if (before != null && before.isEmpty) {
     if (asJson) {
-      stdout.writeln(jsonEncode(healResultJson(
-          target: target,
-          ruleId: ruleId,
-          result: const HealResult(
+      stdout.writeln(
+        jsonEncode(
+          healResultJson(
+            target: target,
+            ruleId: ruleId,
+            result: const HealResult(
               success: true,
               attempts: 1,
               rolledBack: false,
               errors: [],
-              report: ''))));
+              report: '',
+            ),
+          ),
+        ),
+      );
     } else {
       stdout.writeln('clean: $target (no $ruleId violations; no writes)');
     }
     return 0;
   }
-  final result = HealDispatcher(maxAttempts: attempts).healFile(
-    path: target,
-    recipe: recipe,
-    analyze: analyzer.analyze,
-  );
+  final result = HealDispatcher(maxAttempts: attempts)
+      .healFile(path: target, recipe: recipe, analyze: analyzer.analyze);
   if (asJson) {
-    stdout.writeln(jsonEncode(
-        healResultJson(target: target, ruleId: ruleId, result: result)));
+    stdout.writeln(
+      jsonEncode(
+        healResultJson(target: target, ruleId: ruleId, result: result),
+      ),
+    );
   } else if (result.success) {
     stdout.writeln('healed: $target ($ruleId, ${result.attempts} attempt(s))');
   } else {
-    stdout.writeln('rolled back: $target ($ruleId, '
-        '${result.attempts}/$attempts attempts; '
-        'report: $target.heal-report.md)');
+    stdout.writeln(
+      'rolled back: $target ($ruleId, '
+      '${result.attempts}/$attempts attempts; '
+      'report: $target.heal-report.md)',
+    );
     for (final error in result.errors) {
-      stdout
-          .writeln('  attempt ${error.attempt} ${error.phase}: ${error.error}');
+      stdout.writeln(
+        '  attempt ${error.attempt} ${error.phase}: ${error.error}',
+      );
     }
   }
   return result.success ? 0 : 1;

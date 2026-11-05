@@ -66,8 +66,10 @@ Future<void> main() async {
   print('--- DRY pairs (real code, no twins) ---');
   for (final root in _dryRoots) {
     final verdict = findDuplication(root);
-    print('$root: units=${verdict.unitsCompared} '
-        'pairs=${verdict.pairs.length} errors=${verdict.errors.length}');
+    print(
+      '$root: units=${verdict.unitsCompared} '
+      'pairs=${verdict.pairs.length} errors=${verdict.errors.length}',
+    );
     for (final pair in verdict.pairs) {
       print('  $pair');
     }
@@ -79,12 +81,16 @@ Future<void> main() async {
       final verdict = await CoverageRunner(timeout: Duration(seconds: trio.$3))
           .run(testPath: trio.$1, reportOn: [trio.$2]);
       final over = verdict.methods.where((m) => m.overBudget).toList();
-      print('${trio.$2}: ${verdict.methods.length} methods, '
-          '${over.length} over budget');
+      print(
+        '${trio.$2}: ${verdict.methods.length} methods, '
+        '${over.length} over budget',
+      );
       for (final m in over) {
-        print('  ${m.name} L${m.line} CC=${m.complexity} '
-            'cov=${m.coverage.toStringAsFixed(2)} '
-            'CRAP=${m.crap.toStringAsFixed(1)}');
+        print(
+          '  ${m.name} L${m.line} CC=${m.complexity} '
+          'cov=${m.coverage.toStringAsFixed(2)} '
+          'CRAP=${m.crap.toStringAsFixed(1)}',
+        );
       }
     } on StateError catch (error) {
       print('${trio.$2}: UNMEASURED ($error)');
