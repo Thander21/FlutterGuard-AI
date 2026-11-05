@@ -80,10 +80,11 @@ const batchRuleId = 'FG-FMT-016';
 ///
 /// One bad file never kills the run: per-file failures are collected once
 /// per file in [CheckResult.errors]. Throws [ArgumentError] when [target]
-/// is missing.
+/// is missing. Generated files are skipped unless [includeGenerated]
+/// is true (see [collectDartFiles]).
 /// Results are sorted by file, then rule id, then line for determinism.
-CheckResult checkPath(String target) {
-  final files = collectDartFiles(target);
+CheckResult checkPath(String target, {bool includeGenerated = false}) {
+  final files = collectDartFiles(target, includeGenerated: includeGenerated);
   final batched = ruleAnalyzers.where((r) => r.id == batchRuleId).toList();
   final immediate = ruleAnalyzers.where((r) => r.id != batchRuleId).toList();
   final (:findings, :errors) = analyzeFilesWithRules(files, immediate);
@@ -161,7 +162,7 @@ int _byFileRuleLine(CheckFinding a, CheckFinding b) {
 
 /// CLI usage for `check` (SYS-CLI-001a).
 const _checkUsage =
-    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--help]';
+    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--include-generated] [--help]';
 
 /// Audits one target with every registered visitor. Returns 1 when any
 /// error-severity violation is found, 0 when clean or warnings-only,
@@ -169,6 +170,11 @@ const _checkUsage =
 int check(List<String> args) {
   final parser = ArgParser()
     ..addFlag('json', negatable: false, help: 'Report findings as JSON.')
+    ..addFlag(
+      'include-generated',
+      negatable: false,
+      help: 'Scan generated files too.',
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -189,9 +195,10 @@ int check(List<String> args) {
     return 2;
   }
   final asJson = parsed['json'] as bool;
+  final includeGenerated = parsed['include-generated'] as bool;
   late final CheckResult result;
   try {
-    result = checkPath(targets.single);
+    result = checkPath(targets.single, includeGenerated: includeGenerated);
   } on ArgumentError catch (error) {
     stderr.writeln(error.message);
     return 2;

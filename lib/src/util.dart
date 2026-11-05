@@ -11,30 +11,70 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+/// Suffixes marking machine-generated Dart files (SYS-CAL-002 P0-3).
+const generatedFileSuffixes = [
+  '.g.dart',
+  '.freezed.dart',
+  '.gr.dart',
+  '.mocks.dart',
+];
+
+/// Directory segments whose subtrees are machine-generated output.
+const generatedDirSegments = {'generated', 'gen', 'flutter_gen'};
+
+/// True when [normalizedPath] (forward slashes) is machine-generated
+/// output: a generated suffix, a Flutter l10n catalog
+/// (`app_localizations*.dart`), or a file under a generated-output
+/// directory. Findings on generated code are unactionable (the next
+/// build overwrites any fix), so collection skips them by default.
+bool isGeneratedDartFile(String normalizedPath) {
+  final segments = normalizedPath.split('/');
+  final file = segments.last;
+  if (file.startsWith('app_localizations') && file.endsWith('.dart')) {
+    return true;
+  }
+  for (final suffix in generatedFileSuffixes) {
+    if (file.endsWith(suffix)) return true;
+  }
+  for (final segment in segments.take(segments.length - 1)) {
+    if (generatedDirSegments.contains(segment)) return true;
+  }
+  return false;
+}
+
 /// Collects `.dart` files under [target] (one file or a directory
 /// scanned recursively, sorted, forward-slash normalized).
 ///
 /// Shared `check`/`lite` semantics: a missing target throws
 /// [ArgumentError]; a non-`.dart` file target (or `.dart`-less
-/// directory) yields an empty list.
-List<String> collectDartFiles(String target) {
+/// directory) yields an empty list. Generated files (see
+/// [isGeneratedDartFile]) are skipped unless [includeGenerated] is
+/// true — including an explicitly targeted single generated file.
+List<String> collectDartFiles(String target, {bool includeGenerated = false}) {
   final type = FileSystemEntity.typeSync(target);
   if (type == FileSystemEntityType.notFound) {
     throw ArgumentError('No such file or directory: $target');
   }
-  if (type == FileSystemEntityType.directory) return _walkDir(target);
-  if (target.endsWith('.dart')) return [_normalize(target)];
+  if (type == FileSystemEntityType.directory) {
+    return _walkDir(target, includeGenerated: includeGenerated);
+  }
+  if (target.endsWith('.dart')) {
+    final file = _normalize(target);
+    if (!includeGenerated && isGeneratedDartFile(file)) return const [];
+    return [file];
+  }
   return const [];
 }
 
 /// Sorted `.dart` files under directory [target].
-List<String> _walkDir(String target) {
+List<String> _walkDir(String target, {required bool includeGenerated}) {
   final files =
       Directory(target)
           .listSync(recursive: true)
           .whereType<File>()
           .where((file) => file.path.endsWith('.dart'))
           .map((file) => _normalize(file.path))
+          .where((file) => includeGenerated || !isGeneratedDartFile(file))
           .toList()
         ..sort();
   return files;

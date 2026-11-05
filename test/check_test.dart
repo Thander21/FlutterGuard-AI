@@ -143,5 +143,37 @@ void main() {
       );
       expect(advisories.findings.first.toJson()['severity'], 'warning');
     });
+
+    test('skips generated files unless opted in (SYS-CAL-002 P0-3)', () {
+      final root = Directory.systemTemp.createTempSync('check_test.');
+      try {
+        final bad = File('benchmark/vectors/TC-01_bloc.bad.dart')
+            .readAsStringSync();
+        File('${root.path}/plain.dart').writeAsStringSync(bad);
+        final generated = File('${root.path}/store.g.dart')
+          ..writeAsStringSync(bad);
+        File('${root.path}/app_localizations_en.dart').writeAsStringSync(bad);
+        final genDir = Directory('${root.path}/generated')..createSync();
+        File('${genDir.path}/schema.dart').writeAsStringSync(bad);
+
+        final skipped = checkPath(root.path);
+        expect(skipped.findings, isNotEmpty);
+        expect(
+          skipped.findings.map((f) => f.file),
+          everyElement(endsWith('plain.dart')),
+        );
+
+        final included = checkPath(root.path, includeGenerated: true);
+        expect(included.findings.map((f) => f.file).toSet(), hasLength(4));
+
+        expect(checkPath(generated.path).findings, isEmpty);
+        expect(
+          checkPath(generated.path, includeGenerated: true).findings,
+          isNotEmpty,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

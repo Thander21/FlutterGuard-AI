@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:test/test.dart';
 
 import 'package:flutterguard_ai/flutterguard_ai.dart' as cli;
@@ -36,6 +38,19 @@ void main() {
         isZero,
       );
       expect(cli.check(['benchmark/vectors/TC-01_bloc.bad.dart', '--json']), 1);
+    });
+
+    test('skips generated files unless --include-generated is passed', () {
+      final root = Directory.systemTemp.createTempSync('check_cli_test.');
+      try {
+        File('${root.path}/store.g.dart').writeAsStringSync(
+          File('benchmark/vectors/TC-01_bloc.bad.dart').readAsStringSync(),
+        );
+        expect(cli.check([root.path]), isZero);
+        expect(cli.check(['--include-generated', root.path]), 1);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
     });
   });
 }

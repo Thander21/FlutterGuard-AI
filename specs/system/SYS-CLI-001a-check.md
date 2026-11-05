@@ -16,13 +16,26 @@ duty.
 
 # 2. Interface / Schema
 
-`check <path> [--json] [--help]`, parsed with `package:args` (`args`
+`check <path> [--json] [--include-generated] [--help]`, parsed with `package:args` (`args`
 dependency). Exit codes: 0 clean or warnings-only, 1 error-severity
 violations found, 2 bad arguments (REVIEW-01 verified the launcher
 swallows returned codes, so `main` calls `exit()` explicitly).
 `--help` prints usage and exits 0. Warnings (today: FG-MET-007
 advisories until SYS-CAL-001 calibrates them) are reported but never
 fail the gate; blocking on uncalibrated thresholds is barred.
+
+Generated files are skipped by default: `*.g.dart`,
+`*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`, Flutter l10n
+catalogs (`app_localizations*.dart`), and anything under a
+`generated/`, `gen/`, or `flutter_gen/` directory — findings
+there are unactionable (the next build overwrites any fix).
+`--include-generated` scans them (SYS-CAL-002 P0-3).
+
+Rules disabled by the nearest `flutterguard.yaml` are skipped
+(schema v2, SYS-CAL-002 P3-1): discovery walks up from the
+target to the filesystem root; a missing or broken file means
+all-enabled (the gate never silently shrinks). `grade` always
+runs the full registry — it validates the rules themselves.
 
 `--json` shape (from `CheckResult.toJson()`):
 
@@ -105,6 +118,14 @@ SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
 
 - Missing target: `ArgumentError` → usage → exit 2.
 - Non-`.dart` file target: zero files scanned → clean, exit 0.
+- Generated-file target: skipped files (see §2) never appear in
+  findings or `errors` — a directory scan omits them, and an
+  explicitly targeted single generated file scans zero files
+  (clean, exit 0) unless `--include-generated` is passed.
+- Broken config (unparseable YAML, non-map `rules`, non-boolean
+  values, unknown rule ids): ignored piece by piece, defaulting
+  to enabled. No `errors` entry is emitted for config problems
+  (config is not a file verdict).
 - Unreadable file (I/O failure) or analyzer crash: collected in
   `errors` once per file (stderr + JSON), reported but never fails
   the gate — exit follows findings only. Unparseable file:
