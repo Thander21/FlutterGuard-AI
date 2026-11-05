@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
-import '../bin/flutterguard.dart' as cli;
+import 'package:flutterguard_ai/flutterguard_ai.dart' as cli;
 
 /// Canon keys in emission order (SYS-TELE-001 §2).
 const canonKeys = [

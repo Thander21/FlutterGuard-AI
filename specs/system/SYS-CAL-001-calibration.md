@@ -139,6 +139,16 @@ from a shared-predicate import insertion, similarity
 unchanged). The data-holder FP class is CLOSED. HOLD
 reaffirmed: 0 actionable of 3.
 
+REL-001 R3 (2026-11-04, CLI layering `bin/` → `lib/`): +1 pair —
+`init` ~= `CoverageRunner.run` @0.803 (the moved `init()` now scans
+as `lib/`). Judged FP, new procedural-flow-twin class: CLI
+scaffolding (arg parsing, file writes, hook install, MCP
+registration) vs coverage pipeline (validation, subprocess runs,
+lcov parsing, scoring) share only sequential-procedure shape
+(guards, loops, file I/O, error strings); no shared domain, no
+extractable unit. 4 pairs pinned, 0 actionable; HOLD reaffirmed.
+MET set unchanged (moved code MET-clean).
+
 ## CRAP ≥ 10 — HOLD advisory (precision 4/6, method-constrained)
 
 `detector.dart` trio (20 methods, one clean run): OVER =
@@ -248,6 +258,13 @@ SYS-TELE-001 first (canon rule §4).
   scans) HEALED into a shared `_namedArgumentValue` helper with
   behavior pinned by the TS-07 suite — the pair is gone. Same
   3 survivors, same judgments, HOLD reaffirmed. No pin changes.
+- Re-ratifications: 2026-11-04 — REL-001 R3 CLI layering (`bin/` →
+  `lib/src/cli/`): one new DRY pair (`init` ~= `CoverageRunner.run`
+  @0.803), judged FP (procedural-flow-twin class); 4 pairs pinned,
+  HOLD reaffirmed. MET set unchanged (moved code MET-clean; corpus
+  at 114 files). `bin/` verified 0 pairs post-thinning. CRAP
+  observation unchanged (detector 3 OVER, same methods; metric/tools
+  0).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

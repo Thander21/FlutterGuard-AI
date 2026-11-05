@@ -1,7 +1,14 @@
-// `check` core: run every registered visitor over a file or directory.
+// `check` core: run every registered visitor over a file or directory,
+// plus the thin `check()` CLI wrapper (moved from `bin/` by SYS-REL-001
+// R3).
 //
-// Pure library code (no stdout/stderr side effects) so the CLI stays thin
-// and the behavior is unit-testable.
+// `checkPath` is pure library code (no stdout/stderr side effects) so the
+// behavior is unit-testable; only the `check()` wrapper touches stdio.
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:args/args.dart';
+
 import '../ast/format_guard.dart';
 import '../util.dart';
 import 'rules.dart';
@@ -144,4 +151,58 @@ int _byFileRuleLine(CheckFinding a, CheckFinding b) {
   }
   findings.sort(_byFileRuleLine);
   return (findings: findings, errors: errors);
+}
+
+/// CLI usage for `check` (SYS-CLI-001a).
+const _checkUsage =
+    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--help]';
+
+/// Audits one target with every registered visitor. Returns 1 when any
+/// error-severity violation is found, 0 when clean or warnings-only,
+/// 2 on bad arguments.
+int check(List<String> args) {
+  final parser = ArgParser()
+    ..addFlag('json', negatable: false, help: 'Report findings as JSON.')
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
+  late final ArgResults parsed;
+  try {
+    parsed = parser.parse(args);
+  } on FormatException catch (error) {
+    stderr.writeln(error.message);
+    stderr.writeln(_checkUsage);
+    return 2;
+  }
+  if (parsed['help'] as bool) {
+    stdout.writeln(_checkUsage);
+    stdout.writeln(parser.usage);
+    return 0;
+  }
+  final targets = parsed.rest;
+  if (targets.length != 1) {
+    stderr.writeln(_checkUsage);
+    return 2;
+  }
+  final asJson = parsed['json'] as bool;
+  late final CheckResult result;
+  try {
+    result = checkPath(targets.single);
+  } on ArgumentError catch (error) {
+    stderr.writeln(error.message);
+    return 2;
+  }
+  for (final error in result.errors) {
+    stderr.writeln('error: ${error.file}: ${error.error}');
+  }
+  if (asJson) {
+    stdout.writeln(jsonEncode(result.toJson()));
+  } else {
+    for (final finding in result.findings) {
+      final prefix = finding.severity == 'warning' ? 'warning: ' : '';
+      stdout.writeln(
+          '$prefix${finding.ruleId} ${finding.file}:${finding.line} ${finding.message}');
+    }
+    stdout.writeln(
+        '${result.findings.length} violation(s) in ${targets.single}.');
+  }
+  return result.findings.any((f) => f.severity == 'error') ? 1 : 0;
 }

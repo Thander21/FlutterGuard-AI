@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
-import '../bin/flutterguard.dart' as cli;
+import 'package:flutterguard_ai/flutterguard_ai.dart' as cli;
 
 void main() {
   group('grade', () {

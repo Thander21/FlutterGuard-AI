@@ -112,3 +112,7 @@ bool resolvesOnPath(String name,
   }
   return false;
 }
+
+/// Joins [root] with a repo-relative [path], leaving CLI behavior and
+/// output byte-identical when [root] is the default '.'.
+String joinRoot(String root, String path) => root == '.' ? path : '$root/$path';
