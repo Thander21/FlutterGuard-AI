@@ -1,6 +1,6 @@
 // Production fast-path recipe table (SYS-REL-001 R4): rule id to
-// mechanical HealRecipe for the HEAL-001 closed list. Execution stays
-// agent-dispatched; a `heal` CLI command is follow-up.
+// mechanical HealRecipe for the HEAL-001 closed list. Humans run them
+// through the thin `heal` CLI; anything unlisted stays agent-dispatched.
 import 'dispatcher.dart';
 
 /// Fast-path recipes keyed by rule id. Exactly the HEAL-001 closed

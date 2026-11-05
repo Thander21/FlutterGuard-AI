@@ -22,6 +22,7 @@ export 'src/ast/widget_immutable_guard.dart';
 export 'src/ast/rule_violation.dart';
 export 'src/cli/check.dart';
 export 'src/cli/grade.dart';
+export 'src/cli/heal.dart';
 export 'src/cli/init.dart';
 export 'src/cli/rules.dart';
 export 'src/cli/sandbox.dart';

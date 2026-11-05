@@ -33,9 +33,11 @@ const _ratifiedSkipped = {
 /// data-class pairs; the 3 survivors are known FP classes
 /// (guard idiom ×2, thin wrappers).
 /// REL-001 R3: +1 procedural-flow twin (moved `init()`); 4 pinned.
+/// Wave 2: +1 procedural-flow twin (new `heal()`); 5 pinned.
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
   'lib/src/ast/metric_guard.dart:82~lib/src/ast/widget_immutable_guard.dart:74',
+  'lib/src/cli/heal.dart:43~lib/src/cli/init.dart:59',
   'lib/src/cli/init.dart:59~lib/src/coverage/runner.dart:70',
   'lib/src/mcp/tools.dart:189~lib/src/mcp/tools.dart:210',
 };

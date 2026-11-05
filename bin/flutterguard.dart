@@ -4,6 +4,7 @@
 // Usage (from the repository root, after `dart pub get`):
 //   dart run bin/flutterguard.dart grade
 //   dart run bin/flutterguard.dart check <path> [--json] [--help]
+//   dart run bin/flutterguard.dart heal <file.dart> --rule <RULE-ID>
 //   dart run bin/flutterguard.dart init [--scaffold] [--agents] [--help]
 //   dart run bin/flutterguard.dart sandbox <load|reset|check>
 //
@@ -36,18 +37,23 @@ int _run(List<String> args) {
   if (args.isNotEmpty && args.first == 'check') {
     return check(args.sublist(1));
   }
+  if (args.isNotEmpty && args.first == 'heal') {
+    return heal(args.sublist(1));
+  }
   if (args.isNotEmpty && args.first == 'init') {
     return init(args.sublist(1));
   }
   if (args.isNotEmpty && args.first == 'sandbox') {
     return sandbox(args.sublist(1));
   }
-  stderr.writeln(
-      'Usage: dart run bin/flutterguard.dart <grade|check|init|sandbox>');
+  stderr.writeln('Usage: dart run bin/flutterguard.dart '
+      '<grade|check|heal|init|sandbox>');
   stderr.writeln(
       '  grade                 Run golden evals, append evidence.jsonl.');
   stderr.writeln(
       '  check <path> [--json] [--help] Audit a .dart file or directory.');
+  stderr.writeln('  heal <file.dart> --rule <RULE-ID> [--attempts N] [--json] '
+      'Heal one file with a fast-path recipe.');
   stderr.writeln('  init [--scaffold] [--agents] [--help] Init a project.');
   stderr.writeln('  sandbox <load|reset|check> Manage the agent playground.');
   return 2;

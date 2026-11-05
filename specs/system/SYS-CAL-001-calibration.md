@@ -149,6 +149,17 @@ lcov parsing, scoring) share only sequential-procedure shape
 extractable unit. 4 pairs pinned, 0 actionable; HOLD reaffirmed.
 MET set unchanged (moved code MET-clean).
 
+Wave 2 (2026-11-05, thin `heal` CLI, SYS-VAL-001 F6): +1 pair —
+`heal` ~= `init` @0.828 (the new `heal()` arg scaffolding twins the
+`init()` scaffolding). Judged FP, procedural-flow-twin class (2nd
+of class — same CLI-scaffolding shape as the R3 pair: ArgParser
+setup, parse, help, positional checks; each command's surface
+diverges after the scaffold, so extraction is forced, not
+actionable). 5 pairs pinned, 0 actionable; HOLD reaffirmed. MET
+set unchanged (new files MET-clean; corpus at 118 files). `bin/`
+and `tool/` verified 0 pairs. CRAP observation unchanged in
+counts (detector 3 OVER, metric/tools 0; detector file untouched).
+
 ## CRAP ≥ 10 — HOLD advisory (precision 4/6, method-constrained)
 
 `detector.dart` trio (20 methods, one clean run): OVER =
@@ -265,6 +276,12 @@ SYS-TELE-001 first (canon rule §4).
   at 114 files). `bin/` verified 0 pairs post-thinning. CRAP
   observation unchanged (detector 3 OVER, same methods; metric/tools
   0).
+- Re-ratifications: 2026-11-05 — Wave 2 thin `heal` CLI: one new
+  DRY pair (`heal` ~= `init` @0.828), judged FP
+  (procedural-flow-twin class, 2nd of class); 5 pairs pinned, HOLD
+  reaffirmed. MET set unchanged (new files MET-clean; corpus
+  at 118 files). `bin/`/`tool/` verified 0 pairs. CRAP counts
+  unchanged (3/0/0).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).
