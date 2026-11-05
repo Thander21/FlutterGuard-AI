@@ -11,7 +11,7 @@ ast_nodes:
   - "MethodInvocation[then/catchError/whenComplete]"
   - "MethodInvocation[unawaited]"
   - "InstanceCreationExpression[socket types]"
-invariant: "No Future-creating, Timer-starting, socket-opening, or future-chaining invocation may execute directly in a build() method or Widget-returning function body (closures excluded: event handlers are legitimately async)."
+invariant: "No Future-creating, Timer-starting, socket-opening, or future-chaining invocation may execute directly in a build() method or Widget-returning function body (closures excluded: event handlers are legitimately async). A build method whose enclosing class extends a Riverpod notifier is provider initialization, not build scope."
 fp_limits:
   - "async event handlers (closures): onPressed () async {} is correct"
   - "Future.value (pure constructor, no scheduled work)"
@@ -19,6 +19,7 @@ fp_limits:
   - "ref.* reactive reads (framework idiom)"
   - "compute/scheduleMicrotask (the fix, not the bug / borderline excluded)"
   - "trigger invocations outside build()/Widget-returning functions"
+  - "Notifier.build deferred work (provider initialization)"
 golden_vectors:
   failing: "benchmark/vectors/TC-14_build.bad.dart"
   passing: "benchmark/vectors/TC-14_build.good.dart"
@@ -34,7 +35,10 @@ storms, timer leaks (each rebuild starts another), and stale
 callbacks racing the frame the user sees. AI generators emit this
 shape because the happy path rebuilds once and looks fine.
 Hoisting the work to `initState`, an event handler, or a
-`FutureBuilder` fixes it once, structurally.
+`FutureBuilder` fixes it once, structurally. Riverpod
+`Notifier.build` runs once as provider initialization, so
+deferred work there (`Future.microtask`) is intentional and
+excluded (SYS-CAL-002 P1-3).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -82,6 +86,17 @@ closure/function-expression exempts): `Future.<anything>` except
   [eval: unit fixture]
 - Trigger invocations in `initState()`: MUST NOT be flagged
   (build-scope only). [eval: TC-14.good]
+- Triggers directly in `Notifier.build`: MUST NOT be flagged
+  (provider initialization, runs once — not per frame).
+  Notifier set: `Notifier`, `AsyncNotifier`,
+  `FamilyNotifier`, `FamilyAsyncNotifier`,
+  `AutoDisposeNotifier`, `AutoDisposeAsyncNotifier`,
+  `AutoDisposeFamilyNotifier`,
+  `AutoDisposeFamilyAsyncNotifier` (direct superclass name).
+  [eval: TC-14.good]
+- Indirect notifier subclasses (custom intermediate bases):
+  the guard reads only the direct superclass name, so they
+  stay measured (known FP). [unevaluated]
 - Deep `build()` trees in vectors: out of scope (vectors stay
   MET-neutral by design). [unevaluated]
 

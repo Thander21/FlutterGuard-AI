@@ -185,6 +185,16 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
+    if (_isRefOnDispose(node) && node.argumentList.arguments.isNotEmpty) {
+      _collectOnDisposeRelease(
+        node.argumentList.arguments.first,
+        fields: fields,
+        releases: releases,
+        adds: adds,
+        source: source,
+        lineInfo: lineInfo,
+      );
+    }
     final receiver = _receiverName(node.target);
     if (receiver != null) {
       final name = node.methodName.name;
@@ -247,3 +257,47 @@ String? _inferType(Expression? expression) {
   }
   return null;
 }
+
+/// True for `ref.onDispose(...)` with a bare `ref` target.
+bool _isRefOnDispose(MethodInvocation node) {
+  if (node.methodName.name != 'onDispose') return false;
+  final target = node.target;
+  return target is SimpleIdentifier && target.name == 'ref';
+}
+
+/// Counts an `onDispose` registration as a release: closures run with
+/// full dispose semantics (releases and listener pairing), and
+/// `resource.dispose`/`.cancel` tear-offs release the receiver.
+void _collectOnDisposeRelease(
+  Argument arg, {
+  required Map<String, _Field> fields,
+  required Set<String> releases,
+  required List<_AddListener> adds,
+  required String source,
+  required LineInfo lineInfo,
+}) {
+  if (arg is FunctionExpression) {
+    arg.body.accept(
+      _MemberScanner(
+        fields: fields,
+        isDispose: true,
+        releases: releases,
+        adds: adds,
+        source: source,
+        lineInfo: lineInfo,
+      ),
+    );
+    return;
+  }
+  if (arg is PrefixedIdentifier && _isReleaseName(arg.identifier.name)) {
+    releases.add(arg.prefix.name);
+    return;
+  }
+  if (arg is PropertyAccess && _isReleaseName(arg.propertyName.name)) {
+    final receiver = _receiverName(arg.target);
+    if (receiver != null) releases.add(receiver);
+  }
+}
+
+/// True for a release method name (`dispose`/`cancel`).
+bool _isReleaseName(String name) => name == 'dispose' || name == 'cancel';

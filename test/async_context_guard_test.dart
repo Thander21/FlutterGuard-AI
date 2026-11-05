@@ -112,5 +112,23 @@ Future<void> maybeLoad(bool flag, BuildContext context) async {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('spares statement labels named context (SYS-CAL-002 P1-4)', () {
+      final root = Directory.systemTemp.createTempSync('async_test.');
+      try {
+        final path = '${root.path}/labeled.dart';
+        File(path).writeAsStringSync('''
+Future<void> retry() async {
+  await _service.ping();
+  context: for (var i = 0; i < 1; i++) {
+    _log(i);
+  }
+}
+''');
+        expect(analyzeAsyncFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

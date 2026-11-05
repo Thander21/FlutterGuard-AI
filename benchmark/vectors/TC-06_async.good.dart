@@ -31,6 +31,12 @@ class _OrderScreenState extends State<OrderScreen> {
     }
   }
 
+  // A named-argument label is not a BuildContext read (SYS-CAL-002 P1-4).
+  Future<void> audit() async {
+    await _service.ping();
+    _log.record(context: 'user session');
+  }
+
   @override
   Widget build(BuildContext context) => const Text('order');
 }

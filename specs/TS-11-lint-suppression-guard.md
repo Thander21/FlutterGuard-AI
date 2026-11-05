@@ -1,15 +1,16 @@
 ---
 spec_version: "openspec-1.0"
 id: "FG-LINT-009"
-title: "Forbid suppressions and empty catch blocks"
+title: "Forbid bare suppressions and empty catch blocks"
 status: "approved"
 severity: "error"
 analysis: "parse-only"
 ast_nodes:
   - "Token.precedingComments[type='//']"
   - "CatchClause[body empty]"
-invariant: "No single-line comment MUST contain 'ignore:' or 'ignore_for_file:'; no catch clause MUST have an empty body."
+invariant: "No single-line comment MUST contain a bare 'ignore:' or 'ignore_for_file:' (a suppression without trailing rationale); no catch clause MUST have an empty body."
 fp_limits:
+  - "justified suppressions (directive + trailing // rationale)"
   - "doc (///) and block (/* */) comments mentioning ignore"
   - "comments mentioning ignore without the colon"
   - "non-empty catch blocks (handle or rethrow)"
@@ -28,6 +29,9 @@ both trade a compile-time finding for a production incident.
 AI-generated code leans on both because the happy path never trips the
 lint and never throws. This rule enforces Root Cause Only: fix the
 finding, handle the error, or `rethrow` — never suppress, never swallow.
+A suppression that carries its rationale on the same line
+(`// ignore: x // why`) is a reviewed decision, not a silencing:
+the gate spares it (SYS-CAL-002 P1-5).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -43,15 +47,17 @@ finding, handle the error, or `rethrow` — never suppress, never swallow.
    }
 ```
 
-(And every `// ignore:` line is deleted, with the underlying finding
-fixed at its root cause.)
+(And every bare `// ignore:` line is deleted, with the underlying
+finding fixed at its root cause.)
 
 # 3. Edge Cases and Non-Compliance
 
 Comments are walked from the token stream (`precedingComments`), not
-the AST: any `//` line comment containing the directive text is
-flagged, anywhere in the file. A catch body counts as empty when every
-statement is an `EmptyStatement` (bare `;` still swallows).
+the AST: any `//` line comment containing the directive text without
+trailing rationale is flagged, anywhere in the file. Rationale is a
+second `//` after the directive with non-blank text. A catch body
+counts as empty when every statement is an `EmptyStatement` (bare
+`;` still swallows).
 
 - Own-line `// ignore: x`: MUST be flagged. [eval: TC-11.bad]
 - `// ignore_for_file: x` (any position): MUST be flagged.
@@ -71,6 +77,14 @@ statement is an `EmptyStatement` (bare `;` still swallows).
 - `catch (e) { ; }`: MUST be flagged (empty statement). [eval: unit fixture]
 - Uppercase `IGNORE:`: MUST NOT be flagged (not honored).
   [eval: unit fixture]
+- `// ignore: x // rationale`: MUST NOT be flagged (justified).
+  [eval: TC-11.good]
+- `// ignore_for_file: x // rationale`: MUST NOT be flagged.
+  [eval: TC-11.good]
+- `// ignore: x //` (empty rationale): MUST be flagged (bare).
+  [eval: unit fixture]
+- Preceding-line rationale (reason on the line above): still
+  flagged — justification must be same-line. [unevaluated]
 - `ignore` without the colon: MUST NOT be flagged. [eval: unit fixture]
 - Print-only catch: clean (non-empty by design). [unevaluated]
 

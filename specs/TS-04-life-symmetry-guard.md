@@ -8,9 +8,10 @@ analysis: "parse-only"
 ast_nodes:
   - "FieldDeclaration"
   - "AssignmentExpression"
-  - "MethodInvocation[name='cancel'|'dispose'|'addListener'|'removeListener']"
-invariant: "Every class field holding a releasable resource (subscription, timer, controller, focus node, or listener registration) MUST have its matching release call in a method named 'dispose' of the same class."
+  - "MethodInvocation[name='cancel'|'dispose'|'addListener'|'removeListener'|'onDispose']"
+invariant: "Every class field holding a releasable resource (subscription, timer, controller, focus node, or listener registration) MUST have its matching release call in a method named 'dispose' of the same class. A 'ref.onDispose(...)' registration counts as a release: closures run with dispose semantics, and 'resource.dispose'/'.cancel' tear-offs release the receiver."
 fp_limits:
+  - "Riverpod onDispose-registered cleanup (counts as released)"
   - "resources released only in deactivate() (dispose-only rule)"
   - "composite subscriptions (CompositeSubscription.add)"
   - "delegated ownership (released outside dispose() by an owner)"
@@ -29,7 +30,9 @@ is never cancelled fires into a dead `State` and crashes on `setState()`;
 controllers and focus nodes leak tickers, listeners, and attachments.
 AI-generated `State` classes routinely acquire these in `initState` (or at
 declaration) and forget the symmetric release because the happy path never
-pops the route.
+pops the route. Riverpod Notifiers have no `dispose()`; they register
+cleanup with `ref.onDispose(...)`, which the guard honors as a release
+(SYS-CAL-002 P1-2).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -78,6 +81,11 @@ wins, initializer/assignment shape infers the rest):
   [eval: TC-04.bad]
 - `?.`-conditional and `this.`-qualified release calls count as releases.
   [eval: TC-04.good]
+- `ref.onDispose(() => f.dispose()/f.cancel())` closures and
+  `ref.onDispose(f.dispose)` / `f.cancel` tear-offs count as
+  releases in any method. [eval: TC-04.good]
+- `ref.onDispose(() => field.removeListener(named))` pairs an
+  `addListener` like a `dispose()` body. [eval: TC-04.good]
 - Fully released fields: MUST NOT be flagged. [eval: TC-04.good]
 - Method-local acquisitions (not fields): out of scope here — MUST NOT be
   flagged (ST-001 owns locals-in-`build`). [eval: TC-04.good]

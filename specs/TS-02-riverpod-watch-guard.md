@@ -8,10 +8,11 @@ analysis: "parse-only"
 ast_nodes:
   - "MethodInvocation[target='ref',name='watch']"
   - "FunctionExpression"
-invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead."
+invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead. A function expression that is the builder argument of a Riverpod provider factory is a build, not a callback."
 fp_limits:
   - "ref.watch directly in build()"
   - "ref.read anywhere, including callbacks"
+  - "ref.watch inside provider builders (Provider, X.family, overrideWith)"
 golden_vectors:
   failing: "benchmark/vectors/TC-02_riverpod.bad.dart"
   passing: "benchmark/vectors/TC-02_riverpod.good.dart"
@@ -24,6 +25,9 @@ Subscribing with `ref.watch` inside an event callback (`onPressed`, `onTap`,
 or any anonymous handler) throws at runtime, because `watch` is only valid
 during the synchronous widget build. AI-generated handlers routinely copy the
 build-time read into the callback, where the correct call is `ref.read`.
+Provider builders (`Provider((ref) => ...)`) take the same syntactic
+shape as callbacks but run as builds; the guard excludes the
+factory set (SYS-CAL-002 P1-1).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -47,9 +51,22 @@ callback.
   [unevaluated]
 - Torn-off named handlers (`onTap: _handler`) and callbacks stored in
   variables: out of scope for v0, NOT flagged. [unevaluated]
-- v0 limitation: any function expression passed directly as an argument
-  counts as a callback, including non-event cases such as `.map(...)`
-  (may false-positive). [unevaluated]
+- `ref.watch` in a provider builder (`Provider((ref) => ...)`,
+  `X.family((ref, arg) => ...)`, `x.overrideWith((ref) => ...)`):
+  MUST NOT be flagged — builders run as builds. Factory set:
+  `Provider`, `FutureProvider`, `StreamProvider`,
+  `StateProvider`, `NotifierProvider`, `AsyncNotifierProvider`,
+  `StateNotifierProvider`, `ChangeNotifierProvider`
+  (bare, prefixed, and explicit `new`/`const` spellings).
+  [eval: TC-02.good]
+- `overrideWithValue` takes a value, not a builder: no exclusion
+  applies (a closure there carries no `ref` in valid Riverpod).
+  [unevaluated]
+- v0 limitation: any other function expression passed directly as
+  an argument counts as a callback, including non-event cases
+  such as `.map(...)` (may false-positive). A non-Riverpod
+  method literally named `Provider`/`overrideWith` would be
+  missed (absurd; unevaluated). [unevaluated]
 
 `replace_invocation` semantics live in SYS-HEAL-001 §2
 (fast-path mechanical); the strategy value stays declarative until recipe

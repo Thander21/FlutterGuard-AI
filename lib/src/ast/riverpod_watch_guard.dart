@@ -37,11 +37,25 @@ List<RiverpodWatchViolation> analyzeRiverpodFile(String path) {
   return guard.violations;
 }
 
+/// Provider-factory callee names whose function argument is a build,
+/// not an event callback (TS-02 §3; SYS-CAL-002 P1-1).
+const _providerFactories = <String>{
+  'Provider',
+  'FutureProvider',
+  'StreamProvider',
+  'StateProvider',
+  'NotifierProvider',
+  'AsyncNotifierProvider',
+  'StateNotifierProvider',
+  'ChangeNotifierProvider',
+};
+
 /// Flags `ref.watch` calls enclosed in an argument callback.
 ///
 /// Scope (v0): a callback is any function expression passed directly as a
-/// positional or named argument (`onTap: () {...}`). Torn-off named
-/// functions and callbacks stored in variables are not tracked.
+/// positional or named argument (`onTap: () {...}`), except provider
+/// builders. Torn-off named functions and callbacks stored in
+/// variables are not tracked.
 class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   RiverpodWatchGuard(this._lineInfo);
 
@@ -52,7 +66,9 @@ class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   @override
   void visitFunctionExpression(FunctionExpression node) {
     final parent = node.parent;
-    final isCallback = parent is ArgumentList || parent is NamedArgument;
+    final isArgCallback = parent is ArgumentList || parent is NamedArgument;
+    final isBuilder = parent is ArgumentList && _isFactoryCall(parent.parent);
+    final isCallback = isArgCallback && !isBuilder;
     if (isCallback) _callbackDepth++;
     super.visitFunctionExpression(node);
     if (isCallback) _callbackDepth--;
@@ -78,4 +94,32 @@ bool _isRefWatch(MethodInvocation node) {
   if (node.methodName.name != 'watch') return false;
   final target = node.target;
   return target is SimpleIdentifier && target.name == 'ref';
+}
+
+/// True for a provider-factory invocation whose function argument is a
+/// build: `Provider(...)` (any target — prefixed factories included),
+/// `X.family(...)` on a factory, and `x.overrideWith(...)` (always a
+/// provider builder). Covers bare-call and explicit `new`/`const`
+/// spellings (unresolved constructor calls parse as
+/// [MethodInvocation]; explicit ones as creations).
+bool _isFactoryCall(AstNode? node) {
+  if (node is MethodInvocation) {
+    if (node.methodName.name == 'overrideWith') return true;
+    if (node.methodName.name == 'family') {
+      return _providerFactories.contains(_targetName(node.target));
+    }
+    return _providerFactories.contains(node.methodName.name);
+  }
+  if (node is InstanceCreationExpression) {
+    return _providerFactories.contains(node.constructorName.type.name.lexeme);
+  }
+  return false;
+}
+
+/// Simple name of an invocation target (prefixes stripped), or null
+/// when the target has no static name.
+String? _targetName(Expression? target) {
+  if (target is SimpleIdentifier) return target.name;
+  if (target is PrefixedIdentifier) return target.identifier.name;
+  return null;
 }

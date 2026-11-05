@@ -15,6 +15,7 @@ fp_limits:
   - "context used before any await, or in the same statement as the await"
   - "'mounted'/'context.mounted' guard reads themselves"
   - "awaits nested in closures (never arm the outer body)"
+  - "named-argument and statement labels (tokens, never reads)"
 golden_vectors:
   failing: "benchmark/vectors/TC-06_async.bad.dart"
   passing: "benchmark/vectors/TC-06_async.good.dart"
@@ -29,6 +30,9 @@ unmounts. Any `BuildContext` use after the gap (`Navigator.of(context)`,
 `setState` throws on the dead `State`. AI-generated handlers routinely
 sequence `await` then UI work because the happy path never navigates away
 mid-request. Every post-await context use MUST sit behind a mounted guard.
+Labels named `context` (`log(context: '...')`) are tokens, not
+reads: the analyzer-14 AST exposes no identifier for them, so
+they can never be sinks (SYS-CAL-002 P1-4).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -69,6 +73,11 @@ awaits; branch bodies are scanned by threading the armed state through
   [eval: unit fixture]
 - `await` and use in one statement (`await showDialog(context: …)`):
   the context is consumed before the gap, MUST NOT be flagged.
+  [eval: unit fixture]
+- Post-await named-argument labels (`log(context: '...')`):
+  MUST NOT be flagged (no identifier exists for a label).
+  [eval: TC-06.good]
+- Statement labels named `context`: MUST NOT be flagged.
   [eval: unit fixture]
 - `await` nested in a closure never arms the outer body.
   [eval: unit fixture]

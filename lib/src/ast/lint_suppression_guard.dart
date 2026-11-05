@@ -62,17 +62,22 @@ void _scanComments(
 
 /// Flags suppression comments and empty catch blocks.
 ///
-/// Scope (v0): any `//` line comment containing `ignore:` or
+/// Scope (v0): any `//` line comment containing a bare `ignore:` or
 /// `ignore_for_file:` (case-sensitive, anywhere in the file), and any
-/// catch clause whose body holds no real statement. Doc (`///`) and
-/// block (`/* */`) comments are never suppressions and stay clean.
+/// catch clause whose body holds no real statement. Justified
+/// suppressions (trailing `//` rationale), doc (`///`), and block
+/// (`/* */`) comments are never suppressions and stay clean.
 class LintSuppressionGuard extends RecursiveAstVisitor<void> {
   LintSuppressionGuard(this._lineInfo);
 
   final LineInfo _lineInfo;
   final List<LintSuppressionViolation> violations = [];
 
-  /// Flags [lexeme] when it is a `//` suppression comment.
+  /// Flags [lexeme] when it is a bare `//` suppression comment.
+  ///
+  /// A suppression carrying trailing rationale (a second `//`
+  /// after the directive with non-blank text) is a reviewed
+  /// decision and stays clean (SYS-CAL-002 P1-5).
   void checkComment(String lexeme, int offset) {
     if (!_isLineComment(lexeme)) return;
     final String? directive;
@@ -83,12 +88,14 @@ class LintSuppressionGuard extends RecursiveAstVisitor<void> {
     } else {
       return;
     }
+    if (_isJustified(lexeme, directive)) return;
     violations.add(
       LintSuppressionViolation(
         line: _lineInfo.getLocation(offset).lineNumber,
         message:
             "'//$directive' suppressions are forbidden; "
-            'fix the root cause instead',
+            'fix the root cause instead (or justify with trailing '
+            '// rationale)',
       ),
     );
   }
@@ -114,4 +121,13 @@ bool _isLineComment(String lexeme) {
   if (!lexeme.startsWith('//')) return false;
   if (!lexeme.startsWith('///')) return true;
   return lexeme.length > 3 && lexeme[3] == '/';
+}
+
+/// True when [lexeme] carries rationale after [directive]: a `//`
+/// separator past the directive with non-blank text following it.
+bool _isJustified(String lexeme, String directive) {
+  final start = lexeme.indexOf(directive) + directive.length;
+  final separator = lexeme.indexOf('//', start);
+  if (separator == -1) return false;
+  return lexeme.substring(separator + 2).trim().isNotEmpty;
 }

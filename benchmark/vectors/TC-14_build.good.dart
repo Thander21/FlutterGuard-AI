@@ -35,3 +35,15 @@ class _CalmViewState extends ConsumerState<CalmView> {
   void _refresh() {}
   Future<void> _reload() async {}
 }
+
+// Notifier.build runs once as provider initialization (SYS-CAL-002 P1-3).
+class BootNotifier extends Notifier<BootState> {
+  @override
+  BootState build() {
+    Future.microtask(_warm);
+    Timer.run(_warm);
+    return const BootState();
+  }
+
+  void _warm() {}
+}

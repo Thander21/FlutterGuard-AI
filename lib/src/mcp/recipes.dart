@@ -204,8 +204,8 @@ Transparent wrapper — bound the chain (v3):
    }
 ```
 
-(And every `// ignore:` line is deleted, with the underlying finding
-fixed at its root cause.)''',
+(And every bare `// ignore:` line is deleted, with the underlying
+finding fixed at its root cause.)''',
   'FG-MET-007': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 Depth — extract the subtree:

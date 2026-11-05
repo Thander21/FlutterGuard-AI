@@ -80,5 +80,45 @@ void f() {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('flags empty catches in primary-constructor classes', () {
+      final root = Directory.systemTemp.createTempSync('lint_test.');
+      try {
+        final path = '${root.path}/connection.dart';
+        File(path).writeAsStringSync('''
+class Connection {
+  new(this._ref);
+  final Object _ref;
+
+  void send() {
+    try {
+      transmit();
+    } catch (_) {}
+  }
+}
+''');
+        final violations = analyzeLintSuppressionFile(path);
+        expect(violations.map((v) => v.line), [8]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags empty rationale, spares justified suppressions', () {
+      final root = Directory.systemTemp.createTempSync('lint_test.');
+      try {
+        final path = '${root.path}/justified.dart';
+        File(path).writeAsStringSync('''
+void f() {
+  debugPrint('x'); // ignore: avoid_print //
+  debugPrint('y'); // ignore: avoid_print // tasting build
+}
+''');
+        final violations = analyzeLintSuppressionFile(path);
+        expect(violations.map((v) => v.line), [2]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

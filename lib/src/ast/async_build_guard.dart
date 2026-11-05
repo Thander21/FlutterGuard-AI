@@ -54,17 +54,31 @@ class AsyncBuildGuard extends RecursiveAstVisitor<void> {
 
   final LineInfo _lineInfo;
   final List<AsyncBuildViolation> violations = [];
-  final List<AstNode> _scopes = [];
+  final List<(AstNode, ClassDeclaration?)> _scopes = [];
+  final List<ClassDeclaration> _classes = [];
 
   void _push(AstNode scope, void Function() visit) {
-    _scopes.add(scope);
+    _scopes.add((scope, _classes.isEmpty ? null : _classes.last));
     visit();
     _scopes.removeLast();
   }
 
   /// True inside a directly-executing build scope (depth 1 + measured).
-  bool get _inDirectBuildScope =>
-      _scopes.length == 1 && _isMeasured(_scopes.single);
+  /// Each scope carries its lexically enclosing class (null for
+  /// top-level functions), captured at entry so local classes
+  /// declared inside a scope cannot shift the attribution.
+  bool get _inDirectBuildScope {
+    if (_scopes.length != 1) return false;
+    final (scope, owner) = _scopes.single;
+    return _isMeasured(scope, owner);
+  }
+
+  @override
+  void visitClassDeclaration(ClassDeclaration node) {
+    _classes.add(node);
+    super.visitClassDeclaration(node);
+    _classes.removeLast();
+  }
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) =>
@@ -167,9 +181,24 @@ class AsyncBuildGuard extends RecursiveAstVisitor<void> {
   }
 }
 
-/// True for `build()` methods and `Widget`-returning functions.
-bool _isMeasured(AstNode scope) {
+/// Riverpod notifier superclasses whose `build` is provider
+/// initialization, not widget build scope (TS-14 §3; SYS-CAL-002 P1-3).
+const _notifierSuperclasses = <String>{
+  'Notifier',
+  'AsyncNotifier',
+  'FamilyNotifier',
+  'FamilyAsyncNotifier',
+  'AutoDisposeNotifier',
+  'AutoDisposeAsyncNotifier',
+  'AutoDisposeFamilyNotifier',
+  'AutoDisposeFamilyAsyncNotifier',
+};
+
+/// True for `build()` methods and `Widget`-returning functions,
+/// except a `build` owned by a Riverpod notifier.
+bool _isMeasured(AstNode scope, ClassDeclaration? owner) {
   if (scope is MethodDeclaration) {
+    if (_isNotifierBuild(scope, owner)) return false;
     if (scope.name.lexeme == 'build') return true;
     return _isWidgetType(scope.returnType);
   }
@@ -177,6 +206,16 @@ bool _isMeasured(AstNode scope) {
     return _isWidgetType(scope.returnType);
   }
   return false;
+}
+
+/// True when [scope] is a `build` method owned by a class directly
+/// extending a Riverpod notifier. Indirect subclasses (custom
+/// intermediate bases) stay measured: unresolvable parse-only.
+bool _isNotifierBuild(MethodDeclaration scope, ClassDeclaration? owner) {
+  if (scope.name.lexeme != 'build' || owner == null) return false;
+  final superclass = owner.extendsClause?.superclass;
+  return superclass is NamedType &&
+      _notifierSuperclasses.contains(superclass.name.lexeme);
 }
 
 /// True for a `Widget` return type (exact simple name).
