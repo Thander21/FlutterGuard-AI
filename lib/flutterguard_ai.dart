@@ -1,5 +1,6 @@
 /// FlutterGuard AI: autonomous reactive quality harness for Flutter/Dart.
 library;
+
 export 'src/ast/arch_layer_guard.dart';
 export 'src/ast/async_build_guard.dart';
 export 'src/ast/async_context_guard.dart';
