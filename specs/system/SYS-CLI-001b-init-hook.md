@@ -16,12 +16,16 @@ require explicit flags.
 
 # 2. Interface / Schema
 
-`init [--scaffold] [--agents] [--help]` (parsed with `package:args`):
+`init [--scaffold] [--agents] [--mcp] [--no-hook]
+[--hook-command=<cmd>] [--help]` (parsed with `package:args`):
 hook install + `flutterguard.yaml` + mandate print by default;
 `--scaffold` also creates `.flutterguard/`; `--agents` also appends the
-mandate to `AGENTS.md`. Exit 0 when every applicable step lands, 1 when a
-step fails, 2 on bad arguments. `init --mcp` registers IDE clients per
-SYS-MCP-001 §2 (shipped in P3).
+mandate to `AGENTS.md` (default prints it); `--no-hook` skips the
+hook (hook-owned repos: only `flutterguard.yaml` lands);
+`--hook-command=<cmd>` writes a delegating hook that execs the
+project's own gate command verbatim. Exit 0 when every
+applicable step lands, 1 when a step fails, 2 on bad arguments.
+`init --mcp` registers IDE clients per SYS-MCP-001 §2.
 
 Pre-commit hook (`.git/hooks/pre-commit`, marker
 `# FlutterGuard pre-commit hook (SYS-CLI-001b)`):
@@ -38,6 +42,15 @@ elif command -v flutterguard >/dev/null 2>&1; then
 else
   exec dart run bin/flutterguard.dart check .
 fi
+```
+
+A `--hook-command` install writes the delegating variant instead
+(same marker guard; reinstall idempotent):
+
+```sh
+#!/bin/sh
+# FlutterGuard pre-commit hook (SYS-CLI-001b): delegates to the project's own gate.
+exec <cmd, verbatim>
 ```
 
 The hook runs `check`, never `grade` (PLAN-01 Phase 2, PLAN-03). Exit 1
@@ -94,8 +107,10 @@ proof record lives in §6.
 - `bin/flutterguard.dart` `init()` / `sandbox()` (thin CLI).
 - `test/init_test.dart` (init steps, flags, clobber guards, sandbox
   cycle, install scripts, scratch-clone hook block).
-- Generated: `.git/hooks/pre-commit`, `flutterguard.yaml`, `.flutterguard/`
-  (opt-in), `AGENTS.md` (opt-in), `fixtures/sandbox/` (volatile).
+- Generated: `.git/hooks/pre-commit` (default or `--hook-command`
+  delegating; skipped with `--no-hook`), `flutterguard.yaml`,
+  `.flutterguard/` (opt-in), `AGENTS.md` (opt-in),
+  `fixtures/sandbox/` (volatile).
 - `install.sh`, `install.ps1` at root.
 
 # 4. Evidence Wiring
@@ -109,6 +124,8 @@ executes `check`, which is read-only by SYS-CLI-001a.
   exit 1; yaml/scaffold steps still land.
 - Foreign hook (exists without the marker): refused, never overwritten,
   exit 1. Ours: reinstall is idempotent.
+- `--no-hook` with `--hook-command`, or an empty `--hook-command`:
+  usage error, exit 2 (nothing is written).
 - Hook infrastructure failure (CLI missing or crashing) aborts the commit
   — fail-closed; fix the install, never bypass.
 - Existing `flutterguard.yaml`: left untouched, never overwritten.
@@ -124,7 +141,8 @@ executes `check`, which is read-only by SYS-CLI-001a.
 - Hook runs `check`, not `grade` (grade-vs-check doctrine, PLAN-03).
 - Pollution budget (Architecture §3.1): default `init` writes only the
   hook (untracked, in `.git/`) and `flutterguard.yaml`; `.flutterguard/`
-  and `AGENTS.md` need `--scaffold` / `--agents`.
+  and `AGENTS.md` need `--scaffold` / `--agents`. `--no-hook`
+  writes `flutterguard.yaml` alone (SYS-CAL-002 P2-1).
 - Playground resolution (PLAN-02 SYS-MUT-001): `vectors/` = golden evals
   (read-only source), `fixtures/` = agent playground (volatile copies).
 - Live install proof (2026-11-04, SDK 3.13.7, post-push): the primary

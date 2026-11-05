@@ -139,6 +139,45 @@ void main() {
         'custom\n',
       );
     });
+    test('--no-hook writes only yaml, exits 0 without .git', () {
+      final plain = Directory.systemTemp.createTempSync('init_nohook.');
+      try {
+        expect(cli.init(['--no-hook'], root: plain.path), isZero);
+        expect(File('${plain.path}/flutterguard.yaml').existsSync(), isTrue);
+        expect(Directory('${plain.path}/.git').existsSync(), isFalse);
+        expect(File('${plain.path}/AGENTS.md').existsSync(), isFalse);
+      } finally {
+        plain.deleteSync(recursive: true);
+      }
+    });
+
+    test('--no-hook writes no hook even in a repo', () {
+      expect(cli.init(['--no-hook'], root: root.path), isZero);
+      expect(File('${root.path}/.git/hooks/pre-commit').existsSync(), isFalse);
+      expect(File('${root.path}/flutterguard.yaml').existsSync(), isTrue);
+    });
+
+    test('--hook-command delegates the hook to the project gate', () {
+      const command = 'dart run tool/commit_check.dart --strict';
+      expect(cli.init(['--hook-command', command], root: root.path), isZero);
+      final hookText = File('${root.path}/.git/hooks/pre-commit')
+          .readAsStringSync();
+      expect(hookText, contains('SYS-CLI-001b'));
+      expect(hookText, contains('exec $command'));
+      expect(
+        cli.init(['--hook-command', command], root: root.path),
+        isZero,
+        reason: 'marker-guarded reinstall stays idempotent',
+      );
+    });
+
+    test('--no-hook with --hook-command is a usage error', () {
+      expect(
+        cli.init(['--no-hook', '--hook-command', 'x'], root: root.path),
+        2,
+      );
+      expect(cli.init(['--hook-command', '  '], root: root.path), 2);
+    });
   });
 
   group('SYS-CLI-001b sandbox', () {

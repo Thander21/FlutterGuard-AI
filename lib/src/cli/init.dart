@@ -39,6 +39,15 @@ else
 fi
 ''';
 
+/// Pre-commit hook delegating to the project's own gate command
+/// (`--hook-command`; SYS-CAL-002 P2-1). The command runs verbatim;
+/// the marker guard still recognizes the hook as ours.
+String _delegatingHook(String command) =>
+    '''#!/bin/sh
+$_hookMarker: delegates to the project's own gate.
+exec $command
+''';
+
 /// Marker guarding the injected agent mandate (Architecture §3.1).
 const _agentsMarker = '<!-- FLUTTERGUARD MCP HARNESS CONTRACT -->';
 
@@ -51,11 +60,13 @@ const _agentsMandate = '''$_agentsMarker
 
 /// CLI usage for `init` (SYS-CLI-001b, SYS-MCP-001).
 const _initUsage = '''
-Usage: dart run bin/flutterguard.dart init [--scaffold] [--agents] [--mcp] [--help]
+Usage: dart run bin/flutterguard.dart init [--scaffold] [--agents] [--mcp] [--no-hook] [--hook-command=<cmd>] [--help]
   Installs the pre-commit hook (runs check), writes flutterguard.yaml,
   and prints the agent mandate. --scaffold also creates .flutterguard/;
-  --agents also appends the mandate to AGENTS.md;
-  --mcp also registers the flutterguard MCP server in IDE clients.''';
+  --agents also appends the mandate to AGENTS.md (default prints it);
+  --mcp also registers the flutterguard MCP server in IDE clients;
+  --no-hook skips the hook (hook-owned repos);
+  --hook-command delegates the hook to the project's own gate command.''';
 
 /// Initializes [root] for FlutterGuard. Returns 0 when every applicable
 /// step lands, 1 when a step fails, 2 on bad arguments.
@@ -72,6 +83,8 @@ int init(List<String> args, {String root = '.'}) {
       negatable: false,
       help: 'Register the MCP server in IDE clients.',
     )
+    ..addFlag('no-hook', negatable: false, help: 'Skip the pre-commit hook.')
+    ..addOption('hook-command', help: 'Delegate the hook to this gate command.')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -89,6 +102,18 @@ int init(List<String> args, {String root = '.'}) {
     stderr.writeln(_initUsage);
     return 2;
   }
+  final noHook = parsed['no-hook'] as bool;
+  final hookCommand = parsed['hook-command'] as String?;
+  if (noHook && hookCommand != null) {
+    stderr.writeln('error: --no-hook conflicts with --hook-command');
+    stderr.writeln(_initUsage);
+    return 2;
+  }
+  if (hookCommand != null && hookCommand.trim().isEmpty) {
+    stderr.writeln('error: --hook-command needs a non-empty command');
+    stderr.writeln(_initUsage);
+    return 2;
+  }
   var failed = false;
   final yaml = File(joinRoot(root, 'flutterguard.yaml'));
   if (yaml.existsSync()) {
@@ -99,7 +124,9 @@ int init(List<String> args, {String root = '.'}) {
   }
   final hooksDir = Directory(joinRoot(root, '.git/hooks'));
   final hook = File(joinRoot(root, '.git/hooks/pre-commit'));
-  if (!hooksDir.existsSync()) {
+  if (noHook) {
+    stdout.writeln('skipped: ${hook.path} (--no-hook)');
+  } else if (!hooksDir.existsSync()) {
     stderr.writeln('error: no .git/hooks under $root — hook skipped');
     failed = true;
   } else if (hook.existsSync() &&
@@ -107,7 +134,9 @@ int init(List<String> args, {String root = '.'}) {
     stderr.writeln('error: ${hook.path} is foreign — refusing to overwrite');
     failed = true;
   } else {
-    hook.writeAsStringSync(_hookScript);
+    hook.writeAsStringSync(
+      hookCommand == null ? _hookScript : _delegatingHook(hookCommand),
+    );
     if (!Platform.isWindows) {
       try {
         Process.runSync('chmod', ['+x', hook.path]);

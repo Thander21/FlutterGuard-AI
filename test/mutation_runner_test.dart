@@ -252,5 +252,95 @@ void main() {
         throwsArgumentError,
       );
     });
+    test('defaultTestCommand switches on flutter_test detection', () {
+      expect(MutationRunner.defaultTestCommand(usesFlutterTest: true), [
+        'flutter',
+        'test',
+      ]);
+      final dart = MutationRunner.defaultTestCommand(usesFlutterTest: false);
+      expect(dart, hasLength(2));
+      expect(dart.last, 'test');
+    });
+
+    test('usesFlutterTest is AST-sited (strings/comments never match)', () {
+      expect(
+        usesFlutterTest("import 'package:flutter_test/flutter_test.dart';\n"),
+        isTrue,
+      );
+      expect(usesFlutterTest("import 'package:test/test.dart';\n"), isFalse);
+      expect(
+        usesFlutterTest(
+          "// import 'package:flutter_test/x.dart'\nvoid main() {}\n",
+        ),
+        isFalse,
+      );
+      expect(
+        usesFlutterTest("const s = 'package:flutter_test/x.dart';\n"),
+        isFalse,
+      );
+    });
+
+    test(
+      'flutter_test suites resolve the flutter command (override seam)',
+      () async {
+        final pair = writePair(
+          'fluttercmd',
+          'bool isAboveZero(int n) => n > 0;\n',
+          '''
+import 'package:flutter_test/flutter_test.dart';
+import '../lib/target.dart';
+void main() {
+  testWidgets('honest', (tester) async {
+    expect(isAboveZero(1), isTrue);
+  });
+}
+''',
+        );
+        final seen = <bool>[];
+        final fake = File('${inputs.path}/fake_test.dart')
+          ..writeAsStringSync('void main(List<String> args) {}\n');
+        final runner = MutationRunner(
+          testCommand: ({required bool usesFlutterTest}) {
+            seen.add(usesFlutterTest);
+            return [Platform.resolvedExecutable, fake.path];
+          },
+        );
+        final verdict = await runner.run(
+          sourcePath: pair[0],
+          testPath: pair[1],
+          runId: nextId('fluttercmd'),
+        );
+        expect(seen, isNotEmpty);
+        expect(seen, everyElement(isTrue));
+        expect(verdict.results, hasLength(1));
+        expect(verdict.results.single.status, MutantStatus.survived);
+      },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
+
+    test('empty resolved command fails fast', () async {
+      final pair = writePair(
+        'emptycmd',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
+import 'package:test/test.dart';
+import '../lib/target.dart';
+void main() {
+  test('x', () {
+    expect(isAboveZero(1), isTrue);
+  });
+}
+''',
+      );
+      await expectLater(
+        MutationRunner(testCommand: ({required bool usesFlutterTest}) => [])
+            .run(
+              sourcePath: pair[0],
+              testPath: pair[1],
+              runId: nextId('emptycmd'),
+            ),
+        throwsStateError,
+      );
+    });
   });
 }

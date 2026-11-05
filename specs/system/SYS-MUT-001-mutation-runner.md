@@ -36,6 +36,8 @@ class Mutant {
 List<Mutant> findMutants(String source, {String? path});
 /// [source] with [mutant] applied (single-site replacement).
 String applyMutant(String source, Mutant mutant);
+/// True when [testSource] imports `package:flutter_test`.
+bool usesFlutterTest(String testSource);
 
 enum MutantStatus { killed, survived, timeout }
 
@@ -54,11 +56,14 @@ class MutationRunner {
   MutationRunner({
     this.timeout = const Duration(seconds: 8),
     this.sandboxRoot = 'fixtures/mutation',
+    this.testCommand,
   });
   final Duration timeout;
   final String sandboxRoot;
+  final List<String> Function({required bool usesFlutterTest})? testCommand;
+  static List<String> defaultTestCommand({required bool usesFlutterTest});
   /// Copies [sourcePath]+[testPath] per mutant into the sandbox, runs
-  /// `dart test --concurrency=1` on each, and classifies the outcome.
+  /// the resolved test command on each, and classifies the outcome.
   Future<MutationVerdict> run({
     required String sourcePath,
     required String testPath,
@@ -78,9 +83,12 @@ and generic type arguments are never touched:
 | 3 | `true` | `false` | `BooleanLiteral` (value `true` only) |
 
 One mutant per site; mutants run independently (never combined).
-Test invocation is deterministic: `dart test <sandboxTest>
---concurrency=1` (ClientAgents §2 Gate 3 via SYS-CLI-001a), mutants
-ordered by offset, run dirs zero-padded (`mutant_00`, …).
+Test invocation is deterministic: the resolved command over
+`<sandboxTest>` plus `--concurrency=1` (ClientAgents §2 Gate 3
+via SYS-CLI-001a), mutants ordered by offset, run dirs
+zero-padded (`mutant_00`, …). Resolution is per staged suite:
+`flutter test` when the test imports `package:flutter_test`
+(AST-sited), else `dart test`; `testCommand` overrides it.
 
 Before any mutant runs, the unmutated pair runs once in
 `<runId>/baseline/` (clean baseline). A non-zero baseline — including a
@@ -90,9 +98,12 @@ against a red suite, and fixtures the sandbox cannot load (missing
 `killed` verdicts. Sandbox copies are siblings: the test copy's
 relative import(s) resolving to the source are rewritten to the source
 basename (offset-precise, AST-sited), so any relative layout works and
-every mutant dir stays self-contained. The test executable is
+every mutant dir stays self-contained. The `dart test` executable is
 `Platform.resolvedExecutable` (`dart` fallback) so `.bat` launchers
 are never spawned and the breaker can kill the real process.
+Flutter staging needs package resolution: point `sandboxRoot`
+inside a flutter-capable package (the default sandbox only fits
+pure-Dart pairs).
 
 Green-on-mutant comparator (fail-closed):
 
@@ -114,7 +125,8 @@ honest PASS with empty `results` (nothing to kill, nothing claimed).
 - `lib/flutterguard_ai.dart` (re-export both).
 - `test/mutation_runner_test.dart` (contract test: rewriter units,
   canary pair complacent→FAIL / honest→PASS, timeout breaker,
-  relative-import guard, zero-mutant PASS).
+  relative-import guard, zero-mutant PASS, flutter command
+  resolution + override seam).
 - Generated at runtime: `fixtures/mutation/<runId>/mutant_<nn>/`
   (volatile, gitignored via `fixtures/`; kept after the run for
   inspection, never cleaned automatically).
@@ -145,8 +157,11 @@ emission (canon rule §4).
   lenient side — recorded here so v2 can tighten it).
 - Concurrent runs: `runId` defaults to a UTC-timestamp slug; callers
   needing isolation pass an explicit id (tests do).
-- Flutter widget tests are out of scope in v1 (pure `dart test`
-  only); `flutter test` invocation belongs to SYS-VIEW-001.
+- Flutter suites (`package:flutter_test` imports) run via
+  `flutter test` (SYS-CAL-002 P2-2); the v1 pure-`dart test`
+  bar is lifted for command selection. Widget-harness
+  semantics are unchanged (exit-code comparator only);
+  staging still needs a flutter-capable package (see §2).
 
 # 6. Contradictions Resolved
 
@@ -159,3 +174,7 @@ emission (canon rule §4).
   as `Process.start` + watchdog kill, same 8s default.
 - Sandbox discipline (PLAN-01 Phase 3): mutation NEVER edits in
   place — every mutant runs on copies under `fixtures/mutation/`.
+- Flutter invocation (SYS-CAL-002 P2-2): the runner resolves its
+  own `flutter test` per staged suite — the v1 "belongs to
+  SYS-VIEW-001" bar is lifted; Backlog-113 adoption stages
+  inside a flutter-capable package.

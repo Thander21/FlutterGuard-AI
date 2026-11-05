@@ -48,7 +48,7 @@ class MutationVerdict {
 }
 
 /// Copies source+test pairs into a volatile sandbox, mutates, runs
-/// `dart test --concurrency=1` per mutant, and classifies the outcome.
+/// the resolved test command per mutant, and classifies the outcome.
 ///
 /// The originals are never touched: every run happens on copies under
 /// [sandboxRoot]/`<runId>`/, which is kept after the run for
@@ -57,6 +57,7 @@ class MutationRunner {
   MutationRunner({
     this.timeout = const Duration(seconds: 8),
     this.sandboxRoot = 'fixtures/mutation',
+    this.testCommand,
   });
 
   /// Circuit-breaker budget per test invocation (baseline included).
@@ -65,6 +66,23 @@ class MutationRunner {
   /// Volatile root for sandbox copies (default inside the package so
   /// `package:` imports in the copies keep resolving).
   final String sandboxRoot;
+
+  /// Override for the test invocation, resolved per staged test.
+  /// When null, [defaultTestCommand] is used. The returned list is
+  /// the executable plus fixed args; the runner appends the staged
+  /// test path and `--concurrency=1`.
+  final List<String> Function({required bool usesFlutterTest})? testCommand;
+
+  /// Default test invocation: `flutter test` when the staged test
+  /// imports `package:flutter_test`, else `dart test` via the current
+  /// executable (`.bat` launchers never spawned, breaker-safe).
+  static List<String> defaultTestCommand({required bool usesFlutterTest}) {
+    if (usesFlutterTest) return const ['flutter', 'test'];
+    final executable = Platform.resolvedExecutable.isNotEmpty
+        ? Platform.resolvedExecutable
+        : 'dart';
+    return [executable, 'test'];
+  }
 
   /// Judges [testPath] against mutants of [sourcePath].
   ///
@@ -103,6 +121,7 @@ class MutationRunner {
       sourcePath,
     );
 
+    final usesFlutter = usesFlutterTest(test);
     final id = runId ?? _slug();
     final runDir = Directory('$sandboxRoot/$id');
     if (runDir.existsSync()) {
@@ -117,7 +136,10 @@ class MutationRunner {
       siblingTest,
     );
 
-    final baselineExit = await _runTest(baselineTest);
+    final baselineExit = await _runTest(
+      baselineTest,
+      usesFlutterTest: usesFlutter,
+    );
     if (baselineExit != 0) {
       throw StateError(
         'test fails on unmutated code (exit $baselineExit) — refusing '
@@ -138,7 +160,7 @@ class MutationRunner {
         _basenameOf(testAbs),
         siblingTest,
       );
-      final exit = await _runTest(staged);
+      final exit = await _runTest(staged, usesFlutterTest: usesFlutter);
       results.add(
         MutantResult(
           mutant: mutant,
@@ -175,18 +197,33 @@ class MutationRunner {
     return staged.path;
   }
 
-  /// Runs `dart test` on [testPath]; [_timedOut] when the breaker fires.
-  Future<int> _runTest(String testPath) async {
-    final executable = Platform.resolvedExecutable.isNotEmpty
-        ? Platform.resolvedExecutable
-        : 'dart';
-    final result = await runWithBreaker(executable, [
-      'test',
+  /// Runs the resolved test command on [testPath]; [_timedOut]
+  /// when the breaker fires.
+  Future<int> _runTest(String testPath, {required bool usesFlutterTest}) async {
+    final resolve = testCommand ?? defaultTestCommand;
+    final command = resolve(usesFlutterTest: usesFlutterTest);
+    if (command.isEmpty) {
+      throw StateError('test command resolved empty');
+    }
+    final result = await runWithBreaker(command.first, [
+      ...command.sublist(1),
       testPath,
       '--concurrency=1',
     ], timeout);
     return result.exitCode;
   }
+}
+
+/// True when [testSource] imports `package:flutter_test` (AST-sited,
+/// so strings and comments never match). Decides the test command
+/// per staged suite (SYS-CAL-002 P2-2).
+bool usesFlutterTest(String testSource) {
+  final unit = parseString(content: testSource, throwIfDiagnostics: false).unit;
+  final collector = _ImportCollector();
+  unit.accept(collector);
+  return collector.imports.any(
+    (uri) => uri.stringValue?.startsWith('package:flutter_test/') ?? false,
+  );
 }
 
 /// Rewrites the relative import(s) in [testSource] that resolve to

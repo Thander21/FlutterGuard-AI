@@ -305,6 +305,21 @@ SYS-TELE-001 first (canon rule §4).
   (TC-17 still the designed negative); corpus still 118
   files. CRAP re-measured on green: 3/0/0, same methods
   (line shifts only).
+- Re-ratifications: 2026-11-05 — SYS-CAL-002 P1+P2 growth: two
+  DRY pairs dissolved, one surfaced. The `heal`~=`init` and
+  `init`~=`CoverageRunner.run` procedural-flow twins fell below
+  threshold after the P2-1 `init` growth (`--no-hook`,
+  `--hook-command`) — re-judged eliminated-FP (were FP, still
+  0 actionable). New pair `CoverageRunner`~=`MutationRunner`
+  @0.807 (whole-class units): judged FP, runner-pipeline
+  class — both are validate→stage→breaker→classify pipelines
+  in different domains (coverage capture vs mutation
+  judging); the shared breaker already lives in
+  `lib/src/util.dart`, the rest is domain logic, extraction
+  forced. 3 pairs pinned, 0 actionable, HOLD reaffirmed.
+  MET set unchanged (same 2 TPs); `bin/`/`tool/` 0 pairs;
+  skip set unchanged; corpus still 118 files. CRAP
+  re-measured: 3/0/0, same methods.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).
