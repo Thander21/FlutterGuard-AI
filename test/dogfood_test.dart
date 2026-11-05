@@ -1,5 +1,5 @@
 // Dogfood L0 (PLAN-03 U1): the harness eats its own cooking —
-// `check` over lib/bin/test reports zero error-severity findings,
+// `check` over lib/bin/test/tool reports zero error-severity findings,
 // and checking never mutates the tree (read-only) nor depends on how
 // paths are spelled (relative vs absolute).
 import 'dart:io';
@@ -8,11 +8,11 @@ import 'package:flutterguard_ai/flutterguard_ai.dart';
 import 'package:test/test.dart';
 
 /// Self-gated roots (vectors excluded by design: they MUST flag).
-const _roots = ['lib', 'bin', 'test'];
+const _roots = ['lib', 'bin', 'test', 'tool'];
 
 void main() {
   group('dogfood L0 self-check', () {
-    test('lib, bin, test carry zero error-severity findings', () {
+    test('lib, bin, test, tool carry zero error-severity findings', () {
       for (final root in _roots) {
         final result = checkPath(root);
         final errors =

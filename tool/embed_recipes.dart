@@ -19,13 +19,11 @@ void main(List<String> args) {
     stderr.writeln('Usage: dart tool/embed_recipes.dart [--check]');
     exit(2);
   }
-  final root =
-      File(Platform.script.toFilePath()).parent.parent.absolute.path;
+  final root = File(Platform.script.toFilePath()).parent.parent.absolute.path;
   final specs = Directory('$root/specs')
       .listSync()
       .whereType<File>()
-      .where((f) =>
-          f.path.endsWith('.md') && !f.path.endsWith('_template.md'))
+      .where((f) => f.path.endsWith('.md') && !f.path.endsWith('_template.md'))
       .toList()
     ..sort((a, b) => a.path.compareTo(b.path));
   if (specs.isEmpty) {
@@ -65,8 +63,8 @@ void main(List<String> args) {
 }
 
 /// Rule ids whose embedded recipe differs (or is absent) in [committed].
-List<String> _drifted(String committed,
-    List<({String id, String spec, String recipe})> entries) {
+List<String> _drifted(
+    String committed, List<({String id, String spec, String recipe})> entries) {
   return [
     for (final e in entries)
       if (!committed.contains("'${e.id}': r'''${e.recipe}'''")) e.id
@@ -74,9 +72,8 @@ List<String> _drifted(String committed,
 }
 
 String _render(List<({String id, String spec, String recipe})> entries) {
-  final recipes = entries
-      .map((e) => "  '${e.id}': r'''${e.recipe}''',")
-      .join('\n');
+  final recipes =
+      entries.map((e) => "  '${e.id}': r'''${e.recipe}''',").join('\n');
   final specs = entries.map((e) => "  '${e.id}': '${e.spec}',").join('\n');
   return '''// SYS-MCP-001: embedded §2 canonical recipes, keyed by rule id.
 //
@@ -106,8 +103,7 @@ String _frontMatterId(String text, String path) {
       continue;
     }
     if (!inMatter) continue;
-    final match =
-        RegExp(r'^\s*id:\s*"?([^"\s]+)"?\s*$').firstMatch(line);
+    final match = RegExp(r'^\s*id:\s*"?([^"\s]+)"?\s*$').firstMatch(line);
     if (match != null) return match.group(1)!;
   }
   stderr.writeln('error: no front-matter id in $path');
@@ -118,8 +114,7 @@ String _frontMatterId(String text, String path) {
 /// top-level (`# `) heading, with trailing blank lines trimmed.
 String _section(String text, String path) {
   final lines = text.split('\n');
-  final start =
-      lines.indexWhere((l) => l.trim().startsWith(sectionHeading));
+  final start = lines.indexWhere((l) => l.trim().startsWith(sectionHeading));
   if (start < 0) {
     stderr.writeln('error: no $sectionHeading in $path');
     exit(1);
