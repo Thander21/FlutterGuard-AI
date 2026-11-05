@@ -73,6 +73,7 @@ take minutes — the client decides its budget.
 | `*vector` (`fg-vector`) | — (authoring, no gate) | — (writes `benchmark/vectors/TC-NN.*`) | golden vectors |
 | `*visitor` (`fg-visitor`) | `analyze_ast` (verify on vectors) | `dart test`, `check` | visitor + unit test |
 | `*grade` (`fg-grade`) | `analyze_ast`, `get_canonical_recipe`, `get_telemetry` | `grade`, `check` | eval + heal loop |
+| `*use` (`fg-use`) | `analyze_ast`, `get_canonical_recipe` (escalate: `verify_viewport`, `run_mutation_check`, `get_telemetry`) | `check` | daily loop |
 
 Skills live at `.agents/skills/fg-<name>/SKILL.md` (AGENTS.md
 placement); each states its row's tools, CLI fallback, inputs, and
@@ -120,7 +121,8 @@ done criteria.
 - `.agents/skills/fg-spec/SKILL.md`,
   `.agents/skills/fg-vector/SKILL.md`,
   `.agents/skills/fg-visitor/SKILL.md`,
-  `.agents/skills/fg-grade/SKILL.md`.
+  `.agents/skills/fg-grade/SKILL.md`,
+  `.agents/skills/fg-use/SKILL.md` (row added by SYS-MCP-002 Wave 1).
 - Runtime-only: `<root>/mcp_config.json`, `<root>/.cursor/mcp.json`
   (written by `init --mcp` in the TARGET project, never here).
 

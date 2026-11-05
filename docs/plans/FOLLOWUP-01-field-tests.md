@@ -26,11 +26,9 @@ an item in a future plan — this file is the intake, not the disposition.
 
 ## Findings
 
-(No field findings yet — append below as `F-001`, `F-002`, ...)
-
 | ID | Date | Finding | Disposition |
 |---|---|---|---|
-| | | | |
+| F-001 | 2026-11-05 | Wave-1 scratch proof (SYS-MCP-002 M5): marketplace add + install from local folder works (`flutterguard@flutterguard` 0.1.0, enabled); `claude plugin validate` passes on plugin + marketplace (also `--strict`); MCP auto-registers and connects with the CLI present (`✔ Connected`); `fg-use` skill auto-discovers (`flutterguard:fg-use`); hooks fire in live sessions with `${CLAUDE_PLUGIN_ROOT}` expanding on Windows; missing CLI → PreToolUse exit 2 + install command, Edit blocked, agent relays the exact remediation (2/2 live runs with shipped files); hook + real global `check` → exit 2 with FG-FMT-016/IMP-015/LINT-009 findings + recipe pointers. Hermetic suite: `test/plugin_bundle_test.dart` 16/16, full `dart test` 218/218, `grade` all-green. Gaps found while proving: (a) Bash-mediated file writes bypass Edit/Write hooks — hooks are a tripwire, the pre-commit hook stays the barrier; (b) first-ever live session showed Pre/Post exit 0 once, irreproducible across 3 subsequent runs (suspected cold-start stdin stall — watch item, not a blocker); (c) `-p` sessions do not inherit the caller's PATH (shims invisible; global install required for in-session CLI); (d) path-activation `dart run` noise on check stdout falls back to raw findings text (verdict unaffected; git installs are silent). | Closes MCP-002 exit bar → spec approved; (a) recorded in MCP-002 §5 + README honesty note |
 
 ## Rules
 
