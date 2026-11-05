@@ -1,2 +1,5 @@
 # Shell installers must keep LF endings (CRLF breaks the shebang).
 *.sh text eol=lf
+# Dart sources must keep LF endings: fresh CRLF checkouts break the
+# CRLF contract test (vectors are read as LF) and trip FG-FMT-016.
+*.dart text eol=lf
