@@ -59,7 +59,8 @@ pubspec, so runtime reads are out).
 `status` follows gate semantics (`FAILED` = violation caught).
 `verify_viewport` v1 is the lite vocabulary with the degraded-mode
 note (honest scope: pumping foreign widgets needs the target's
-package context; full-harness orchestration is v2, not v1).
+package context). Full-harness orchestration (v2) is DROPPED as of
+Wave 2 (see §6): lite is the orchestration story.
 `get_telemetry` on a missing `evidence.jsonl` returns empty `lines`
 with a `note` (a query, not a gate — never errors). No server-side
 timeout: the runners' own breakers (8s) apply; multi-mutant runs may
@@ -186,8 +187,18 @@ MUST amend SYS-TELE-001 first (canon rule §4).
 - `verify_viewport` scope: v1 = Tier-1-lite (this decides the
   SYS-VIEW-001 §6 deferred item "target-project consumption" for
   v1: lite over the target path, degraded note attached).
-  Full-harness orchestration against foreign package contexts is
-  explicitly v2.
+  Full-harness orchestration against foreign package contexts was
+  v2 — DROPPED Wave 2 (SYS-VAL-001 F5): pumping foreign widgets
+  needs the target's SDK + resolvable deps + knowledge of what to
+  pump (constructors/routes/providers are unknowable generically)
+  + test-context injection, for no demanding target and no field
+  finding; lite (FG-LAY-004) catches the dominant static breakage
+  class. The Tier-1 rig stays as FlutterGuard's own fixture gate
+  (14/14 green, verified 2026-11-05). Re-entry: a target project
+  with widget tests + SDK requesting matrix-wrapped runs, or field
+  evidence that lite misses matter — then scope v2 as a
+  matrix-wrap of the target's OWN tests (synthetic pumping stays
+  infeasible: constructors unknowable).
 - R3 (PLAN-03 open question — recipe pointers outside the
   checkout): EMBEDDED SPECS wins. `lib/src/mcp/recipes.dart`
   carries every rule's §2 markdown keyed by rule id (checked in,

@@ -191,7 +191,8 @@ covers Tier-1 lines once emitted.
   gate command). `viewport/` is a non-published test rig
   (`publish_to: none`), same category as `benchmark/` fixtures.
   Target-project consumption of the harness is decided in the
-  distribution phase, not here.
+  distribution phase, not here. Decided Wave 2 (SYS-VAL-001 F5):
+  DROP — lite suffices, see SYS-MCP-001 §6 for rationale + re-entry.
 - ` Landscape Split Ratio` (undimensioned in docs) is
   concretized as 512x768 (half of the 1024x768 PDV tablet in
   split mode); PDV resolutions enter as their own cases, not

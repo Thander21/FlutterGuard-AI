@@ -152,8 +152,9 @@ cliente: um servidor saudável responde `initialize` com
 
 **Nota de escopo:** mutação, coverage/CRAP e duplicação existem como
 API Dart + testes + MCP parcial (`run_mutation_check`, `verify_viewport`
-lite); a superfície de terminal é `check`/`grade`/`init`/`sandbox` — CLI
-mais ampla é follow-up.
+lite); o `heal` entra na superfície de terminal
+(`check`/`grade`/`init`/`sandbox`/`heal`) como wrapper fino do
+`HealDispatcher` (só regras fast-path).
 
 **Setup oficial:** instale uma vez globalmente, depois
 `flutterguard init --mcp` em cada projeto. As ferramentas MCP governam o
