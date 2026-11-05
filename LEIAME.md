@@ -4,6 +4,8 @@
 
 > **Transformando IA de geradora complacente de código em engenheiro de software sênior determinístico através de Spec-Driven Development (SDD), Análise Reativa de AST, Verificação Visual Multimodal e Gates Bloqueantes.**
 
+*Read in English: [README.md](README.md)*
+
 > **Escopo:** 17 regras AST implementadas (16 bloqueantes + `FG-MET-007`
 > consultiva) com comandos CLI `grade` + `check` + `init` + `sandbox`,
 > hook pre-commit, dispatcher de autocura, mutation runner, Tier-1
@@ -112,8 +114,8 @@ do `init`.
 
 ### Ferramentas MCP e uso pelo agente
 
-`init --mcp` registra o servidor stdio `flutterguard_mcp`. O Cursor é
-configurado automaticamente (`.cursor/mcp.json`). Matriz por cliente (contrato completo:
+`init --mcp` registra o servidor stdio `flutterguard_mcp`. Matriz por
+cliente (contrato completo:
 `specs/system/SYS-MCP-002-client-packaging.md`):
 
 | Cliente | Caminho | Notas |
