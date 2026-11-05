@@ -208,7 +208,7 @@ void main() {
       final separator = Platform.isWindows ? ';' : ':';
       expect(
           resolvesOnPath('fgmcp', pathEnv: ' ${dir.path} $separator '), isTrue);
-      expect(resolvesOnPath('fgmcp', pathEnv: dir.path + '_empty'), isFalse);
+      expect(resolvesOnPath('fgmcp', pathEnv: '${dir.path}_empty'), isFalse);
       expect(resolvesOnPath('fgmcp', pathEnv: ''), isFalse);
     });
   });

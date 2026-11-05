@@ -18,8 +18,10 @@ class BlocEmitViolation implements RuleViolation {
   const BlocEmitViolation({required this.line, required this.message});
 
   /// 1-based line number of the offending `emit` call.
+  @override
   final int line;
 
+  @override
   final String message;
 
   @override

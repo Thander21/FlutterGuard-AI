@@ -1,0 +1,5 @@
+# FlutterGuard analyzer config (SYS-REL-001 R6).
+# Recommended lints, enforced by `dart analyze --fatal-infos` and CI.
+# A noisy rule may be disabled below only with an inline reason recorded
+# as a spec amendment; per-line suppressions stay forbidden (FG-LINT-009).
+include: package:lints/recommended.yaml

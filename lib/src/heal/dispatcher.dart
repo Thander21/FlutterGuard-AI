@@ -13,19 +13,16 @@ enum HealStrategy { insertBeforeInvocation, replaceInvocation }
 /// A heal recipe: rule id, strategy, and strategy payload.
 class HealRecipe {
   /// Insert [guard] as its own line above the violation's line.
-  const HealRecipe.insert({required this.ruleId, required String guard})
+  const HealRecipe.insert({required this.ruleId, required this.guard})
       : strategy = HealStrategy.insertBeforeInvocation,
-        guard = guard,
         from = null,
         to = null;
 
   /// Replace the first [from] with [to] on the violation's line.
   const HealRecipe.replace(
-      {required this.ruleId, required String from, required String to})
+      {required this.ruleId, required this.from, required this.to})
       : strategy = HealStrategy.replaceInvocation,
-        guard = null,
-        from = from,
-        to = to;
+        guard = null;
 
   final String ruleId;
   final HealStrategy strategy;
