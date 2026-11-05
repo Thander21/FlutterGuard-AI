@@ -2,7 +2,7 @@
 plan_version: "2.0"
 id: "PLAN-03"
 title: "Architecture conformance and distribution"
-status: "proposed"
+status: "complete"
 source_docs:
   - "docs/_origem/Architecture.md"
   - "docs/_origem/FormalVerificationAlgorithms.md"
@@ -12,6 +12,9 @@ source_docs:
 ---
 
 # PLAN-03: Architecture Conformance and Distribution
+
+> **Status: complete** — conformance landed and distribution verified
+> 2026-11-04; install proof in `specs/system/SYS-CLI-001b-init-hook.md` §6.
 
 ## Goal
 

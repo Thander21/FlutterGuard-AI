@@ -2,7 +2,7 @@
 plan_version: "3.0"
 id: "PLAN-02"
 title: "Functional scope closure to working system"
-status: "proposed"
+status: "complete"
 source_docs:
   - "docs/_origem/Architecture.md"
   - "docs/_origem/FormalVerificationAlgorithms.md"
@@ -30,6 +30,9 @@ excluded_docs:
 ---
 
 # PLAN-02: Functional Scope Closure to Working System
+
+> **Status: complete** — all steps built and verified 2026-11-04;
+> traceability in `docs/plans/AUDIT-01-traceability.md`.
 
 ## Goal
 
