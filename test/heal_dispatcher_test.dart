@@ -31,6 +31,13 @@ void setup() {
 }
 ''';
 
+const _asyncFixture = '''
+Future<void> submit(BuildContext context) async {
+  await save();
+  Navigator.of(context).pop();
+}
+''';
+
 void main() {
   group('SYS-HEAL-001 heal dispatcher', () {
     late Directory root;
@@ -206,6 +213,47 @@ void main() {
       expect(report.readAsStringSync(), contains('FG-STUB-001'));
       expect(report.readAsStringSync(), contains('3/3'));
       expect(report.readAsStringSync(), contains('Attack the Premise'));
+    });
+
+    group('fast-path recipe table (SYS-REL-001 R4)', () {
+      test('table pins exactly the closed mechanical list', () {
+        expect(fastPathRecipes.keys,
+            unorderedEquals(['FG-BLOC-001', 'FG-RIV-001', 'FG-ASYNC-002']));
+        expect(healRecipeFor('FG-NOPE-000'), isNull);
+        expect(healRecipeFor('FG-BLOC-001')!.guard, 'if (isClosed) return;');
+        expect(healRecipeFor('FG-RIV-001')!.from, 'ref.watch');
+        expect(healRecipeFor('FG-RIV-001')!.to, 'ref.read');
+        expect(healRecipeFor('FG-ASYNC-002')!.guard,
+            'if (!context.mounted) return;');
+      });
+
+      test('table recipe heals an ASYNC-002 fixture red to green', () {
+        final path = writeFixture('async.dart', _asyncFixture);
+        expect(analyzeAsyncFile(path), hasLength(1));
+
+        final result = HealDispatcher().healFile(
+          path: path,
+          recipe: healRecipeFor('FG-ASYNC-002')!,
+          analyze: analyzeAsyncFile,
+        );
+
+        expect(result.success, isTrue);
+        expect(analyzeAsyncFile(path), isEmpty);
+      });
+
+      test('table recipe heals a RIV-001 fixture red to green', () {
+        final path = writeFixture('riv_table.dart', _rivFixture);
+        expect(analyzeRiverpodFile(path), hasLength(1));
+
+        final result = HealDispatcher().healFile(
+          path: path,
+          recipe: healRecipeFor('FG-RIV-001')!,
+          analyze: analyzeRiverpodFile,
+        );
+
+        expect(result.success, isTrue);
+        expect(analyzeRiverpodFile(path), isEmpty);
+      });
     });
   });
 }

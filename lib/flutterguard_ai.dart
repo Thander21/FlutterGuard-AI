@@ -25,6 +25,7 @@ export 'src/cli/init.dart';
 export 'src/cli/rules.dart';
 export 'src/cli/sandbox.dart';
 export 'src/heal/dispatcher.dart';
+export 'src/heal/recipes.dart';
 export 'src/mutation/mutant.dart';
 export 'src/mutation/runner.dart';
 export 'src/viewport/lite.dart';
