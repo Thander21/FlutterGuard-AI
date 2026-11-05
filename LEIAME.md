@@ -41,7 +41,7 @@ O **FlutterGuard AI** possui seu motor central e inteligência alimentados 100% 
 
 ---
 
-## ⚡ Instalação Rápida & Setup (Opção 1: Padrão Nativo via Git)
+## ⚡ Instalação Rápida & Setup (Padrão Nativo via Git)
 
 Instale e ative o FlutterGuard globalmente na sua máquina diretamente do GitHub com **um único comando nativo do Dart SDK** (sem necessidade de clonar o repositório manualmente):
 
@@ -75,6 +75,49 @@ flutterguard init --mcp
 3. **Contrato de Governança:** o mandato do agente é impresso por padrão; `init --agents` o escreve no `AGENTS.md`.
 4. **Git Pre-Commit Hook:** instalado pelo `init`; roda `check` e bloqueia commits com violações.
 
+### Ferramentas MCP e uso pelo agente
+
+`init --mcp` registra o servidor stdio `flutterguard_mcp`. O Cursor é
+configurado automaticamente (`.cursor/mcp.json`); outros clientes precisam do
+snippet impresso mesclado em sua config MCP (formato Claude Code):
+
+```json
+{
+  "mcpServers": {
+    "flutterguard": {
+      "command": "flutterguard_mcp"
+    }
+  }
+}
+```
+
+As 5 ferramentas tipadas (contrato completo: `specs/system/SYS-MCP-001-mcp-server.md`):
+
+| Ferramenta | Argumentos | Propósito |
+|---|---|---|
+| `analyze_ast` | `path` | Roda as 17 regras AST num arquivo ou diretório. `FAILED` = violação capturada. |
+| `get_canonical_recipe` | `rule_id` | Retorna a receita de correção Before/After (spec §2). Aplique em um turno. |
+| `verify_viewport` | `path` | Vocabulário Tier-1-lite de layout. Degradado: `PASS` nunca afirma tela limpa. |
+| `run_mutation_check` | `source_file`, `test_file` | Julga um teste contra mutantes. `passed=false` = teste complacente. |
+| `get_telemetry` | `rule_id?`, `status?`, `limit?` | Lê as linhas mais novas do `evidence.jsonl`. Consulta, nunca gate. |
+
+Loop do agente: `analyze_ast` → `get_canonical_recipe(rule_id)` → patch →
+rode `analyze_ast` até `PASSED`. Verifique a instalação conectando um
+cliente: um servidor saudável responde `initialize` com
+`serverInfo flutterguard/0.1.0`.
+
+**Nota de escopo:** mutação, coverage/CRAP, duplicação e heal existem como
+API Dart + testes + MCP parcial (`run_mutation_check`, `verify_viewport`
+lite); a superfície de terminal é `check`/`grade`/`init`/`sandbox` — CLI
+mais ampla é follow-up.
+
+**Setup oficial:** instale uma vez globalmente, depois
+`flutterguard init --mcp` em cada projeto. As ferramentas MCP governam o
+loop do agente (aconselham + verificam); o hook pre-commit aplica o gate
+— bloqueia commits com erros sem depender do agente. Conduza o loop
+diário com a skill `fg-use` (`.agents/skills/fg-use/`, promovível ao
+escopo user).
+
 ---
 
 ## 📚 Mapa da Documentação
@@ -94,6 +137,8 @@ flutterguard init --mcp
 - 🔗 **[Ponte de Referência ERP PDV D+](docs/_origem/ReferencePdvDMais.md):** Mapeamento e consulta das regras reais testadas em produção no PDV D+.
 - 🎯 **[Trilha do Hackathon Meta](docs/_rulesHackathon/MetaHackathonTrack.md):** Planejamento e textos oficiais de submissão do evento.
 - 📢 **[Divulgação & Build in Public](docs/_rulesHackathon/SelfPromotion/SelfPromotion.md):** Diretrizes de compliance da Meta e calendário de posts no LinkedIn.
+
+_Nota: os três links de hackathon acima são histórico do evento, não requisitos do projeto._
 
 ---
 
