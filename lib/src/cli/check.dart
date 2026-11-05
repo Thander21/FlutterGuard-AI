@@ -71,8 +71,8 @@ class CheckResult {
   };
 }
 
-/// Rule id judged by subprocess batch instead of the per-file loop
-/// (FG-FMT-016: one `dart format` spawn per run, not per file).
+/// Rule id judged by subprocess batches instead of the per-file loop
+/// (FG-FMT-016: bounded `dart format` spawns per run, not per file).
 const batchRuleId = 'FG-FMT-016';
 
 /// Runs every registered visitor over [target] (one `.dart` file or a

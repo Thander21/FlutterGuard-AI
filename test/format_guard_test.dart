@@ -111,5 +111,43 @@ void main() {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('multi-chunk batches equal per-file verdicts (SYS-CAL-002 P0-2)', () {
+      final root = Directory.systemTemp.createTempSync('fmt_test.');
+      try {
+        final files = <String>[];
+        for (var i = 0; i < 5; i++) {
+          final file = File('${root.path}/chunk_$i.dart')
+            ..writeAsStringSync(
+              i.isEven ? 'void  main()  {}\n' : 'void main() {}\n',
+            );
+          files.add(file.path);
+        }
+        final batched = analyzeFormatBatch(files, batchSize: 2);
+        expect(batched.keys, orderedEquals(files));
+        for (final file in files) {
+          expect(
+            batched[file]?.map((v) => v.line),
+            analyzeFormatFile(file).map((v) => v.line),
+            reason: 'chunked/single equivalence for $file',
+          );
+        }
+        expect(
+          batched.values.where((v) => v.isNotEmpty),
+          hasLength(3),
+          reason: 'files 0, 2, 4 are dirty',
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('default chunk size stays Windows-safe (SYS-CAL-002 P0-2)', () {
+      expect(formatBatchSize, 50);
+      expect(
+        () => analyzeFormatBatch(['a.dart'], batchSize: 0),
+        throwsArgumentError,
+      );
+    });
   });
 }

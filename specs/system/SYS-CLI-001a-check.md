@@ -91,9 +91,9 @@ the pollution budget).
 - `lib/src/cli/rules.dart` (registry both `grade` and `check` run).
 - Tests: `test/check_test.dart` (audit behavior), `test/check_cli_test.dart`
   (arg parsing, exit codes).
-- `lib/src/ast/format_guard.dart` (FG-FMT-016 batch core: one
-  `dart format` spawn per `checkPath` call; called by `checkPath`,
-  not the per-file loop).
+- `lib/src/ast/format_guard.dart` (FG-FMT-016 batch core:
+  bounded `dart format` spawns per `checkPath` call, 50 files
+  each (TS-16); called by `checkPath`, not the per-file loop).
 
 # 4. Evidence Wiring
 

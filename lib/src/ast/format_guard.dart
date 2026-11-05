@@ -1,13 +1,13 @@
 // FG-FMT-016: flag files the formatter would rewrite.
 //
-// The oracle is the ambient SDK itself: one `dart format
-// --output=none --set-exit-if-changed` batch over the target
+// The oracle is the ambient SDK itself: bounded `dart format
+// --output=none --set-exit-if-changed` batches over the target
 // files, verdicts attributed from the `Changed ` stdout lines.
 // Running on the originals preserves package context, so
 // language-version resolution matches a manual CLI run exactly —
 // skew is impossible by construction, with no added dependency
-// (dart_style 3.x needs analyzer ^7+ vs analyzer ^6.0.0 here;
-// 2.x formats short style).
+// (no dart_style dependency: a second formatting implementation
+// could skew from the ambient SDK).
 import 'dart:io';
 
 import 'rule_violation.dart';
@@ -42,28 +42,56 @@ List<FormatViolation> analyzeFormatFile(String path) {
   return analyzeFormatBatch([path])[path] ?? const [];
 }
 
-/// Runs one formatter batch over [files] and maps `Changed ` lines
-/// back to verdicts by normalized path.
+/// Maximum files per formatter spawn.
 ///
-/// Throws [FileSystemException] when a file is unreadable,
-/// [StateError] when the formatter exits outside `{0, 1, 65}` or
-/// reports a file outside [files]. Never spawns for an empty list
-/// (`dart format` with no files reads stdin).
-Map<String, List<FormatViolation>> analyzeFormatBatch(List<String> files) {
+/// The Windows command line caps at 32,767 characters; 50 files keep
+/// even deep-tree batches (50 x ~300-char paths) under half that
+/// budget with margin (SYS-CAL-002 P0-2).
+const formatBatchSize = 50;
+
+/// Runs the formatter over [files] in bounded batches and maps
+/// `Changed ` lines back to verdicts by normalized path.
+///
+/// [batchSize] overrides the chunk size (tests pin multi-chunk
+/// merging without spawning 50+ fixtures); it must be positive.
+/// Throws [ArgumentError] on a non-positive [batchSize],
+/// [FileSystemException] when a file is unreadable, [StateError]
+/// when the formatter exits outside `{0, 1, 65}` or reports a file
+/// outside [files]. Never spawns for an empty list (`dart format`
+/// with no files reads stdin).
+Map<String, List<FormatViolation>> analyzeFormatBatch(
+  List<String> files, {
+  int batchSize = formatBatchSize,
+}) {
   if (files.isEmpty) return const {};
+  if (batchSize < 1) {
+    throw ArgumentError('batchSize must be positive: $batchSize');
+  }
+  final merged = <String, List<FormatViolation>>{};
+  for (var start = 0; start < files.length; start += batchSize) {
+    merged.addAll(
+      _analyzeFormatChunk(files.skip(start).take(batchSize).toList()),
+    );
+  }
+  return merged;
+}
+
+/// Runs one formatter spawn over [chunk] and maps `Changed ` lines
+/// back to verdicts by normalized path.
+Map<String, List<FormatViolation>> _analyzeFormatChunk(List<String> chunk) {
   final result = Process.runSync(Platform.resolvedExecutable, [
     'format',
     '--output=none',
     '--set-exit-if-changed',
-    ...files,
+    ...chunk,
   ]);
   if (!_verdictExitCodes.contains(result.exitCode)) {
     throw StateError(
       'dart format failed with exit ${result.exitCode} '
-      'over ${files.length} file(s)',
+      'over ${chunk.length} file(s)',
     );
   }
-  final byPath = {for (final file in files) _normalizePath(file): file};
+  final byPath = {for (final file in chunk) _normalizePath(file): file};
   final changed = <String>{};
   for (final line in (result.stdout as String).split('\n')) {
     if (!line.startsWith('Changed ')) continue;
@@ -75,7 +103,7 @@ Map<String, List<FormatViolation>> analyzeFormatBatch(List<String> files) {
     changed.add(original);
   }
   return {
-    for (final file in files)
+    for (final file in chunk)
       file: changed.contains(file)
           ? const [
               FormatViolation(

@@ -24,17 +24,20 @@ AI generators emit code with erratic spacing, indentation, and line
 breaks. Unformatted code hides real defects in noisy diffs and
 fails the human review gate of every serious Dart project (`dart
 format` is the community standard). The check shells the ambient
-SDK: one `dart format --output=none --set-exit-if-changed` batch
-over the target files themselves, verdicts attributed from the
-`Changed ` stdout lines (matched to inputs by normalized path;
-an unmappable line throws — fail-loud). Running on the originals
-preserves package context, so language-version resolution is
-identical to a manual CLI run: skew is impossible by
-construction, with one spawn per `check` run inside the
-`validate-light` budget. Two designs were rejected: in-process
-`dart_style` (3.x needs analyzer ^7+ vs the repo's ^6.0.0, 2.x
-formats short style) and normalized temp copies (leaving the
-package flips the language version and misjudges files). No
+SDK: bounded `dart format --output=none --set-exit-if-changed`
+batches (50 files per spawn) over the target files themselves,
+verdicts attributed from the `Changed ` stdout lines (matched
+to inputs by normalized path; an unmappable line throws —
+fail-loud). Running on the originals preserves package
+context, so language-version resolution is identical to a
+manual CLI run: skew is impossible by construction, with one
+spawn per 50 files inside the `validate-light` budget (the
+bound keeps every spawn under half the Windows command-line
+limit; SYS-CAL-002 P0-2). Two designs were rejected:
+in-process `dart_style` (a second formatting implementation
+that can skew from the ambient SDK) and normalized temp
+copies (leaving the package flips the language version and
+misjudges files). No
 element model is involved and no dependency is added, so the rule
 runs in `validate-light` per SYS-CLI-001a §2. It is not an AST
 traversal — `analysis: parse-only` records the gate assignment
@@ -82,6 +85,10 @@ heal; the gate compares against exactly that output.
   run). No version skew is possible: the oracle is the ambient
   CLI on the original paths, and no formatter dependency is
   added. [eval: unit fixture]
+- Multi-chunk batches MUST equal per-file verdicts: files past
+  the 50-file bound chunk into further spawns with merged
+  verdicts in input order (no file skipped, none double
+  counted). [eval: unit fixture]
 
 `run_formatter` is model-owned per the SYS-HEAL-001 closed
 fast-path list (the dispatcher has no whole-file patch shape; the
