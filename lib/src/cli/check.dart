@@ -10,9 +10,14 @@ import 'dart:io';
 import 'package:args/args.dart';
 
 import '../ast/format_guard.dart';
+import '../rule_params.dart';
 import '../util.dart';
+import 'analyze.dart';
 import 'baseline.dart';
 import 'config.dart';
+import 'deps.dart';
+import 'ledger.dart';
+import 'licenses.dart';
 import 'rules.dart';
 
 /// One violation found by `check`.
@@ -66,10 +71,18 @@ int _countSeverity(List<CheckFinding> findings, String severity) =>
 
 /// Result of [checkPath]: findings plus per-file errors.
 class CheckResult {
-  const CheckResult({required this.findings, required this.errors});
+  const CheckResult({
+    required this.findings,
+    required this.errors,
+    this.msByRule = const {},
+  });
 
   final List<CheckFinding> findings;
   final List<CheckError> errors;
+
+  /// Milliseconds spent per rule id (rules that scanned no file
+  /// carry no entry). Measured always, reported with `--by-gate`.
+  final Map<String, int> msByRule;
 
   Map<String, Object?> toJson() => {
     'findings': [for (final f in findings) f.toJson()],
@@ -84,6 +97,69 @@ class CheckResult {
 /// Rule id judged by subprocess batches instead of the per-file loop
 /// (FG-FMT-016: bounded `dart format` spawns per run, not per file).
 const batchRuleId = 'FG-FMT-016';
+
+/// One per-gate verdict for `--by-gate` reporting.
+class GateVerdict {
+  const GateVerdict({
+    required this.ruleId,
+    required this.status,
+    required this.errors,
+    required this.warnings,
+    required this.ms,
+  });
+
+  final String ruleId;
+
+  /// `PASS`, `WARN` (warnings only), or `FAIL` (any error).
+  final String status;
+  final int errors;
+  final int warnings;
+
+  /// Milliseconds the rule spent scanning (0 when unscanned).
+  final int ms;
+
+  Map<String, Object?> toJson() => {
+    'rule_id': ruleId,
+    'status': status,
+    'errors': errors,
+    'warnings': warnings,
+    'ms': ms,
+  };
+}
+
+/// Text row for [verdict] (`gate FAIL FG-X (1 errors, 0 warnings, 2 ms)`).
+String gateLine(GateVerdict verdict) =>
+    'gate ${verdict.status} ${verdict.ruleId} '
+    '(${verdict.errors} errors, ${verdict.warnings} warnings, '
+    '${verdict.ms} ms)';
+
+/// Per-gate verdicts over [rules] from reported [findings] and
+/// [msByRule] timings (missing timings read 0). Registry order.
+List<GateVerdict> gateReport({
+  required List<RuleAnalyzer> rules,
+  required List<CheckFinding> findings,
+  required Map<String, int> msByRule,
+}) {
+  final verdicts = <GateVerdict>[];
+  for (final rule in rules) {
+    final scoped = [
+      for (final finding in findings)
+        if (finding.ruleId == rule.id) finding,
+    ];
+    final errors = _countSeverity(scoped, 'error');
+    final warnings = _countSeverity(scoped, 'warning');
+    verdicts.add(
+      GateVerdict(
+        ruleId: rule.id,
+        status: errors > 0 ? 'FAIL' : (warnings > 0 ? 'WARN' : 'PASS'),
+        errors: errors,
+        warnings: warnings,
+        ms: msByRule[rule.id] ?? 0,
+      ),
+    );
+  }
+  return verdicts;
+}
 
 /// Runs every registered visitor over [target] (one file or a
 /// directory scanned recursively, sorted; the walk covers the
@@ -104,6 +180,7 @@ CheckResult checkPath(String target, {bool includeGenerated = false}) {
     target,
     extensions: registeredExtensions,
     namePrefixes: registeredPrefixes,
+    names: registeredNames,
     includeGenerated: includeGenerated,
   );
   return checkFiles(files, target);
@@ -116,9 +193,13 @@ CheckResult checkFiles(List<String> files, String target) {
   final enabled = enabledAnalyzers(target, ruleAnalyzers);
   final batched = enabled.where((r) => r.id == batchRuleId).toList();
   final immediate = enabled.where((r) => r.id != batchRuleId).toList();
-  final (:findings, :errors) = analyzeFilesWithRules(files, immediate);
+  final (:findings, :errors, :msByRule) = analyzeFilesWithRules(
+    files,
+    immediate,
+  );
   final all = [...findings];
   for (final rule in batched) {
+    final batchWatch = Stopwatch()..start();
     try {
       final verdicts = analyzeFormatBatch([
         for (final file in files)
@@ -141,9 +222,16 @@ CheckResult checkFiles(List<String> files, String target) {
     } catch (error) {
       errors.add(CheckError(file: target, error: '$error'));
     }
+    batchWatch.stop();
+    msByRule[rule.id] =
+        (msByRule[rule.id] ?? 0) + batchWatch.elapsedMilliseconds;
   }
   all.sort(_byFileRuleLine);
-  return CheckResult(findings: deduplicateFindings(all), errors: errors);
+  return CheckResult(
+    findings: deduplicateFindings(all),
+    errors: errors,
+    msByRule: msByRule,
+  );
 }
 
 /// Deterministic finding order: file, rule id, line, then message
@@ -191,17 +279,22 @@ List<CheckFinding> deduplicateFindings(List<CheckFinding> sorted) {
 
 /// Runs [analyzers] over [files], collecting findings and one error
 /// per broken file. Shared `check`/lite loop: findings sort by file,
-/// then rule id, then line for determinism.
-({List<CheckFinding> findings, List<CheckError> errors}) analyzeFilesWithRules(
-  List<String> files,
-  List<RuleAnalyzer> analyzers,
-) {
+/// then rule id, then line for determinism. Timings accrue per rule
+/// (crash paths included — the clock stops past the catch).
+({
+  List<CheckFinding> findings,
+  List<CheckError> errors,
+  Map<String, int> msByRule,
+})
+analyzeFilesWithRules(List<String> files, List<RuleAnalyzer> analyzers) {
   final findings = <CheckFinding>[];
   final errors = <CheckError>[];
+  final msByRule = <String, int>{};
   final seenErrors = <(String, String)>{};
   for (final file in files) {
     for (final rule in analyzers) {
       if (!rule.scopes(file)) continue;
+      final watch = Stopwatch()..start();
       try {
         for (final violation in rule.analyze(file)) {
           findings.add(
@@ -221,15 +314,17 @@ List<CheckFinding> deduplicateFindings(List<CheckFinding> sorted) {
           errors.add(CheckError(file: file, error: '$error'));
         }
       }
+      watch.stop();
+      msByRule[rule.id] = (msByRule[rule.id] ?? 0) + watch.elapsedMilliseconds;
     }
   }
   findings.sort(_byFileRuleLine);
-  return (findings: findings, errors: errors);
+  return (findings: findings, errors: errors, msByRule: msByRule);
 }
 
 /// CLI usage for `check` (SYS-CLI-001a).
 const _checkUsage =
-    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--include-generated] [--baseline=<path>] [--update-baseline] [--diff] [--diff-base=<ref>] [--help]';
+    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--include-generated] [--baseline=<path>] [--update-baseline] [--diff] [--diff-base=<ref>] [--analyze] [--dep-audit] [--license-audit] [--by-gate] [--evidence=<path>] [--help]';
 
 /// Audits one target with every registered visitor. Returns 1 when any
 /// error-severity violation is found, 0 when clean or warnings-only,
@@ -261,6 +356,27 @@ int check(List<String> args) {
       'diff-base',
       help: 'Diff base ref (default origin/main; implies --diff).',
     )
+    ..addFlag(
+      'analyze',
+      negatable: false,
+      help: 'Also run dart analyze --fatal-infos (fails on issues).',
+    )
+    ..addFlag(
+      'dep-audit',
+      negatable: false,
+      help: 'Also audit dependencies (fails on signals).',
+    )
+    ..addFlag(
+      'license-audit',
+      negatable: false,
+      help: 'Also audit dependency licenses (fails on policy).',
+    )
+    ..addFlag(
+      'by-gate',
+      negatable: false,
+      help: 'Report per-gate verdicts with timings.',
+    )
+    ..addOption('evidence', help: 'Append per-gate ledger lines to this path.')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -304,6 +420,7 @@ int check(List<String> args) {
       target,
       extensions: registeredExtensions,
       namePrefixes: registeredPrefixes,
+      names: registeredNames,
       includeGenerated: includeGenerated,
     );
     if (diffMode) {
@@ -318,10 +435,130 @@ int check(List<String> args) {
     stderr.writeln(error.message);
     return 2;
   }
+  var analyzeFailed = false;
+  var depFailed = false;
+  var licenseFailed = false;
+  var errors = result.errors;
+  if (parsed['analyze'] as bool) {
+    final AnalyzerResult analyzer;
+    try {
+      analyzer = runAnalyzer(target);
+    } on ArgumentError catch (error) {
+      stderr.writeln(error.message);
+      return 2;
+    }
+    if (!analyzer.passed) {
+      analyzeFailed = true;
+      errors = [
+        ...errors,
+        for (final entry in groupAnalyzerIssues(analyzer.issues).entries)
+          CheckError(file: entry.key, error: 'analyzer: ${entry.value}'),
+      ];
+    }
+  }
+  if (parsed['dep-audit'] as bool) {
+    for (final pubspec in collectScannableFiles(
+      target,
+      extensions: const {},
+      names: const {'pubspec.yaml'},
+    )) {
+      final DepAuditResult audit;
+      try {
+        audit = runDepAudit(File(pubspec).parent.path);
+      } on ArgumentError catch (error) {
+        stderr.writeln(error.message);
+        return 2;
+      }
+      for (final finding in audit.findings) {
+        depFailed = true;
+        errors.add(
+          CheckError(
+            file: pubspec,
+            error: 'dep-audit: ${finding.package}: ${finding.message}',
+          ),
+        );
+      }
+    }
+  }
+  if (parsed['license-audit'] as bool) {
+    final section = RuleSection.load(target, 'licenses').value;
+    final deny = <String>{};
+    var allowPkgs = const <String, String>{};
+    if (section is Map) {
+      final rawDeny = section['deny'];
+      if (rawDeny is List) {
+        for (final entry in rawDeny) {
+          if (entry is String && entry.isNotEmpty) deny.add(entry);
+        }
+      }
+      final rawAllow = section['allow_pkgs'];
+      if (rawAllow is Map) {
+        allowPkgs = {
+          for (final entry in rawAllow.entries)
+            if (entry.key is String && entry.value is String)
+              entry.key as String: entry.value as String,
+        };
+      }
+    }
+    if (deny.isEmpty) {
+      stderr.writeln('no licenses.deny configured (nothing to enforce).');
+      return 2;
+    }
+    for (final pubspec in collectScannableFiles(
+      target,
+      extensions: const {},
+      names: const {'pubspec.yaml'},
+    )) {
+      final audit = runLicenseAudit(
+        File(pubspec).parent.path,
+        deny: deny,
+        allowPkgs: allowPkgs,
+      );
+      for (final finding in audit.findings) {
+        licenseFailed = true;
+        errors.add(
+          CheckError(
+            file: pubspec,
+            error: 'licenses: ${finding.package}: ${finding.message}',
+          ),
+        );
+      }
+    }
+  }
   var findings = result.findings;
   if (baselinePath != null && !updateBaseline) {
     try {
       findings = applyBaseline(findings, loadBaseline(baselinePath));
+    } on ArgumentError catch (error) {
+      stderr.writeln(error.message);
+      return 2;
+    }
+  }
+  final byGate = parsed['by-gate'] as bool;
+  final evidencePath = parsed['evidence'] as String?;
+  final gates = byGate || evidencePath != null
+      ? gateReport(
+          rules: enabledAnalyzers(target, ruleAnalyzers),
+          findings: findings,
+          msByRule: result.msByRule,
+        )
+      : const <GateVerdict>[];
+  if (evidencePath != null) {
+    try {
+      appendLedger(
+        evidencePath,
+        buildLedgerLines(
+          target: target,
+          gates: [
+            for (final gate in gates)
+              (ruleId: gate.ruleId, status: gate.status),
+          ],
+          findings: [
+            for (final finding in findings)
+              (ruleId: finding.ruleId, message: finding.message),
+          ],
+        ),
+      );
     } on ArgumentError catch (error) {
       stderr.writeln(error.message);
       return 2;
@@ -336,16 +573,16 @@ int check(List<String> args) {
     }
     final files = baselineCounts(result.findings).length;
     if (asJson) {
-      stdout.writeln(
-        jsonEncode({
-          'baseline': updatePath,
-          'files': files,
-          'summary': {
-            'errors': _countSeverity(result.findings, 'error'),
-            'warnings': _countSeverity(result.findings, 'warning'),
-          },
-        }),
-      );
+      final payload = <String, Object?>{
+        'baseline': updatePath,
+        'files': files,
+        'summary': {
+          'errors': _countSeverity(result.findings, 'error'),
+          'warnings': _countSeverity(result.findings, 'warning'),
+        },
+        if (byGate) 'gates': [for (final gate in gates) gate.toJson()],
+      };
+      stdout.writeln(jsonEncode(payload));
     } else {
       stdout.writeln(
         'Baseline written to $updatePath: $files files, '
@@ -353,21 +590,39 @@ int check(List<String> args) {
         '(${_countSeverity(result.findings, 'error')} errors, '
         '${_countSeverity(result.findings, 'warning')} warnings).',
       );
+      if (byGate) {
+        for (final gate in gates) {
+          stdout.writeln(gateLine(gate));
+        }
+      }
     }
-    return 0;
+    return analyzeFailed || depFailed || licenseFailed ? 1 : 0;
   }
-  final shown = CheckResult(findings: findings, errors: result.errors);
+  final shown = CheckResult(
+    findings: findings,
+    errors: errors,
+    msByRule: result.msByRule,
+  );
   for (final error in shown.errors) {
     stderr.writeln('error: ${error.file}: ${error.error}');
   }
   if (asJson) {
-    stdout.writeln(jsonEncode(shown.toJson()));
+    final payload = shown.toJson();
+    if (byGate) {
+      payload['gates'] = [for (final gate in gates) gate.toJson()];
+    }
+    stdout.writeln(jsonEncode(payload));
   } else {
     for (final finding in shown.findings) {
       final prefix = finding.severity == 'warning' ? 'warning: ' : '';
       stdout.writeln(
         '$prefix${finding.ruleId} ${finding.file}:${finding.line} ${finding.message}',
       );
+    }
+    if (byGate) {
+      for (final gate in gates) {
+        stdout.writeln(gateLine(gate));
+      }
     }
     stdout.writeln(
       '${shown.findings.length} violation(s) '
@@ -376,5 +631,10 @@ int check(List<String> args) {
       'in $target.',
     );
   }
-  return shown.findings.any((f) => f.severity == 'error') ? 1 : 0;
+  final gateFailed =
+      analyzeFailed ||
+      depFailed ||
+      licenseFailed ||
+      shown.findings.any((f) => f.severity == 'error');
+  return gateFailed ? 1 : 0;
 }

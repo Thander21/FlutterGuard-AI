@@ -1,0 +1,1 @@
+String shopName() => 'corner shop';

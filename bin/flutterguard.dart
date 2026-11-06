@@ -7,6 +7,7 @@
 //   dart run bin/flutterguard.dart heal <file.dart> --rule <RULE-ID>
 //   dart run bin/flutterguard.dart init [--scaffold] [--agents] [--help]
 //   dart run bin/flutterguard.dart sandbox <load|reset|check>
+//   dart run bin/flutterguard.dart select-tests <path> [--diff-base=<ref>]
 //
 // `grade` scans specs/*.md, runs the registered rule visitor over each
 // golden vector pair, and appends the gate results to evidence.jsonl. It
@@ -46,9 +47,12 @@ int _run(List<String> args) {
   if (args.isNotEmpty && args.first == 'sandbox') {
     return sandbox(args.sublist(1));
   }
+  if (args.isNotEmpty && args.first == 'select-tests') {
+    return selectTests(args.sublist(1));
+  }
   stderr.writeln(
     'Usage: dart run bin/flutterguard.dart '
-    '<grade|check|heal|init|sandbox>',
+    '<grade|check|heal|init|sandbox|select-tests>',
   );
   stderr.writeln(
     '  grade                 Run golden evals, append evidence.jsonl.',
@@ -62,5 +66,8 @@ int _run(List<String> args) {
   );
   stderr.writeln('  init [--scaffold] [--agents] [--help] Init a project.');
   stderr.writeln('  sandbox <load|reset|check> Manage the agent playground.');
+  stderr.writeln(
+    '  select-tests <path> [--diff-base=<ref>] Print tests for the diff.',
+  );
   return 2;
 }

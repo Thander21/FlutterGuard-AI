@@ -70,9 +70,9 @@ prompt block, no-auto-commit note.
 ## Thin CLI (`heal`, Wave 2, SYS-VAL-001 F6)
 
 `flutterguard heal <file.dart> --rule <RULE-ID> [--attempts N]
-[--json] [--help]` — a thin wrapper: resolves rule → recipe →
-analyzer, runs one `HealDispatcher.healFile`, prints the outcome.
-Zero heal logic in the CLI layer.
+[--json] [--fix] [--help]` — a thin wrapper: resolves rule →
+recipe → analyzer, runs one `HealDispatcher.healFile`, prints
+the outcome. Zero heal logic in the CLI layer.
 
 - Target: exactly one existing `.dart` file (directories, missing
   paths, and non-Dart files exit 2 — the dispatcher heals one file
@@ -93,8 +93,17 @@ Zero heal logic in the CLI layer.
   `rolled back:` with rule, attempts, report path) plus one line per
   recorded error on rollback. Errors and usage go to stderr.
 - `--json`: prints the result object (`success`, `attempts`,
-  `rolled_back`, `rule_id`, `target`, `errors` in `HealError` shape,
-  `report`); exit codes unchanged.
+  `rolled_back`, `rule_id`, `target`, `pre_step_applied`,
+  `errors` in `HealError` shape, `report`); exit codes unchanged.
+- `--fix` (opt-in pre-step, medium M4): runs `dart fix --apply`
+  + `dart format` over the target before detection, outside the
+  dispatcher snapshot — pre-step effects persist across recipe
+  rollback by design (pipeline stage, not an attempt). Fix
+  diagnostics need package context (bare files get
+  format-only); files `dart fix` cannot resolve get nothing to
+  fix. Text prints `pre-step: <target> (dart fix + format
+  applied)` when either step rewrote the file; the clean line
+  then reads `pre-step wrote` instead of `no writes`.
 
 # 3. File Placement
 
@@ -129,6 +138,11 @@ future wiring (`iteration` > 1, `recipe_injected`). The
 - Cap exhausted: rollback via in-memory snapshot restore; run-level
   `git restore` is owned by CLI/hook wiring (Architecture §2.5).
 - Already-green input: success, attempts = 1, zero writes, empty report.
+- Pre-step failure (SDK spawn failure or a non-zero step exit):
+  abort with exit 2 naming the cause, before detection (the
+  non-zero path is SDK breakage — `fix`/`format` exit 0 even on
+  broken files — and stays unevaluated in-suite). A pre-step
+  rewrite never triggers rollback by itself.
 - Current API heals one file per call; multi-file runs snapshot each
   touched file (future).
 

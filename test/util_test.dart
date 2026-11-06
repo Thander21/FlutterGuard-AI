@@ -101,6 +101,39 @@ void main() {
       }
     });
 
+    test('collects exact basenames (pubspec.yaml)', () {
+      final root = Directory.systemTemp.createTempSync('collect_test.');
+      try {
+        File('${root.path}/pubspec.yaml').writeAsStringSync('name: x\n');
+        File('${root.path}/other.yaml').writeAsStringSync('x: 1\n');
+        File('${root.path}/pubspec.yaml.bak').writeAsStringSync('name: x\n');
+        final files = collectScannableFiles(
+          root.path,
+          extensions: const {'.dart'},
+          names: const {'pubspec.yaml'},
+        );
+        expect(files.map((f) => f.split('/').last), ['pubspec.yaml']);
+        expect(
+          collectScannableFiles(
+            '${root.path}/pubspec.yaml',
+            extensions: const {'.dart'},
+            names: const {'pubspec.yaml'},
+          ).map((f) => f.split('/').last),
+          ['pubspec.yaml'],
+        );
+        expect(
+          collectScannableFiles(
+            '${root.path}/other.yaml',
+            extensions: const {'.dart'},
+            names: const {'pubspec.yaml'},
+          ),
+          isEmpty,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
     test('collectDartFiles stays dart-only (delegate parity)', () {
       final root = Directory.systemTemp.createTempSync('collect_test.');
       try {
@@ -112,6 +145,33 @@ void main() {
       } finally {
         root.deleteSync(recursive: true);
       }
+    });
+  });
+
+  group('mirrorTestFor', () {
+    test('maps lib files to mirror tests', () {
+      expect(mirrorTestFor('lib/a.dart'), 'test/a_test.dart');
+      expect(mirrorTestFor('lib/foo/bar.dart'), 'test/foo/bar_test.dart');
+      expect(
+        mirrorTestFor('pkg/lib/foo/bar.dart'),
+        'pkg/test/foo/bar_test.dart',
+      );
+      expect(
+        mirrorTestFor('/repo/lib/foo/bar.dart'),
+        '/repo/test/foo/bar_test.dart',
+      );
+      expect(
+        mirrorTestFor(r'C:\repo\lib\foo\bar.dart'),
+        'C:/repo/test/foo/bar_test.dart',
+      );
+    });
+
+    test('returns null outside the mapping', () {
+      expect(mirrorTestFor('test/a_test.dart'), isNull);
+      expect(mirrorTestFor('lib/a_test.dart'), isNull);
+      expect(mirrorTestFor('lib/a.txt'), isNull);
+      expect(mirrorTestFor('tool/a.dart'), isNull);
+      expect(mirrorTestFor('a.dart'), isNull);
     });
   });
 }

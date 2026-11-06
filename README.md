@@ -223,6 +223,10 @@ already runs:
 | FG-ARB-027 | arb placeholders lack @key metadata | — : keep (no stock equivalent) |
 | FG-PII-028 | unmasked PII in log calls | — : keep (no stock equivalent) |
 | FG-ENV-029 | .env keys drift from .env.example | — : keep (no stock equivalent) |
+| FG-ASSET-030 | declared pubspec assets missing on disk | — : keep (no stock equivalent) |
+| FG-VER-031 | malformed pubspec version | — : keep (no stock equivalent) |
+| FG-DOC-032 | dead local links in Markdown | — : keep (no stock equivalent) |
+| FG-TST-033 | lib files without mirror tests (opt-in) | — : keep (no stock equivalent) |
 
 (From the SYS-CAL-002 field pilot: only FG-ST-001, FG-ST-005, and
 FG-KEY-001r had no equivalent in the ERP's own validators.)

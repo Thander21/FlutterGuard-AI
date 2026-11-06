@@ -3,7 +3,10 @@
 //
 // Resolves rule → recipe → analyzer, runs one healFile, prints the
 // outcome. Zero heal logic here: patch/verify/rollback live in
-// `HealDispatcher`; only outcome printing is CLI-owned.
+// `HealDispatcher`; only outcome printing is CLI-owned. An opt-in
+// `--fix` pre-step runs `dart fix --apply` + `dart format` first,
+// outside the dispatcher snapshot: pre-step effects persist
+// across recipe rollback by design.
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,7 +20,7 @@ import 'rules.dart';
 /// CLI usage for `heal` (SYS-HEAL-001 §2).
 const _healUsage =
     'Usage: dart run bin/flutterguard.dart heal <file.dart> '
-    '--rule <RULE-ID> [--attempts N] [--json] [--help]';
+    '--rule <RULE-ID> [--attempts N] [--json] [--fix] [--help]';
 
 /// Default ForceField attempt cap (SYS-HEAL-001 §2).
 const _defaultAttempts = 3;
@@ -29,6 +32,7 @@ const _maxAttempts = 10;
 Map<String, Object?> healResultJson({
   required String target,
   required String ruleId,
+  required bool preStepApplied,
   required HealResult result,
 }) => {
   'success': result.success,
@@ -36,9 +40,38 @@ Map<String, Object?> healResultJson({
   'rolled_back': result.rolledBack,
   'rule_id': ruleId,
   'target': target,
+  'pre_step_applied': preStepApplied,
   'errors': [for (final e in result.errors) e.toJson()],
   'report': result.report,
 };
+
+/// Runs `dart fix --apply` and `dart format` over [target] (the
+/// `--fix` pre-step). Returns true when either rewrote the file.
+/// Throws [ArgumentError] when the SDK cannot be spawned or a
+/// step exits non-zero.
+bool applyFixPrestep(String target) {
+  final before = File(target).readAsStringSync();
+  for (final step in const [
+    ['fix', '--apply'],
+    ['format'],
+  ]) {
+    ProcessResult result;
+    try {
+      result = Process.runSync(Platform.resolvedExecutable, [...step, target]);
+    } on ProcessException catch (error) {
+      throw ArgumentError(
+        'pre-step ${step.join(' ')} failed: ${error.message}',
+      );
+    }
+    if (result.exitCode != 0) {
+      throw ArgumentError(
+        'pre-step ${step.join(' ')} exited '
+        '${result.exitCode}: ${result.stderr}',
+      );
+    }
+  }
+  return File(target).readAsStringSync() != before;
+}
 
 /// Heals one file with a fast-path recipe. Returns 0 when healed (or
 /// already green), 1 on rollback, 2 on bad arguments or rules.
@@ -51,6 +84,11 @@ int heal(List<String> args) {
       help: 'Attempt cap, 1..10.',
     )
     ..addFlag('json', negatable: false, help: 'Report the outcome as JSON.')
+    ..addFlag(
+      'fix',
+      negatable: false,
+      help: 'Run dart fix + format first (pre-step).',
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -77,6 +115,19 @@ int heal(List<String> args) {
   if (!target.endsWith('.dart')) {
     stderr.writeln('heal takes one .dart file, got: $target');
     return 2;
+  }
+  final asJson = parsed['json'] as bool;
+  var preStepApplied = false;
+  if (parsed['fix'] as bool) {
+    try {
+      preStepApplied = applyFixPrestep(target);
+    } on ArgumentError catch (error) {
+      stderr.writeln(error.message);
+      return 2;
+    }
+    if (preStepApplied && !asJson) {
+      stdout.writeln('pre-step: $target (dart fix + format applied)');
+    }
   }
   final attempts = int.tryParse(parsed['attempts'] as String);
   if (attempts == null || attempts < 1 || attempts > _maxAttempts) {
@@ -110,7 +161,6 @@ int heal(List<String> args) {
     // (rollback + report) instead of guessing here.
     before = null;
   }
-  final asJson = parsed['json'] as bool;
   if (before != null && before.isEmpty) {
     if (asJson) {
       stdout.writeln(
@@ -118,6 +168,7 @@ int heal(List<String> args) {
           healResultJson(
             target: target,
             ruleId: ruleId,
+            preStepApplied: preStepApplied,
             result: const HealResult(
               success: true,
               attempts: 1,
@@ -129,7 +180,10 @@ int heal(List<String> args) {
         ),
       );
     } else {
-      stdout.writeln('clean: $target (no $ruleId violations; no writes)');
+      stdout.writeln(
+        'clean: $target (no $ruleId violations; '
+        '${preStepApplied ? 'pre-step wrote' : 'no writes'})',
+      );
     }
     return 0;
   }
@@ -138,7 +192,12 @@ int heal(List<String> args) {
   if (asJson) {
     stdout.writeln(
       jsonEncode(
-        healResultJson(target: target, ruleId: ruleId, result: result),
+        healResultJson(
+          target: target,
+          ruleId: ruleId,
+          preStepApplied: preStepApplied,
+          result: result,
+        ),
       ),
     );
   } else if (result.success) {

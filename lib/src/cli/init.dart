@@ -56,6 +56,12 @@ gates:
 #   patterns: ['\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}']
 #   masks: [maskDoc]
 #   message: "mask PII before logging"
+# Mirror tests (FG-TST-033; absent section = silent):
+# test_presence: {}
+# Dependency licenses (--license-audit; missing deny = exit 2):
+# licenses:
+#   deny: [GPL, AGPL]
+#   allow_pkgs: {legacy_vendor: LicenseRef-Legal}
 ''';
 
 /// Marker guarding the generated pre-commit hook (SYS-CLI-001b).

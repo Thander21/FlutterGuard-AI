@@ -63,7 +63,7 @@ Tier1LiteResult runTier1Lite(String target) {
     analyzers.add(analyzer);
   }
 
-  final (:findings, :errors) = analyzeFilesWithRules(
+  final (:findings, :errors, msByRule: _) = analyzeFilesWithRules(
     files,
     enabledAnalyzers(target, analyzers),
   );

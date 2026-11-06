@@ -17,7 +17,9 @@ duty.
 # 2. Interface / Schema
 
 `check <path> [--json] [--include-generated] [--baseline=<path>]
-[--update-baseline] [--diff] [--diff-base=<ref>] [--help]`, parsed
+[--update-baseline] [--diff] [--diff-base=<ref>] [--analyze]
+[--dep-audit] [--license-audit] [--by-gate] [--evidence=<path>]
+[--help]`, parsed
 with `package:args` (`args` dependency). Exit codes: 0 clean or
 warnings-only, 1 error-severity violations found, 2 bad arguments
 (REVIEW-01 verified the launcher swallows returned codes, so `main`
@@ -45,7 +47,11 @@ files (so FG-SYN-017 never fails closed on them); catalog
 rules never see `.dart`. A single non-matching file target
 yields an empty run; a missing target still throws. Tail T6
 adds basename-prefix scopes for dotfiles (`.env*`), matched
-on the basename start and collected by the same union.
+on the basename start and collected by the same union. Medium
+M1 adds exact-basename scopes for singletons (`pubspec.yaml`
+— neither an extension nor a prefix fits), matched on the full
+basename and collected by the same union, and `.md` joins the
+extension union for FG-DOC-032.
 
 Rules disabled by the nearest `flutterguard.yaml` are skipped
 (schema v2, SYS-CAL-002 P3-1): discovery walks up from the
@@ -111,6 +117,12 @@ literal runs, and mask verbs. Malformed regexes drop
 silently; other malformed fields degrade leniently
 (defaults still flag).
 
+`test_presence` (FG-TST-033): presence (even an empty map)
+opts in, requiring a mirror `test/..._test.dart` for every
+`lib/` file; a missing or non-map section disables the rule.
+`except`/`message` keys are reserved for v1 and ignored in
+v0 (the baseline already ratchets legacy trees).
+
 ## Adoption scope (SYS-CAL-003 R2-2)
 
 Dedup: `checkPath` collapses findings on (file, line, rule) after
@@ -147,6 +159,84 @@ keeps whole-tree `check .` (the baseline makes legacy green);
 `--diff` is for the agent loop and CI. A file target is
 checked iff changed, else reported clean.
 
+Analyze step: `--analyze` also runs the ambient SDK's
+`dart analyze --fatal-infos` over the target (whole target,
+even under `--diff` — the analyzer needs package context)
+and parses `--format machine` issues into per-file
+`analyzer:`-prefixed gate errors. An analyzer failure exits
+1 (the summary counts findings only, so a red analyze step
+with clean visitors still prints `0 violation(s)`); a spawn
+failure exits 2 naming the cause. Findings stay rule-pure
+(no synthetic rule ids); `--update-baseline` still writes
+from visitor findings but exits 1 when the analyze step is
+red. The step runs at the `check()` edge, so `checkPath`
+stays stdio-free and the MCP `analyze_ast` tool stays
+visitors-only.
+
+DepAudit: `--dep-audit` runs `pub outdated --json` per package
+root under the target (every `pubspec.yaml` found) and flags
+discontinued, replaced, retracted-current, and
+advisory-affected packages as `dep-audit:`-prefixed gate
+errors, exiting 1. Behind-latest-but-healthy packages never
+flag (maintenance, not gate failures). Malformed JSON fails
+closed (exit 2 — no exit-code backstop exists, so a blind gate
+says so loudly); spawn failure and non-zero exits exit 2
+naming the cause. Requires network; CI without it omits the
+flag. Runs under the ambient Dart SDK (Flutter-package
+fidelity unevaluated in v0). The positive path is
+network-bound and verified out-of-band; the suite pins
+parsing, the offline-empty case, and exits.
+
+LicenseAudit: `--license-audit` classifies each hosted
+dependency's license text from the pub cache against the
+`licenses.deny` policy (`licenses: {deny: [...], allow_pkgs:
+{pkg: SPDX}}` in the nearest config; substring-matched,
+case-insensitive, so `GPL` catches the family). Denied,
+unrecognized, and missing license texts fail closed as
+`licenses:`-prefixed gate errors on the owning pubspec,
+exiting 1; `allow_pkgs` pins beat the classifier and the deny
+list. Roots without a lockfile pass silently (unauditable);
+path/git/sdk deps are skipped. A missing or empty deny list
+exits 2 (nothing to enforce). The cache resolves via
+`PUB_CACHE` or the platform default, defaulting to the
+pub.dev host with a mirror fallback scan.
+
+Per-gate report: `--by-gate` appends one verdict row per
+enabled rule (`gate PASS|WARN|FAIL <RULE> (<e> errors, <w>
+warnings, <ms> ms)`, registry order; JSON gains a `gates`
+array) computed from reported findings plus measured scan
+times. Default output is byte-identical without the flag.
+Execution stays sequential in v0 (isolate parallelism
+deferred — registry entries close over lambdas that don't
+cross isolate boundaries); the report surface is the stable
+half.
+
+Per-run ledger: `--evidence <path>` appends one canon-shaped
+line per enabled rule (SYS-TELE-001, zero new keys:
+`CHECK_GATE` phase, `CHECK_RECORDED` action, `WARNED`
+verdict) recording the reported verdicts — the audited
+target, the mapped status, and the first finding message per
+rule. Timings and counts stay on the `--by-gate` surface;
+the ledger records verdicts. Written before rendering on
+both the normal and `--update-baseline` paths; unwritable
+paths exit 2 naming the cause. Changes no exits
+(report-only). Default runs write nothing, anywhere.
+
+## Test selection (medium M2)
+
+`select-tests <path> [--diff-base=<ref>] [--help]` prints the
+tests for the worktree diff (one absolute-normalized path per
+line): changed `*_test.dart` files plus existing mirrors of
+changed lib files (shared `mirrorTestFor`, so selection agrees
+with FG-TST-033 on the layout). `<path>` locates the repo; the
+selection is always repo-wide (fail-closed). Deleted files and
+non-runnable changes (helpers, docs, configs) select nothing —
+an empty selection prints nothing and exits 0, composing to a
+full `dart test` run under shell substitution. Git failures exit
+2 naming the cause (the `--diff` edge semantics). The mutation
+and coverage runners keep explicit test paths in v1; selection
+is a standalone CI step (auto-wire is a follow-up).
+
 `--json` shape (from `CheckResult.toJson()`):
 
 ```json
@@ -179,7 +269,7 @@ F, "summary": {"errors": E, "warnings": W}}).
 
 | Gate | Contents | Budget | Status |
 |------|----------|--------|--------|
-| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017, FG-BAN-018, FG-LOG-019, FG-TOK-020, FG-I18N-021, FG-ENC-022, FG-ORP-023, FG-LYR-024, FG-CC-025, FG-RIV-026 advisory, FG-ARB-027, FG-PII-028, FG-ENV-029); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
+| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017, FG-BAN-018, FG-LOG-019, FG-TOK-020, FG-I18N-021, FG-ENC-022, FG-ORP-023, FG-LYR-024, FG-CC-025, FG-RIV-026 advisory, FG-ARB-027, FG-PII-028, FG-ENV-029, FG-ASSET-030, FG-VER-031, FG-DOC-032, FG-TST-033); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
 | `test` | changed-file unit tests via `dart test` / `flutter test --concurrency=1`; 100% green, no warnings | ~5–15 s | live |
 | `validate` | `dart analyze --fatal-infos` over the module, cross-regression tests, contract integrity; resolved-analysis rules attach here | ~30–60 s | live (analyzer part) |
 | `commit-check` | evidence presence per SYS-TELE-001, no temp files, clean diff | ~2 s | defined here, enforced by the hook in SYS-CLI-001b |
@@ -226,16 +316,46 @@ only the explicitly named baseline path, never the target tree.
   stdio-free). Re-exported from `lib/flutterguard_ai.dart`.
 - Tests: `test/check_test.dart` (audit behavior), `test/check_cli_test.dart`
   (arg parsing, exit codes), `test/baseline_test.dart` (ratchet math,
-  key stability, diff scope, flag matrix).
+  key stability, diff scope, flag matrix), `test/select_test.dart`
+  (selection mapping, CLI lines and exits), `test/analyze_test.dart`
+  (machine-output parsing, real-SDK runs, `--analyze` exits),
+  `test/deps_test.dart` (outdated parsing, offline-empty run,
+  `--dep-audit` exits), `test/licenses_test.dart` (classifier,
+  fake-cache audits, `--license-audit` exits),
+  `test/gate_report_test.dart` (verdicts, timings, `--by-gate`
+  output), `test/ledger_test.dart` (canon lines, append
+  semantics, `--evidence` exits).
+- `lib/src/cli/select.dart` (`selectChangedTests`: pure core over
+  `resolveChangedFiles`; `selectTests`: thin CLI).
+- `lib/src/cli/analyze.dart` (`runAnalyzer` subprocess plus
+  `parseAnalyzerOutput`/`groupAnalyzerIssues`; wired at the
+  `check()` edge, never in `checkPath`).
+- `lib/src/cli/deps.dart` (`runDepAudit` subprocess plus
+  `parseOutdatedJson`; wired at the `check()` edge).
+- `lib/src/cli/licenses.dart` (`classifyLicenses`,
+  `resolvePubCache`, `runLicenseAudit`; wired at the
+  `check()` edge with the `licenses` config section).
+- Per-gate verdicts (`GateVerdict`, `gateReport`, `gateLine`)
+  and timings (`CheckResult.msByRule`) live in
+  `lib/src/cli/check.dart`.
+- `lib/src/cli/ledger.dart` (`buildLedgerLines` canon shaping
+  plus `appendLedger`; called at the `check()` edge, never in
+  `checkPath`).
 - `lib/src/ast/format_guard.dart` (FG-FMT-016 batch core:
   bounded `dart format` spawns per `checkPath` call, 50 files
   each (TS-16); called by `checkPath`, not the per-file loop).
 
 # 4. Evidence Wiring
 
-`check` emits no `evidence.jsonl` (read-only by design). Its JSON findings
-(`rule_id`/`file`/`line`/`message`, `spec`, `recipe`) align with the
-SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
+`check` is read-only by design: default runs write nothing,
+anywhere — no `evidence.jsonl` (grade-owned, never touched by
+`check`), nothing inside the target tree. The only writes are
+explicitly-named side paths: `--update-baseline` (the given
+baseline file) and `--evidence` (the given ledger file), both
+opt-in, both outside the target unless the caller points them
+there. Its JSON findings (`rule_id`/`file`/`line`/`message`,
+`spec`, `recipe`) align with the SYS-TELE-001 subset heal/MCP
+consume; no key is claimed identical.
 
 # 5. Errors and Edges
 
@@ -266,6 +386,25 @@ SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
 - Unwritable baseline path on update: exit 2 naming the cause.
 - `--diff` outside a git worktree, unresolvable base ref, or git
   failure (missing binary, no commits): exit 2 naming the cause.
+- `--analyze` spawn failure (missing SDK): exit 2 naming the
+  cause. Analyzer findings: per-file `analyzer:` errors, exit 1
+  (the summary counts findings only). `--analyze` with
+  `--update-baseline` still writes the baseline but exits 1 when
+  the analyze step is red.
+- `select-tests` outside a git worktree, unresolvable base ref,
+  or git failure: exit 2 naming the cause (the `--diff` edges).
+  Empty selection: exit 0 with no output.
+- `--dep-audit` spawn failure, non-zero `pub outdated` exit, or
+  malformed JSON: exit 2 naming the cause. Signals: per-package
+  `dep-audit:` errors, exit 1.
+- `--license-audit` without a `licenses.deny` list: exit 2.
+  Denied/unrecognized/missing licenses: per-package `licenses:`
+  errors on the owning pubspec, exit 1.
+- `--by-gate` changes no exits (report-only).
+- `--evidence` with an unwritable path: exit 2 naming the cause
+  (written before rendering, so a bad path prints nothing).
+  `--evidence` changes no exits (report-only); without the flag
+  no ledger file is created anywhere.
 - Empty diff set (nothing changed under the target): clean run,
   exit 0 with zero findings.
 - Baseline entries for disabled rules or vanished files are

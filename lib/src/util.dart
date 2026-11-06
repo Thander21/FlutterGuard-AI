@@ -58,22 +58,23 @@ List<String> collectDartFiles(String target, {bool includeGenerated = false}) {
   );
 }
 
-/// Collects files under [target] whose extension is in [extensions]
-/// or whose basename starts with a [namePrefixes] entry (one file
-/// or a directory scanned recursively, sorted, forward-slash
-/// normalized).
+/// Collects files under [target] whose extension is in [extensions],
+/// whose basename starts with a [namePrefixes] entry, or whose
+/// basename is in [names] (one file or a directory scanned
+/// recursively, sorted, forward-slash normalized).
 ///
 /// Same semantics as [collectDartFiles] generalized: a missing
 /// target throws [ArgumentError]; a non-matching file target (or a
 /// directory with no matching file) yields an empty list; generated
 /// files are skipped unless [includeGenerated] is true. `check`
-/// passes the registered rules' extension/prefix unions, so
-/// non-Dart rules (`.arb`, `.env*`) join the walk without touching
-/// this loop.
+/// passes the registered rules' extension/prefix/name unions, so
+/// non-Dart rules (`.arb`, `.env*`, `pubspec.yaml`) join the walk
+/// without touching this loop.
 List<String> collectScannableFiles(
   String target, {
   required Set<String> extensions,
   Set<String> namePrefixes = const {},
+  Set<String> names = const {},
   bool includeGenerated = false,
 }) {
   final type = FileSystemEntity.typeSync(target);
@@ -85,10 +86,11 @@ List<String> collectScannableFiles(
       target,
       extensions: extensions,
       namePrefixes: namePrefixes,
+      names: names,
       includeGenerated: includeGenerated,
     );
   }
-  if (_matchesScope(target, extensions, namePrefixes)) {
+  if (_matchesScope(target, extensions, namePrefixes, names)) {
     final file = _normalize(target);
     if (!includeGenerated && isGeneratedDartFile(file)) return const [];
     return [file];
@@ -101,13 +103,16 @@ List<String> _walkDir(
   String target, {
   required Set<String> extensions,
   required Set<String> namePrefixes,
+  required Set<String> names,
   required bool includeGenerated,
 }) {
   final files =
       Directory(target)
           .listSync(recursive: true)
           .whereType<File>()
-          .where((file) => _matchesScope(file.path, extensions, namePrefixes))
+          .where(
+            (file) => _matchesScope(file.path, extensions, namePrefixes, names),
+          )
           .map((file) => _normalize(file.path))
           .where((file) => includeGenerated || !isGeneratedDartFile(file))
           .toList()
@@ -115,16 +120,19 @@ List<String> _walkDir(
   return files;
 }
 
-/// True when [path] matches [extensions] (suffix) or [namePrefixes]
-/// (basename prefix — dotfiles carry no matchable extension).
+/// True when [path] matches [extensions] (suffix), [namePrefixes]
+/// (basename prefix — dotfiles carry no matchable extension), or
+/// [names] (exact basename — singletons like `pubspec.yaml`).
 bool _matchesScope(
   String path,
   Set<String> extensions,
   Set<String> namePrefixes,
+  Set<String> names,
 ) {
   if (extensions.any(path.endsWith)) return true;
-  if (namePrefixes.isEmpty) return false;
+  if (namePrefixes.isEmpty && names.isEmpty) return false;
   final base = path.replaceAll(r'\', '/').split('/').last;
+  if (names.contains(base)) return true;
   return namePrefixes.any(base.startsWith);
 }
 
@@ -211,6 +219,35 @@ bool resolvesOnPath(
 /// Joins [root] with a repo-relative [path], leaving CLI behavior and
 /// output byte-identical when [root] is the default '.'.
 String joinRoot(String root, String path) => root == '.' ? path : '$root/$path';
+
+/// Mirror test for the lib file [path]: the last `/lib/` segment
+/// becomes `/test/` and the trailing `.dart` becomes `_test.dart`
+/// (`lib/foo/bar.dart` → `test/foo/bar_test.dart`, monorepo-safe).
+/// Returns null when [path] is not a `.dart` file under a `lib/`
+/// directory, or when it already is a test (`*_test.dart` maps
+/// nowhere — callers include tests directly). Forward slashes in
+/// and out. Shared bottom for the TestPresence rule and
+/// changed-tests selection, so both agree on the layout.
+String? mirrorTestFor(String path) {
+  final normalized = path.replaceAll(r'\', '/');
+  if (!normalized.endsWith('.dart')) return null;
+  final base = normalized.split('/').last;
+  if (base.endsWith('_test.dart')) return null;
+  final idx = normalized.lastIndexOf('/lib/');
+  if (idx >= 0) {
+    final stem = normalized.substring(0, idx);
+    final rest = normalized.substring(idx + '/lib/'.length);
+    return '$stem/test/${_testStem(rest)}';
+  }
+  if (normalized.startsWith('lib/')) {
+    return 'test/${_testStem(normalized.substring('lib/'.length))}';
+  }
+  return null;
+}
+
+/// `foo/bar.dart` → `foo/bar_test.dart` (input ends with `.dart`).
+String _testStem(String rest) =>
+    '${rest.substring(0, rest.length - '.dart'.length)}_test.dart';
 
 /// Config file name discovered by walking up from the target.
 const configFileName = 'flutterguard.yaml';

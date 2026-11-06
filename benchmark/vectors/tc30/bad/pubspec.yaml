@@ -1,0 +1,10 @@
+name: asset_bad
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.0
+
+flutter:
+  assets:
+    - assets/images/missing.png
+    - assets/fonts/

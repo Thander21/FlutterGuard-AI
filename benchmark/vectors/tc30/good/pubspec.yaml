@@ -1,0 +1,10 @@
+name: asset_good
+version: 1.2.3
+
+environment:
+  sdk: ^3.13.0
+
+flutter:
+  assets:
+    - assets/images/logo.png
+    - assets/data/

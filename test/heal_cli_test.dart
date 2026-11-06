@@ -47,6 +47,43 @@ Future<void> submit(BuildContext context) async {
 }
 ''';
 
+// Fully-resolving BLOC fixtures (stub Cubit): `dart fix` only acts
+// on files it can resolve, so the pre-step tests cannot reuse the
+// parse-only fixtures above.
+const _blocResolvingFixture = '''
+import 'dart:math';
+
+class Cubit<S> {
+  void emit(Object event) {}
+}
+
+class CartCubit extends Cubit<int> {
+  Future<void> checkout() async {
+    emit(1);
+    await Future.value();
+    emit(2);
+  }
+}
+''';
+
+const _blocResolvingDoubleFixture = '''
+import 'dart:math';
+
+class Cubit<S> {
+  void emit(Object event) {}
+}
+
+class CartCubit extends Cubit<int> {
+  Future<void> checkout() async {
+    emit(1);
+    await Future.value();
+    emit(2);
+    await Future.value();
+    emit(3);
+  }
+}
+''';
+
 void main() {
   group('heal cli', () {
     late Directory root;
@@ -165,6 +202,7 @@ void main() {
       final map = healResultJson(
         target: 'a.dart',
         ruleId: 'FG-RIV-001',
+        preStepApplied: true,
         result: HealResult(
           success: false,
           attempts: 3,
@@ -187,6 +225,7 @@ void main() {
         'rolled_back': true,
         'rule_id': 'FG-RIV-001',
         'target': 'a.dart',
+        'pre_step_applied': true,
         'errors': [
           {
             'attempt': 1,
@@ -198,6 +237,62 @@ void main() {
         ],
         'report': '# report',
       });
+    });
+  });
+
+  group('heal --fix pre-step', () {
+    late Directory root;
+
+    setUp(() {
+      root = Directory.systemTemp.createTempSync('heal_fix_test.');
+    });
+
+    tearDown(() {
+      if (root.existsSync()) root.deleteSync(recursive: true);
+    });
+
+    String writeFixture(String name, String content) {
+      final file = File('${root.path}/$name')..writeAsStringSync(content);
+      return file.path;
+    }
+
+    test('applies dart fix and format before the recipe', () {
+      final path = writeFixture('bloc.dart', _blocResolvingFixture);
+      // `dart fix` needs package context for unused-import fixes.
+      File('${root.path}/pubspec.yaml')
+          .writeAsStringSync('name: fixpkg\nenvironment:\n  sdk: ^3.13.0\n');
+      expect(heal(['--fix', path, '--rule', 'FG-BLOC-001']), isZero);
+      final healed = File(path).readAsStringSync();
+      expect(healed, isNot(contains("import 'dart:math'")));
+      expect(healed, contains('isClosed'));
+      expect(analyzeBlocFile(path), isEmpty);
+    });
+
+    test('formats recipe-clean files and still exits 0', () {
+      final path = writeFixture('clean.dart', 'void main(  )  {}\n');
+      expect(heal(['--fix', path, '--rule', 'FG-BLOC-001']), isZero);
+      expect(File(path).readAsStringSync(), 'void main() {}\n');
+    });
+
+    test('leaves files untouched without --fix', () {
+      final path = writeFixture('clean.dart', 'void main(  )  {}\n');
+      expect(heal([path, '--rule', 'FG-BLOC-001']), isZero);
+      expect(File(path).readAsStringSync(), 'void main(  )  {}\n');
+    });
+
+    test('pre-step effects persist across recipe rollback', () {
+      final path = writeFixture('double.dart', _blocResolvingDoubleFixture);
+      // `dart fix` needs package context for unused-import fixes.
+      File('${root.path}/pubspec.yaml')
+          .writeAsStringSync('name: fixpkg\nenvironment:\n  sdk: ^3.13.0\n');
+      expect(
+        heal(['--fix', path, '--rule', 'FG-BLOC-001', '--attempts', '1']),
+        1,
+      );
+      final rolledBack = File(path).readAsStringSync();
+      expect(rolledBack, isNot(contains("import 'dart:math'")));
+      expect(analyzeBlocFile(path), hasLength(2));
+      expect(File('$path.heal-report.md').existsSync(), isTrue);
     });
   });
 }

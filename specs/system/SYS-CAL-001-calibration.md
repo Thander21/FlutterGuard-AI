@@ -74,6 +74,16 @@ emitted flags 1/1; the immutable-data-holder FP pattern is
 CLOSED. HOLD reaffirmed: N=1 < 5 (flip bar), and real-code
 precision is vacuously 1.0 on a trivial sample.
 
+M1 (2026-11-06, R2-5 medium): `rules.dart:42`
+(M2 re-key: `:43`, import shift)
+`RuleAnalyzer` (8 params) judged FP — declarative
+config-ctor class: named, defaulted, finals-only knobs with
+one predicate method, so grouping the scope knobs into a
+sub-object would churn 32 call sites for zero behavioral
+gain; the flag pins instead of healing. Precision on
+emitted flags 1/3; HOLD reaffirmed (N=1 < 5 flip bar; open
+FP pattern: declarative config ctors).
+
 ## Depth > 5 — HOLD advisory (precision 1/2)
 
 | flag | judgment |
@@ -631,6 +641,76 @@ SYS-TELE-001 first (canon rule §4).
   `.env` vectors sit outside the Dart-only
   MET/DRY walks by construction). CRAP
   re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 medium
+  M1 (FG-ASSET-030/VER-031/DOC-032 package gates +
+  exact-name scopes): new MET flag `rules.dart:42` (8
+  params on the RuleAnalyzer entry ctor), judged FP,
+  declarative config-ctor class (named, defaulted,
+  finals-only knobs, one predicate — the §2 M1 note
+  records the judgment; pinned, not healed). New DRY
+  pair `analyzeAssetFile`~=`analyzeEnvFile` @0.808
+  (entry-function units, asset:30-67 ~= env:30-72),
+  judged FP, runner-pipeline class (7th of class —
+  YAML-span asset resolution vs KEY= parity share
+  only the oracle-entry skeleton with disjoint
+  cores; no extractable unit, far below the
+  0.95-heal bar). The two check twins re-keyed
+  `:112`→`:113` and `:234`→`:235` (same pairs,
+  same FP judgments — the `names:` call-site
+  lines). 14 pairs pinned, 0 actionable, HOLD
+  reaffirmed. `bin/`/`tool/` 0 pairs; skip set
+  unchanged; corpus at 175 files (+6: 3 guards +
+  3 tests — all 11 non-Dart M1 vectors sit
+  outside the Dart-only MET/DRY walks by
+  construction). CRAP: tools.dart 0 over budget,
+  2 trios UNMEASURED (8s breaker timeouts under
+  load — the known slow-suite flake,
+  tripwire-excluded by design).
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 medium
+  M2 (FG-TST-033 presence + select-tests + `--analyze`):
+  the `check:235`~=`init:107` procedural-flow twin
+  dissolved (eliminated-FP — the check() analyze block
+  plus the init template growth pushed it below
+  threshold; same judgment class, no longer
+  measurable). Re-keys: MET `rules:42`→`:43` and DRY
+  `checkFiles:113`→`:114` (same flags/pairs, same
+  judgments — single import-line shifts). No new twins
+  from the 9 new files (selection/analyzer/presence
+  units all twin-clean). 13 pairs pinned, 0 actionable,
+  HOLD reaffirmed. MET set otherwise unchanged (2 TPs
+  + the pinned config-ctor FP); `bin/`/`tool/` 0
+  pairs; skip set unchanged; corpus at 184 files (+9:
+  3 lib + 3 tests + 3 tc33 vectors). CRAP: detector
+  trio measured 3 over-budget this pass
+  (findDuplication CC=35 cov=0.99 — reads as
+  near-timeout partial coverage, same known flake
+  family as M1's UNMEASURED pass;
+  tripwire-excluded by design).
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 medium
+  M3–M5 (dep/license audits + heal pre-step + per-gate
+  report): the `checkFiles:114`~=`_siblingImport` twin
+  dissolved (eliminated-FP — the msByRule threading
+  reshaped checkFiles below threshold; 2nd check-family
+  elimination, no check.dart pair remains). New pair
+  `_git`~=`runDepAudit` @0.805 (baseline:169-186 ~=
+  deps:87-108), judged FP, runner-pipeline class (8th of
+  class — sync spawn + ArgumentError-cause + stdout shape
+  share only the subprocess-invocation skeleton across
+  disjoint commands; below the 0.95-heal bar). New pair
+  `heal`~=`init` @0.844 (heal:76-218 ~= init:113-232),
+  judged FP, procedural-flow-twin class (5th of class —
+  CLI entry fan-out over disjoint domains). 14 pairs
+  pinned, 0 actionable, HOLD reaffirmed. MET set
+  unchanged (2 TPs + the pinned config-ctor FP);
+  `bin/`/`tool/` 0 pairs; skip set unchanged; corpus at
+  189 files (+5: deps/licenses lib + deps/licenses/
+  gate-report tests). CRAP: same 3-over detector trio
+  as M2 (stable across passes; tripwire-excluded).
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 ledger
+  (`--evidence` + `ledger.dart`): verified, no movement
+  — MET set and 14 DRY pins unchanged (no check.dart
+  pair remains to re-key; ledger units twin-clean).
+  Corpus at 191 files (+2: ledger lib + test).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

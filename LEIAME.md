@@ -227,6 +227,10 @@ equivalente tipado já roda:
 | FG-ARB-027 | placeholders arb sem metadados @key | — : mantenha (sem equivalente stock) |
 | FG-PII-028 | PII sem máscara em logs | — : mantenha (sem equivalente stock) |
 | FG-ENV-029 | chaves .env fora do .env.example | — : mantenha (sem equivalente stock) |
+| FG-ASSET-030 | assets declarados no pubspec ausentes no disco | — : mantenha (sem equivalente stock) |
+| FG-VER-031 | versão do pubspec fora do semver | — : mantenha (sem equivalente stock) |
+| FG-DOC-032 | links locais quebrados em Markdown | — : mantenha (sem equivalente stock) |
+| FG-TST-033 | arquivos lib sem teste espelho (opt-in) | — : mantenha (sem equivalente stock) |
 
 (Do piloto de campo SYS-CAL-002: só FG-ST-001, FG-ST-005 e
 FG-KEY-001r não tinham equivalente nos validadores do ERP.)

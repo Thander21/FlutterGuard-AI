@@ -602,7 +602,7 @@ the three real-signal classes are fixed out of band.
   clean; CAL-001 re-ratified — async~listkey twin
   eliminated-FP, collector key 223→306, 5 pinned).
   Field acceptance pending the §5 re-run.
-- R2-5 IN PROGRESS 2026-11-06 — head gates 7/7
+- R2-5 COMPLETE 2026-11-06 — head 7/7, tail T1–T6, medium M1–M5, ledger
   DONE. Gate 1: FG-BAN-018 banned symbols (TS-18
   + tc18 golden pair with fixture config;
   self-loading rule via shared walk-up discovery
@@ -718,15 +718,100 @@ the three real-signal classes are fixed out of band.
   111→112/233→234 plus +1 runner-pipeline
   FP (enc~=env @0.814, 6th of class), 13
   pinned. Tail T1–T6 COMPLETE (29 rules).
+  Medium M1: FG-ASSET-030 assets (TS-30 +
+  tc30 golden tree, 2 findings;
+  declared→exists only — vice-versa
+  deferred to v1 behind asset_roots config,
+  no literals) + FG-VER-031 version (TS-31
+  + direct golden pair, semver with
+  -pre/+build, missing-key fail-open —
+  unquoted `1.2` floats flag by design) +
+  FG-DOC-032 doc links (TS-32 + tc32 golden
+  tree, 2 findings; inline-only,
+  fences/spans stripped, fragments
+  unchecked, ref-style pinned-unevaluated)
+  + exact-name scopes (`RuleAnalyzer.names`,
+  `registeredNames`, union collection;
+  CLI-001a §2 amended). Registry + recipes
+  + README/LEIAME wired (config-free — no
+  init template change). Full suite
+  389/389, `grade` green, analyzer clean,
+  dogfood 0/0 (the landing's own FMT
+  finding healed via recipe); CAL-001
+  re-ratified — +1 MET FP (rules:42
+  declarative config ctor, pinned not
+  healed) +1 runner-pipeline FP (asset~=env
+  @0.808, 7th of class), check twins
+  re-keyed 112→113/234→235, 14 pinned.
   Remaining: the medium list (optional
   analyze step, new-file tests,
-  changed-tests selection, assets/version/
-  deps/licenses/links, dart fix pre-step)
-  and engine items (parallel gate report,
-  per-run evidence ledger).
+  changed-tests selection, deps/licenses,
+  dart fix pre-step) and engine items
+  (parallel gate report, per-run evidence
+  ledger).
+  Medium M2: FG-TST-033 presence (TS-33 +
+  tc33 golden pair with fixture config;
+  opt-in — strict mirror would red-flag
+  flat/colocated trees including this repo;
+  newness via --diff/baseline, not the
+  rule) + select-tests (lib + CLI over the
+  diff, shared mirrorTestFor, repo-wide
+  fail-closed, empty composes to full
+  suite) + check --analyze (ambient SDK,
+  machine-parse, analyzer: errors, exit 1,
+  whole-target under --diff, findings stay
+  rule-pure; CLI-001a amended). Registry +
+  recipes + README/LEIAME + init template
+  wired. Full suite 419/419, `grade`
+  green, analyzer clean, dogfood 0/0;
+  CAL-001 re-ratified — check~=init twin
+  dissolved (eliminated-FP), rules re-keyed
+  42→43, checkFiles 113→114, no new twins,
+  13 pinned.
+  Medium M3–M5: dep/license engine gates +
+  heal pre-step + per-gate report.
+  `--dep-audit` (pub outdated signals:
+  discontinued/replaced/retracted/
+  advisory; behind-latest never flags;
+  malformed JSON fails closed; live-
+  verified on this repo, zero signals) +
+  `--license-audit` (SPDX classifier over
+  the pub cache vs licenses.deny; unknown/
+  missing fail closed; allow_pkgs pins;
+  hermetic subprocess e2e via PUB_CACHE;
+  live-verified: yaml→MIT) + heal `--fix`
+  (dart fix + format pre-step, outside the
+  snapshot, persists across rollback;
+  needs package context + resolvable
+  files) + check `--by-gate` (per-rule
+  PASS/WARN/FAIL + ms, text + JSON;
+  sequential v0, isolate parallelism
+  deferred — registry closures don't cross
+  isolates). CLI-001a + HEAL-001 amended;
+  init template gains licenses. Full suite
+  445/445, `grade` green, analyzer clean,
+  dogfood 0/0; CAL-001 re-ratified —
+  checkFiles twin dissolved (2nd check-
+  family elimination), +1 runner-pipeline
+  FP (_git~=runDepAudit @0.805, 8th of
+  class) +1 procedural-flow-twin FP
+  (heal~=init @0.844, 5th of class), 14
+  pinned.
+  Ledger: check --evidence (canon-shaped
+  per-gate lines, CHECK_GATE/CHECK_RECORDED/
+  WARNED, zero new keys; opt-in explicit
+  path, default runs write nothing;
+  CLI-001a §4 + TELE-001 amended). Full
+  suite 454/454, `grade` green, analyzer
+  clean, dogfood 0/0; CAL-001 verified
+  with no movement (14 pins stand). R2-5
+  medium list + engine items COMPLETE (33
+  rules). Remaining: isolate parallelism
+  (deferred follow-up) + R2-6 (needs ERP
+  access) + §5 field bar (owner re-run).
 - R2-6 OPEN: specified (mutation wedge, needs ERP
   access per Q8).
-- Recommended next: R2-5 medium list or R2-6 (needs ERP access).
+- Recommended next: R2-6 (needs ERP access) or the isolate-parallelism follow-up.
 - Scope broadened 2026-11-05 (§7 + Broadening notes): ERP is
   corpus #1, not the mold. Ratified 2026-11-05 (Q9).
 

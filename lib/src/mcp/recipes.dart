@@ -30,6 +30,14 @@ const canonicalRecipes = <String, String>{
      child: const Text('Save'),
    )
 ```''',
+  'FG-ASSET-030': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   flutter:
+     assets:
+-      - assets/images/missing.png
++      - assets/images/logo.png
+```''',
   'FG-ASYNC-002': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -107,6 +115,12 @@ The service file itself goes in the entry's `except` list.''',
 
 The service returns data; the calling widget navigates with its own
 context (guarded per FG-ASYNC-002 when asynchronous).''',
+  'FG-DOC-032': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+-  See the [runbook](docs/runbook.md) for details.
++  See the [runbook](docs/run-book.md) for details.
+```''',
   'FG-ENC-022': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -420,6 +434,26 @@ redirect — then delete the orphan.''',
 +    color: Theme.of(context).colorScheme.error,
    )
 ```''',
+  'FG-TST-033': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
++  // test/shop_test.dart (new file mirroring the lib path)
++  import 'package:test/test.dart';
++  import '../lib/shop.dart';
++
++  void main() {
++    test('price formats', () {
++      expect(price(), isNotEmpty);
++    });
++  }
+```''',
+  'FG-VER-031': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   name: shop
+-  version: 1.2
++  version: 1.2.0
+```''',
   'FG-WID-008': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -442,12 +476,14 @@ redirect — then delete the orphan.''',
 const canonicalRecipeSpecs = <String, String>{
   'FG-ARB-027': 'specs/TS-27-arb-guard.md',
   'FG-ARCH-003': 'specs/TS-05-arch-layer-guard.md',
+  'FG-ASSET-030': 'specs/TS-30-asset-guard.md',
   'FG-ASYNC-002': 'specs/TS-06-async-context-guard.md',
   'FG-BAN-018': 'specs/TS-18-banned-symbol-guard.md',
   'FG-BLOC-001': 'specs/TS-01-bloc-emit-guard.md',
   'FG-BUILD-014': 'specs/TS-14-async-in-build-guard.md',
   'FG-CC-025': 'specs/TS-25-complexity-guard.md',
   'FG-CTX-006': 'specs/TS-09-context-scope-guard.md',
+  'FG-DOC-032': 'specs/TS-32-doc-guard.md',
   'FG-ENC-022': 'specs/TS-22-encoding-guard.md',
   'FG-ENV-029': 'specs/TS-29-env-guard.md',
   'FG-FMT-016': 'specs/TS-16-format-guard.md',
@@ -468,5 +504,7 @@ const canonicalRecipeSpecs = <String, String>{
   'FG-ST-005': 'specs/TS-08-state-mutation-guard.md',
   'FG-SYN-017': 'specs/TS-17-syntax-guard.md',
   'FG-TOK-020': 'specs/TS-20-theme-token-guard.md',
+  'FG-TST-033': 'specs/TS-33-test-presence-guard.md',
+  'FG-VER-031': 'specs/TS-31-version-guard.md',
   'FG-WID-008': 'specs/TS-10-widget-immutable-guard.md',
 };

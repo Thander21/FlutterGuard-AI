@@ -5,6 +5,7 @@
 // so adding a rule means adding one entry here.
 import '../ast/arch_layer_guard.dart';
 import '../ast/arb_guard.dart';
+import '../ast/asset_guard.dart';
 import '../ast/async_build_guard.dart';
 import '../ast/async_context_guard.dart';
 import '../ast/banned_symbol_guard.dart';
@@ -13,6 +14,7 @@ import '../ast/complexity_guard.dart';
 import '../ast/context_scope_guard.dart';
 import '../ast/print_logger_guard.dart';
 import '../ast/controller_build_guard.dart';
+import '../ast/doc_guard.dart';
 import '../ast/encoding_guard.dart';
 import '../ast/env_guard.dart';
 import '../ast/format_guard.dart';
@@ -30,7 +32,9 @@ import '../ast/list_viewport_guard.dart';
 import '../ast/riverpod_watch_guard.dart';
 import '../ast/state_mutation_guard.dart';
 import '../ast/syntax_guard.dart';
+import '../ast/test_presence_guard.dart';
 import '../ast/theme_token_guard.dart';
+import '../ast/version_guard.dart';
 import '../ast/widget_immutable_guard.dart';
 import '../ast/rule_violation.dart';
 
@@ -44,6 +48,7 @@ class RuleAnalyzer {
     this.severityFor,
     this.extensions = const {'.dart'},
     this.namePrefixes = const {},
+    this.names = const {},
   });
 
   /// Stable rule id (e.g. `FG-BLOC-001`).
@@ -73,11 +78,16 @@ class RuleAnalyzer {
   /// like `.env*` carry no matchable extension).
   final Set<String> namePrefixes;
 
+  /// Exact basenames this rule reads (default: none; singletons
+  /// like `pubspec.yaml` match neither an extension nor a prefix).
+  final Set<String> names;
+
   /// True when [file] is in this rule's scope.
   bool scopes(String file) {
     if (extensions.any(file.endsWith)) return true;
-    if (namePrefixes.isEmpty) return false;
+    if (namePrefixes.isEmpty && names.isEmpty) return false;
     final base = file.replaceAll(r'\', '/').split('/').last;
+    if (names.contains(base)) return true;
     return namePrefixes.any(base.startsWith);
   }
 }
@@ -238,6 +248,31 @@ final ruleAnalyzers = <RuleAnalyzer>[
     extensions: const {},
     namePrefixes: const {'.env'},
   ),
+  RuleAnalyzer(
+    id: 'FG-ASSET-030',
+    spec: 'specs/TS-30-asset-guard.md',
+    analyze: analyzeAssetFile,
+    extensions: const {},
+    names: const {'pubspec.yaml'},
+  ),
+  RuleAnalyzer(
+    id: 'FG-VER-031',
+    spec: 'specs/TS-31-version-guard.md',
+    analyze: analyzeVersionFile,
+    extensions: const {},
+    names: const {'pubspec.yaml'},
+  ),
+  RuleAnalyzer(
+    id: 'FG-DOC-032',
+    spec: 'specs/TS-32-doc-guard.md',
+    analyze: analyzeDocFile,
+    extensions: const {'.md'},
+  ),
+  RuleAnalyzer(
+    id: 'FG-TST-033',
+    spec: 'specs/TS-33-test-presence-guard.md',
+    analyze: analyzeTstFile,
+  ),
 ];
 
 /// Extension union over the registry: every file kind some rule
@@ -250,4 +285,9 @@ Set<String> get registeredExtensions => {
 /// Basename-prefix union over the registry (dotfile scopes).
 Set<String> get registeredPrefixes => {
   for (final rule in ruleAnalyzers) ...rule.namePrefixes,
+};
+
+/// Exact-basename union over the registry (singleton scopes).
+Set<String> get registeredNames => {
+  for (final rule in ruleAnalyzers) ...rule.names,
 };
