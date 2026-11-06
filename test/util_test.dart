@@ -1,6 +1,7 @@
 // Shared-primitive tests (lib/src/util.dart): config discovery walks
 // (see also test/config_test.dart, which pins discovery through the
-// barrel) and the v1 glob matcher serving `except` lists.
+// barrel), the v1 glob matcher serving `except` lists, and PATH
+// search.
 import 'dart:io';
 
 import 'package:flutterguard_ai/flutterguard_ai.dart';
@@ -172,6 +173,55 @@ void main() {
       expect(mirrorTestFor('lib/a.txt'), isNull);
       expect(mirrorTestFor('tool/a.dart'), isNull);
       expect(mirrorTestFor('a.dart'), isNull);
+    });
+  });
+
+  group('findOnPath', () {
+    test('returns the first hit, honoring suffixes and skips', () {
+      final root = Directory.systemTemp.createTempSync('findpath_test.');
+      try {
+        final bin = Directory('${root.path}/bin')..createSync();
+        File('${bin.path}/tool.sh').writeAsStringSync('x\n');
+        final sep = Platform.isWindows ? ';' : ':';
+        expect(
+          findOnPath('tool', pathEnv: bin.path, extensions: ['.sh']),
+          '${bin.path}/tool.sh',
+        );
+        expect(
+          findOnPath('tool', pathEnv: bin.path, extensions: ['.exe']),
+          isNull,
+        );
+        expect(findOnPath('nope', pathEnv: bin.path), isNull);
+        expect(findOnPath('tool', pathEnv: ''), isNull);
+        expect(
+          findOnPath(
+            'tool',
+            pathEnv: ' ${root.path}_empty$sep${bin.path} ',
+            extensions: ['.sh'],
+          ),
+          '${bin.path}/tool.sh',
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('resolvesOnPath stays the boolean face', () {
+      final root = Directory.systemTemp.createTempSync('findpath_test.');
+      try {
+        final bin = Directory('${root.path}/bin')..createSync();
+        File('${bin.path}/tool.sh').writeAsStringSync('x\n');
+        expect(
+          resolvesOnPath('tool', pathEnv: bin.path, extensions: ['.sh']),
+          isTrue,
+        );
+        expect(
+          resolvesOnPath('tool', pathEnv: bin.path, extensions: ['.exe']),
+          isFalse,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
     });
   });
 }

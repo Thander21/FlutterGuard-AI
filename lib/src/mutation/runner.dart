@@ -69,6 +69,7 @@ class MutationRunner {
     this.pubGetTimeout = const Duration(minutes: 2),
     this.sandboxRoot = 'fixtures/mutation',
     this.testCommand,
+    this.pubGetCommand,
   });
 
   /// Circuit-breaker budget per test invocation (baseline included).
@@ -90,9 +91,18 @@ class MutationRunner {
   /// test path and `--concurrency=1`.
   final List<String> Function({required bool usesFlutterTest})? testCommand;
 
+  /// Override for the `pub get` invocation inside a shadow package.
+  /// When null, [defaultPubGetCommand] is used. The returned list is
+  /// the executable plus args, run as-is with cwd set to the shadow
+  /// root. Pair runs never fetch dependencies, so this is unused
+  /// there.
+  final List<String> Function({required bool usesFlutter})? pubGetCommand;
+
   /// Default test invocation: `flutter test` when the staged test
   /// imports `package:flutter_test`, else `dart test` via the current
-  /// executable (`.bat` launchers never spawned, breaker-safe).
+  /// executable (`.bat` launchers never spawned, breaker-safe). Like
+  /// every spawned command, the result passes through
+  /// [resolveFlutterCommand] before spawning.
   static List<String> defaultTestCommand({required bool usesFlutterTest}) {
     if (usesFlutterTest) return const ['flutter', 'test'];
     final executable = Platform.resolvedExecutable.isNotEmpty
@@ -103,7 +113,9 @@ class MutationRunner {
 
   /// Default dependency fetch inside a shadow package: `flutter pub
   /// get` for Flutter packages, else `dart pub get` via the current
-  /// executable (same `.bat` rule as [defaultTestCommand]).
+  /// executable (same `.bat` rule as [defaultTestCommand]). Like
+  /// every spawned command, the result passes through
+  /// [resolveFlutterCommand] before spawning.
   static List<String> defaultPubGetCommand({required bool usesFlutter}) {
     if (usesFlutter) return const ['flutter', 'pub', 'get'];
     final executable = Platform.resolvedExecutable.isNotEmpty
@@ -128,9 +140,10 @@ class MutationRunner {
   ///
   /// Throws [ArgumentError] on missing files, identical paths,
   /// non-positive timeouts, a test that does not import the source,
-  /// a shadow pair split across packages, or a reused [runId].
-  /// Throws [StateError] when the clean baseline is red, `pub get`
-  /// fails in the shadow, the canary passes, or a restore mismatches.
+  /// a shadow pair split across packages, a reused [runId], or an
+  /// unresolvable `flutter` tool. Throws [StateError] when the clean
+  /// baseline is red, `pub get` fails in the shadow, the canary
+  /// passes, or a restore mismatches.
   Future<MutationVerdict> run({
     required String sourcePath,
     required String testPath,
@@ -284,13 +297,19 @@ class MutationRunner {
     if (shadow.existsSync()) {
       throw ArgumentError('run id already exists: $runId');
     }
+    final usesFlutter = usesFlutterTest(test) || _usesFlutterSdk(packageRoot);
+    // Fail fast before the expensive copy: both commands must resolve.
+    final pubGet = resolveFlutterCommand(
+      (pubGetCommand ?? defaultPubGetCommand)(usesFlutter: usesFlutter),
+    );
+    resolveFlutterCommand(
+      (testCommand ?? defaultTestCommand)(usesFlutterTest: usesFlutter),
+    );
     _copyPackage(Directory(packageRoot), shadow);
     final marker = File('${shadow.path}/$_shadowMarkerName')
       ..writeAsStringSync('$runId\n');
     var keep = false;
     try {
-      final usesFlutter = usesFlutterTest(test) || _usesFlutterSdk(packageRoot);
-      final pubGet = defaultPubGetCommand(usesFlutter: usesFlutter);
       final fetched = await runWithBreaker(
         pubGet.first,
         pubGet.sublist(1),
@@ -384,14 +403,17 @@ class MutationRunner {
   /// Runs the resolved test command on [testPath]; [_timedOut]
   /// when the breaker fires. [workingDirectory] scopes the child to
   /// a staged copy (shadow runs pass the shadow root plus a
-  /// package-relative test path).
+  /// package-relative test path). Every command passes through
+  /// [resolveFlutterCommand], so a `flutter` tool spawns on Windows.
   Future<int> _runTest(
     String testPath, {
     required bool usesFlutterTest,
     String? workingDirectory,
   }) async {
     final resolve = testCommand ?? defaultTestCommand;
-    final command = resolve(usesFlutterTest: usesFlutterTest);
+    final command = resolveFlutterCommand(
+      resolve(usesFlutterTest: usesFlutterTest),
+    );
     if (command.isEmpty) {
       throw StateError('test command resolved empty');
     }
@@ -415,6 +437,94 @@ bool usesFlutterTest(String testSource) {
   return collector.imports.any(
     (uri) => uri.stringValue?.startsWith('package:flutter_test/') ?? false,
   );
+}
+
+/// Flutter SDK root from a PATH scan, or null when no launcher is
+/// found. Candidates in order (`flutter.exe`, `flutter.bat`,
+/// `flutter.cmd`, extensionless `flutter`); a hit under a `bin/`
+/// dir resolves to its parent, anything else is skipped.
+/// [pathEnv] injects a fake PATH for tests.
+String? findFlutterRoot({String? pathEnv}) {
+  for (final extension in const ['.exe', '.bat', '.cmd', '']) {
+    final hit = findOnPath(
+      'flutter',
+      pathEnv: pathEnv,
+      extensions: [extension],
+    );
+    if (hit == null) continue;
+    final root = _parentOfBin(_dirOf(hit));
+    if (root != null) return root;
+  }
+  return null;
+}
+
+/// `flutter ...` as a directly-spawnable invocation: the bundled
+/// dart plus `flutter_tools.snapshot`, exactly as the SDK's
+/// `flutter.bat` invokes it (`--packages`, snapshot, then [args];
+/// the batch self-repair and env setup are skipped — the tool
+/// self-locates). Throws [ArgumentError] naming the repair when
+/// [flutterRoot] lacks the dart binary, the snapshot, or the tool
+/// package config.
+List<String> flutterToolCommand(String flutterRoot, List<String> args) {
+  final dartExe = '$flutterRoot/bin/cache/dart-sdk/bin/dart.exe';
+  final snapshot = '$flutterRoot/bin/cache/flutter_tools.snapshot';
+  final packages =
+      '$flutterRoot/packages/flutter_tools/.dart_tool/package_config.json';
+  for (final need in [dartExe, snapshot, packages]) {
+    if (!File(need).existsSync()) {
+      throw ArgumentError(
+        'Flutter SDK at $flutterRoot is incomplete (missing $need); '
+        'run a manual `flutter` command to repair it',
+      );
+    }
+  }
+  return [dartExe, '--packages=$packages', snapshot, ...args];
+}
+
+/// Resolves [command] to a directly-spawnable form: on Windows a
+/// `flutter` executable (bare, `.bat`, `.cmd`, or an absolute
+/// launcher path) becomes [flutterToolCommand] — `CreateProcess`
+/// cannot run batch launchers — while a native `flutter.exe` and
+/// every non-Flutter command pass through untouched. Throws
+/// [ArgumentError] when Flutter is named but unresolvable (not on
+/// PATH, outside an SDK `bin/`, or an incomplete SDK). Identity on
+/// non-Windows, where the shell script spawns directly.
+/// [pathEnv] injects a fake PATH for tests.
+List<String> resolveFlutterCommand(List<String> command, {String? pathEnv}) {
+  if (command.isEmpty ||
+      !Platform.isWindows ||
+      !_isFlutterName(command.first)) {
+    return command;
+  }
+  final first = command.first;
+  final rest = command.sublist(1);
+  if (_isAbsolutePath(first)) {
+    if (first.toLowerCase().endsWith('.exe') && File(first).existsSync()) {
+      return command;
+    }
+    final root = _parentOfBin(_dirOf(first));
+    if (root == null) {
+      throw ArgumentError(
+        'flutter launcher $first sits outside an SDK bin/ dir; pass '
+        "the SDK's flutter.bat or put it on PATH",
+      );
+    }
+    return flutterToolCommand(root, rest);
+  }
+  final exe = findOnPath(
+    'flutter',
+    pathEnv: pathEnv,
+    extensions: const ['.exe'],
+  );
+  if (exe != null) return [exe, ...rest];
+  final root = findFlutterRoot(pathEnv: pathEnv);
+  if (root == null) {
+    throw ArgumentError(
+      'flutter not found on PATH; install the Flutter SDK and add '
+      'its bin/ to PATH',
+    );
+  }
+  return flutterToolCommand(root, rest);
 }
 
 /// Deletes abandoned shadow packages under the system temp dir:
@@ -698,6 +808,37 @@ String _dirOf(String absolutePath) {
         ],
       )
       .toFilePath();
+}
+
+/// True when [first] names the Flutter tool (bare or with a Windows
+/// launcher suffix, case-insensitive).
+bool _isFlutterName(String first) {
+  final base = first.replaceAll(r'\', '/').split('/').last.toLowerCase();
+  return base == 'flutter' ||
+      base == 'flutter.exe' ||
+      base == 'flutter.bat' ||
+      base == 'flutter.cmd';
+}
+
+/// True for absolute paths (both platforms); garbage parses as
+/// relative so it fails cleanly at PATH lookup.
+bool _isAbsolutePath(String path) {
+  try {
+    return Uri.file(path).isAbsolute;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Parent of a `bin/` dir, or null when [dir] is not one (native
+/// separators preserved).
+String? _parentOfBin(String dir) {
+  final trimmed = dir.replaceAll(RegExp(r'[/\\]+$'), '');
+  final lower = trimmed.toLowerCase();
+  if (lower.endsWith('/bin') || lower.endsWith(r'\bin')) {
+    return trimmed.substring(0, trimmed.length - '/bin'.length);
+  }
+  return null;
 }
 
 /// [path] without trailing separators (a bare drive root keeps one).

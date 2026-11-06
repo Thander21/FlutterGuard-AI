@@ -1,7 +1,7 @@
 // SYS-MUT-001 contract test: rewriter units, the canary pair
 // (complacent test FAILs, honest test PASSes), the timeout breaker,
 // the pair import guard, shadow-package staging with its compile
-// canary, and the zero-mutant PASS.
+// canary, Windows Flutter-tool resolution, and the zero-mutant PASS.
 //
 // Runner tests stage real `dart test` subprocess runs under
 // fixtures/mutation/<runId>/ (volatile, gitignored) or shadow
@@ -59,6 +59,175 @@ bool no() => false;
         throwsStateError,
       );
     });
+  });
+
+  group('flutter tool resolution', () {
+    test('findFlutterRoot scans PATH for an SDK bin', () {
+      final temp = Directory.systemTemp.createTempSync('flutroot_');
+      try {
+        final root = stageFakeSdk(temp.path, 'sdk');
+        final sep = Platform.isWindows ? ';' : ':';
+        expect(findFlutterRoot(pathEnv: '$root/bin'), native(root));
+        expect(
+          findFlutterRoot(pathEnv: '${temp.path}_empty$sep$root/bin'),
+          native(root),
+        );
+        expect(findFlutterRoot(pathEnv: temp.path), isNull);
+        expect(findFlutterRoot(pathEnv: ''), isNull);
+      } finally {
+        temp.deleteSync(recursive: true);
+      }
+    });
+
+    test('findFlutterRoot prefers native launchers, skips shims', () {
+      final temp = Directory.systemTemp.createTempSync('flutroot_');
+      try {
+        final sep = Platform.isWindows ? ';' : ':';
+        final cmdSdk = Directory('${temp.path}/cmdsdk')
+          ..createSync(recursive: true);
+        File('${cmdSdk.path}/bin/flutter.cmd')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('x\n');
+        final batSdk = Directory('${temp.path}/batsdk')
+          ..createSync(recursive: true);
+        File('${batSdk.path}/bin/flutter.bat')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('x\n');
+        final exeSdk = Directory('${temp.path}/exesdk')
+          ..createSync(recursive: true);
+        File('${exeSdk.path}/bin/flutter.exe')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('x\n');
+        final path =
+            '${cmdSdk.path}/bin$sep${batSdk.path}/bin$sep${exeSdk.path}/bin';
+        expect(findFlutterRoot(pathEnv: path), native(exeSdk.path));
+        expect(
+          findFlutterRoot(pathEnv: '${cmdSdk.path}/bin$sep${batSdk.path}/bin'),
+          native(batSdk.path),
+        );
+        final shim = Directory('${temp.path}/shim')..createSync();
+        File('${shim.path}/flutter.bat').writeAsStringSync('x\n');
+        expect(findFlutterRoot(pathEnv: shim.path), isNull);
+      } finally {
+        temp.deleteSync(recursive: true);
+      }
+    });
+
+    test('flutterToolCommand builds the batch-faithful invocation', () {
+      final temp = Directory.systemTemp.createTempSync('fluttool_');
+      try {
+        final root = stageFakeSdk(temp.path, 'sdk');
+        expect(flutterToolCommand(root, ['pub', 'get']), [
+          '$root/bin/cache/dart-sdk/bin/dart.exe',
+          '--packages=$root/packages/flutter_tools/.dart_tool/package_config.json',
+          '$root/bin/cache/flutter_tools.snapshot',
+          'pub',
+          'get',
+        ]);
+      } finally {
+        temp.deleteSync(recursive: true);
+      }
+    });
+
+    test('flutterToolCommand fails closed on an incomplete SDK', () {
+      final temp = Directory.systemTemp.createTempSync('fluttool_');
+      try {
+        const missing = [
+          'bin/cache/dart-sdk/bin/dart.exe',
+          'bin/cache/flutter_tools.snapshot',
+          'packages/flutter_tools/.dart_tool/package_config.json',
+        ];
+        for (var i = 0; i < missing.length; i++) {
+          final root = stageFakeSdk(temp.path, 'sdk$i', without: missing[i]);
+          expect(() => flutterToolCommand(root, ['test']), throwsArgumentError);
+        }
+      } finally {
+        temp.deleteSync(recursive: true);
+      }
+    });
+
+    test('resolveFlutterCommand passes everything else through', () {
+      expect(resolveFlutterCommand([]), isEmpty);
+      expect(resolveFlutterCommand(['dart', 'test']), ['dart', 'test']);
+      expect(
+        resolveFlutterCommand(['C:/tools/dart-sdk/bin/dart.exe', '--version']),
+        ['C:/tools/dart-sdk/bin/dart.exe', '--version'],
+      );
+    });
+
+    test(
+      'resolveFlutterCommand bypasses the batch launcher on Windows',
+      skip: Platform.isWindows ? false : 'Windows path',
+      () {
+        final temp = Directory.systemTemp.createTempSync('flutres_');
+        try {
+          final root = stageFakeSdk(temp.path, 'sdk');
+          final nroot = native(root);
+          final dartExe = '$nroot/bin/cache/dart-sdk/bin/dart.exe';
+          final snapshot = '$nroot/bin/cache/flutter_tools.snapshot';
+          final packages =
+              '$nroot/packages/flutter_tools/.dart_tool/package_config.json';
+          expect(
+            resolveFlutterCommand([
+              'flutter',
+              'pub',
+              'get',
+            ], pathEnv: '$root/bin'),
+            [dartExe, '--packages=$packages', snapshot, 'pub', 'get'],
+          );
+          expect(resolveFlutterCommand(['$root/bin/flutter.bat', 'test']), [
+            dartExe,
+            '--packages=$packages',
+            snapshot,
+            'test',
+          ]);
+          final exeSdk = stageFakeSdk(temp.path, 'exesdk');
+          File('$exeSdk/bin/flutter.exe').writeAsStringSync('x\n');
+          expect(
+            resolveFlutterCommand(['flutter', 'test'], pathEnv: '$exeSdk/bin'),
+            ['$exeSdk/bin/flutter.exe', 'test'],
+          );
+        } finally {
+          temp.deleteSync(recursive: true);
+        }
+      },
+    );
+
+    test(
+      'resolveFlutterCommand fails closed when Flutter is unresolvable',
+      skip: Platform.isWindows ? false : 'Windows path',
+      () {
+        final temp = Directory.systemTemp.createTempSync('flutres_');
+        try {
+          expect(
+            () =>
+                resolveFlutterCommand(['flutter', 'test'], pathEnv: temp.path),
+            throwsArgumentError,
+          );
+          final root = stageFakeSdk(
+            temp.path,
+            'brokensdk',
+            without: 'bin/cache/flutter_tools.snapshot',
+          );
+          expect(
+            () => resolveFlutterCommand([
+              'flutter',
+              'test',
+            ], pathEnv: '$root/bin'),
+            throwsArgumentError,
+          );
+          final stray = File('${temp.path}/stray/flutter.bat')
+            ..createSync(recursive: true)
+            ..writeAsStringSync('x\n');
+          expect(
+            () => resolveFlutterCommand([stray.path, 'test']),
+            throwsArgumentError,
+          );
+        } finally {
+          temp.deleteSync(recursive: true);
+        }
+      },
+    );
   });
 
   group('MutationRunner', () {
@@ -137,6 +306,17 @@ bool no() => false;
       final id = 't${pid}_${DateTime.now().microsecondsSinceEpoch}_$name';
       runIds.add(id);
       return id;
+    }
+
+    /// True when a Flutter tool can run here (real SDK required).
+    bool flutterRunnable() {
+      if (!Platform.isWindows) return resolvesOnPath('flutter');
+      try {
+        resolveFlutterCommand(const ['flutter', '--version']);
+        return true;
+      } on ArgumentError {
+        return false;
+      }
     }
 
     test('canary: complacent test survives the mutant (FAIL)', () async {
@@ -424,6 +604,48 @@ void main() {
       expect(verdict.results.single.status, MutantStatus.killed);
     }, timeout: const Timeout(Duration(seconds: 300)));
 
+    test(
+      'shadow: real flutter test run kills the mutant end to end',
+      skip: flutterRunnable() ? false : 'Flutter SDK required',
+      () async {
+        final root = Directory('${inputs.path}/shadowflut')
+          ..createSync(recursive: true);
+        File('${root.path}/pubspec.yaml').writeAsStringSync(
+          'name: shadowflut_app\nenvironment:\n  sdk: ^3.13.0\n'
+          'dependencies:\n  flutter:\n    sdk: flutter\n'
+          'dev_dependencies:\n  flutter_test:\n    sdk: flutter\n',
+        );
+        final lib = Directory('${root.path}/lib')..createSync(recursive: true);
+        final testDir = Directory('${root.path}/test')
+          ..createSync(recursive: true);
+        final source = File('${lib.path}/target.dart')
+          ..writeAsStringSync('bool isAboveZero(int n) => n > 0;\n');
+        final testFile = File('${testDir.path}/target_test.dart')
+          ..writeAsStringSync('''
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shadowflut_app/target.dart';
+void main() {
+  test('honest', () {
+    expect(isAboveZero(1), isTrue);
+    expect(isAboveZero(-1), isFalse);
+  });
+}
+''');
+        final verdict =
+            await MutationRunner(
+              timeout: const Duration(seconds: 120),
+              pubGetTimeout: const Duration(seconds: 300),
+            ).run(
+              sourcePath: source.path,
+              testPath: testFile.path,
+              runId: nextId('shadowflut'),
+            );
+        expect(verdict.passed, isTrue);
+        expect(verdict.results.single.status, MutantStatus.killed);
+      },
+      timeout: const Timeout(Duration(seconds: 600)),
+    );
+
     test('shadow: passing canary aborts fail-closed', () async {
       final pkg = writePackage(
         'shadowcanary',
@@ -456,6 +678,79 @@ void main() {
       final shadow = Directory(shadowDir(id));
       expect(shadow.existsSync(), isTrue);
       shadow.deleteSync(recursive: true); // Asserted; leave no litter.
+    }, timeout: const Timeout(Duration(seconds: 120)));
+
+    test('shadow: failing pub get aborts with the shadow kept', () async {
+      final pkg = writePackage(
+        'shadowpubfail',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
+import 'package:test/test.dart';
+import 'package:shadowpubfail_app/target.dart';
+void main() {
+  test('honest', () {
+    expect(isAboveZero(1), isTrue);
+  });
+}
+''',
+      );
+      final id = nextId('shadowpubfail');
+      await expectLater(
+        MutationRunner(
+          pubGetCommand: ({required bool usesFlutter}) => [
+            Platform.resolvedExecutable,
+            'definitely_missing_pubget_probe.dart',
+          ],
+        ).run(sourcePath: pkg[1], testPath: pkg[2], runId: id),
+        throwsStateError,
+      );
+      final shadow = Directory(shadowDir(id));
+      expect(shadow.existsSync(), isTrue);
+      shadow.deleteSync(recursive: true); // Asserted; leave no litter.
+    }, timeout: const Timeout(Duration(seconds: 120)));
+
+    test('shadow: pubGetCommand override threads usesFlutter', () async {
+      final pkg = writePackage(
+        'shadowpubseen',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
+import 'package:test/test.dart';
+import 'package:shadowpubseen_app/target.dart';
+void main() {
+  test('honest', () {
+    expect(isAboveZero(1), isTrue);
+    expect(isAboveZero(-1), isFalse);
+  });
+}
+''',
+      );
+      final fake = writeFake('shadow_pubseen', '''
+import 'dart:io';
+void main(List<String> args) {
+  if (File('lib/target.dart').readAsStringSync() !=
+      'bool isAboveZero(int n) => n > 0;\\n') {
+    exit(1);
+  }
+}
+''');
+      final seen = <bool>[];
+      final verdict =
+          await MutationRunner(
+            pubGetCommand: ({required bool usesFlutter}) {
+              seen.add(usesFlutter);
+              return [Platform.resolvedExecutable, '--version'];
+            },
+            testCommand: ({required bool usesFlutterTest}) => [
+              Platform.resolvedExecutable,
+              fake,
+            ],
+          ).run(
+            sourcePath: pkg[1],
+            testPath: pkg[2],
+            runId: nextId('shadowpubseen'),
+          );
+      expect(seen, [false]);
+      expect(verdict.passed, isTrue);
     }, timeout: const Timeout(Duration(seconds: 120)));
 
     test('shadow: canary snippet breaks parsing', () {
@@ -684,3 +979,25 @@ void main() {
     });
   });
 }
+
+/// Stages a fake Flutter SDK under [parent]/[name] (a `bin/flutter.bat`
+/// launcher plus the three layout pieces, minus [without]) and returns
+/// its root.
+String stageFakeSdk(String parent, String name, {String? without}) {
+  final root = Directory('$parent/$name')..createSync(recursive: true);
+  for (final file in [
+    'bin/flutter.bat',
+    'bin/cache/dart-sdk/bin/dart.exe',
+    'bin/cache/flutter_tools.snapshot',
+    'packages/flutter_tools/.dart_tool/package_config.json',
+  ]) {
+    if (file == without) continue;
+    File('${root.path}/$file')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('x\n');
+  }
+  return root.path;
+}
+
+/// [path] with native separators (fake roots mix `/` in).
+String native(String path) => path.replaceAll('/', Platform.pathSeparator);

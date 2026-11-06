@@ -198,17 +198,18 @@ Future<BreakerResult> runWithBreaker(
   );
 }
 
-/// True when [name] resolves on PATH. [pathEnv] injects a fake PATH
-/// for tests; the ambient machine is never asserted on. [extensions]
-/// lists the probed suffixes (callers keep their historical sets:
-/// the SDK probe includes `.sh`, the generic probe `.cmd`).
-bool resolvesOnPath(
+/// First [name] hit on PATH (full path) or null. [pathEnv] injects
+/// a fake PATH for tests; the ambient machine is never asserted on.
+/// [extensions] lists the probed suffixes (callers keep their
+/// historical sets: the SDK probe includes `.sh`, the generic probe
+/// `.cmd`).
+String? findOnPath(
   String name, {
   String? pathEnv,
   List<String> extensions = const [],
 }) {
   final path = pathEnv ?? Platform.environment['PATH'] ?? '';
-  if (path.isEmpty) return false;
+  if (path.isEmpty) return null;
   final separator = Platform.isWindows ? ';' : ':';
   final suffixes = extensions.isEmpty
       ? (Platform.isWindows ? ['', '.exe', '.bat', '.cmd'] : [''])
@@ -217,11 +218,19 @@ bool resolvesOnPath(
     final dir = entry.trim();
     if (dir.isEmpty) continue;
     for (final extension in suffixes) {
-      if (File('$dir/$name$extension').existsSync()) return true;
+      final candidate = '$dir/$name$extension';
+      if (File(candidate).existsSync()) return candidate;
     }
   }
-  return false;
+  return null;
 }
+
+/// True when [name] resolves on PATH (see [findOnPath]).
+bool resolvesOnPath(
+  String name, {
+  String? pathEnv,
+  List<String> extensions = const [],
+}) => findOnPath(name, pathEnv: pathEnv, extensions: extensions) != null;
 
 /// Joins [root] with a repo-relative [path], leaving CLI behavior and
 /// output byte-identical when [root] is the default '.'.
