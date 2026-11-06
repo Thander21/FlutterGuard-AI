@@ -59,11 +59,13 @@ class MutationRunner {
     this.pubGetTimeout = const Duration(minutes: 2),
     this.sandboxRoot = 'fixtures/mutation',
     this.testCommand,
+    this.pubGetCommand,
   });
   final Duration timeout;
   final Duration pubGetTimeout;
   final String sandboxRoot;
   final List<String> Function({required bool usesFlutterTest})? testCommand;
+  final List<String> Function({required bool usesFlutter})? pubGetCommand;
   static List<String> defaultTestCommand({required bool usesFlutterTest});
   static List<String> defaultPubGetCommand({required bool usesFlutter});
   static const String canarySnippet;
@@ -79,6 +81,13 @@ class MutationRunner {
 
 /// Deletes abandoned shadow packages; see §2 staging.
 int sweepStaleShadows({Duration olderThan = const Duration(hours: 24)});
+
+/// Flutter SDK root from a PATH scan, or null (see §2 spawning).
+String? findFlutterRoot({String? pathEnv});
+/// `flutter ...` as bundled dart + snapshot (see §2 spawning).
+List<String> flutterToolCommand(String flutterRoot, List<String> args);
+/// Spawnable form of a command (see §2 spawning).
+List<String> resolveFlutterCommand(List<String> command, {String? pathEnv});
 ```
 
 The 3 operators (Architecture §2.3), AST-sited so strings, comments,
@@ -117,11 +126,28 @@ touched. Shadows are removed after verdicts; staging failures keep
 the shadow for inspection. `sweepStaleShadows` reaps abandoned
 shadows (incomplete-run marker, or marker-less mid-flight copies, at
 least `olderThan` old — live runs heartbeat the marker per mutant);
-every shadow run sweeps first. The `dart`/`flutter` executables are
-`Platform.resolvedExecutable` (`dart` fallback) and bare `flutter`
-so `.bat` launchers are never spawned and the breaker can kill the
-real process; test and `pub get` children run with cwd scoped to the
+every shadow run sweeps first. The `dart` executable is
+`Platform.resolvedExecutable` (`dart` fallback) so `.bat`
+launchers are never spawned and the breaker can kill the real
+process; test and `pub get` children run with cwd scoped to the
 shadow plus package-relative paths.
+
+Spawning: every command (defaults and seam overrides alike) passes
+through `resolveFlutterCommand` before spawning. On non-Windows it
+is the identity (the `flutter` shell script spawns directly). On
+Windows a `flutter` executable becomes the bundled dart plus
+`flutter_tools.snapshot`, exactly as the SDK's `flutter.bat`
+invokes it (`--packages`, snapshot, then args) — `CreateProcess`
+cannot run batch launchers. The SDK root comes from a PATH scan
+(`flutter.exe`, `flutter.bat`, `flutter.cmd`, extensionless, in
+that order; hits under a `bin/` dir resolve to its parent) or from
+an explicit launcher path; a native `flutter.exe` spawns directly.
+Deliberately skipped vs the batch files: the `shared.bat`
+self-repair (SDK downloads, snapshot rebuilds, lock contention —
+a stale SDK fails closed instead), `FLUTTER_ROOT`, and
+`FLUTTER_TOOL_ARGS` (the tool self-locates; verified: `pub get` and
+`test` run green without them). Shadow runs preflight both
+commands before copying, so an unresolvable tool fails fast.
 
 Before any mutant runs, the unmutated code runs once (clean baseline:
 `<runId>/baseline/` for pairs, the pristine shadow for packages). A
@@ -157,9 +183,11 @@ honest PASS with empty `results` (nothing to kill, nothing claimed).
 - `test/mutation_runner_test.dart` (contract test: rewriter units,
   canary pair complacent→FAIL / honest→PASS, timeout breaker, pair
   import guard, shadow honest→killed / complacent→survived (fake
-  command) plus one real `dart test` end-to-end, canary fail-closed,
+  command) plus real `dart test` and `flutter test` end-to-ends,
+  canary fail-closed, pubGet failure + override seam,
   cross-package and pubspec-less rejections, stale sweep,
-  zero-mutant PASS, flutter command resolution + override seam).
+  Flutter-tool resolution units (fake SDK roots), zero-mutant
+  PASS, flutter command resolution + override seam).
 - Generated at runtime: `fixtures/mutation/<runId>/mutant_<nn>/`
   (volatile, gitignored via `fixtures/`; kept after the run for
   inspection, never cleaned automatically) and
@@ -178,6 +206,10 @@ emission (canon rule §4).
 - Missing source/test file, or `sourcePath == testPath`: `ArgumentError`
   before any sandbox write. Non-positive `timeout`/`pubGetTimeout`:
   `ArgumentError`.
+- `flutter` tool unresolvable on Windows (not on PATH, outside an
+  SDK `bin/`, or an incomplete SDK layout): `ArgumentError` naming
+  the repair. Shadow runs preflight both commands before copying,
+  so this fires before any sandbox write.
 - Pair routing (no enclosing pubspec): test without a relative import
   resolving to the source: `ArgumentError` — flat copies would never
   take effect, so running would mint false `survived` verdicts.
@@ -236,3 +268,10 @@ emission (canon rule §4).
   would stage stale code. The working tree itself is copied
   (including uncommitted edits), which also keeps staging
   git-independent and crash-orphans to inert temp files.
+- Windows Flutter spawning (field R2-6 probe 2): running
+  `flutter.bat` under a shell with tree-kill (`taskkill /T`) is
+  REJECTED — `cmd.exe` quoting hazards on spaced paths plus
+  orphan risk when the kill fails. The runner invokes the
+  bundled dart plus `flutter_tools.snapshot` directly (exactly
+  the `.bat`'s final command), so the breaker kills one real
+  process and no shell is ever spawned.

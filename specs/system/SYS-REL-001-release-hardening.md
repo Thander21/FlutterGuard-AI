@@ -80,9 +80,12 @@ Per-item contracts:
   SYS-TELE-001 (rotation would amend it first).
 - **R9**: `.github/workflows/ci.yml` (creates `.github/`): on push +
   pull_request, Dart stable: `dart pub get`, `dart analyze
-  --fatal-infos lib bin test tool`, `dart test`. Non-goals:
-  Flutter/viewport job, grade
-  job (repo-local doctrine, PLAN-03), publish job.
+  --fatal-infos lib bin test tool`, `dart test`; plus a
+  Windows/Flutter job running the same gates (amendment: the
+  mutation spawn path needs a real Flutter on Windows — fake
+  executables cannot catch `.bat` resolution). Non-goals:
+  viewport job, grade job (repo-local doctrine, PLAN-03),
+  publish job.
 - **R10**: `docs/README.md` index: plans = process + intake (incl.
   FOLLOWUP-01), `_origem/` frozen, `_rulesHackathon/` out of scope,
   `specs/` normative, root README/LEIAME entry points.
@@ -147,6 +150,11 @@ policy (R8): tracked + checkpoint commits, 1MB revisit trigger.
 - PLAN-03 CI non-goal vs R9: reversed for the minimal workflow only —
   the field-test phase needs a regression signal; Flutter/viewport and
   publish jobs stay non-goal.
+- R9 Flutter-job non-goal vs SYS-MUT-001 (field R2-6 probe 2):
+  reversed for a Windows/Flutter CI job only — the mutation runner
+  spawns the real Flutter tool through a snapshot bypass that fake
+  executables cannot exercise; only a real SDK on Windows proves
+  `.bat` resolution. Viewport and publish jobs stay non-goal.
 - HEAL-001 §3 "production wiring" vs reality (lookup by rule id
   promised, only §2 markdown for agents exists): this contract delivers
   the `HealRecipe` lookup; markdown recipes stay agent-facing per

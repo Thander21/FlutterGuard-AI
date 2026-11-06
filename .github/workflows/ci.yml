@@ -1,5 +1,7 @@
-# FlutterGuard CI (SYS-REL-001 R9): minimal regression signal on push/PR.
-# Non-goals: Flutter/viewport job, grade job (repo-local doctrine),
+# FlutterGuard CI (SYS-REL-001 R9): regression signal on push/PR.
+# The Windows/Flutter job proves the mutation spawn path against a
+# real SDK (fake executables cannot catch `.bat` resolution).
+# Non-goals: viewport job, grade job (repo-local doctrine),
 # publish job.
 name: ci
 
@@ -13,6 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart analyze --fatal-infos lib bin test tool
+      - run: dart test
+
+  windows-flutter:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
       - run: dart pub get
       - run: dart analyze --fatal-infos lib bin test tool
       - run: dart test
