@@ -9,11 +9,12 @@ void main() {
       final violations = analyzeLintSuppressionFile(
         'benchmark/vectors/TC-11_lint.bad.dart',
       );
-      expect(violations.map((v) => v.line), [6, 12, 15]);
+      expect(violations.map((v) => v.line), [6, 12, 15, 23]);
       expect(violations.first.message, contains('ignore:'));
       expect(violations.first.message, contains('root cause'));
       expect(violations[1].message, contains('empty catch'));
-      expect(violations.last.message, contains('ignore_for_file:'));
+      expect(violations[2].message, contains('ignore_for_file:'));
+      expect(violations.last.message, contains('catch block'));
     });
 
     test('spares handled errors (zero false positives)', () {
@@ -119,6 +120,72 @@ void f() {
       } finally {
         root.deleteSync(recursive: true);
       }
+    });
+
+    test('preceding-line gaps, docs, chains, and blanks stay bare (R2-3)', () {
+      final root = Directory.systemTemp.createTempSync('lint_test.');
+      try {
+        final path = '${root.path}/above.dart';
+        File(path).writeAsStringSync('''
+void f() {
+  // reason here
+
+  // ignore: a
+  /// doc line
+  // ignore: b
+  // ignore: c
+  // ignore: d
+  //
+  // ignore: e
+}
+''');
+        final violations = analyzeLintSuppressionFile(path);
+        expect(violations.map((v) => v.line), [4, 6, 7, 8, 10]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('comment-only catches warn, empty catches error (R2-3)', () {
+      final root = Directory.systemTemp.createTempSync('lint_test.');
+      try {
+        final path = '${root.path}/severity.dart';
+        File(path).writeAsStringSync('''
+void f() {
+  try {
+    a();
+  } catch (_) {
+    // tolerated: best-effort ping
+  }
+  try {
+    b();
+  } catch (_) {}
+}
+''');
+        final result = checkPath(path);
+        final byLine = {
+          for (final finding in result.findings.where(
+            (finding) => finding.ruleId == 'FG-LINT-009',
+          ))
+            finding.line: finding.severity,
+        };
+        expect(byLine[4], 'warning');
+        expect(byLine[9], 'error');
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('comment-only vector catch warns through the registry (R2-3)', () {
+      final result = checkPath('benchmark/vectors/TC-11_lint.bad.dart');
+      final byLine = {
+        for (final finding in result.findings.where(
+          (finding) => finding.ruleId == 'FG-LINT-009',
+        ))
+          finding.line: finding.severity,
+      };
+      expect(byLine[12], 'error');
+      expect(byLine[23], 'warning');
     });
   });
 }

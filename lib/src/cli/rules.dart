@@ -87,6 +87,10 @@ final ruleAnalyzers = <RuleAnalyzer>[
     id: 'FG-LINT-009',
     spec: 'specs/TS-11-lint-suppression-guard.md',
     analyze: analyzeLintSuppressionFile,
+    severityFor: (violation) =>
+        violation is LintSuppressionViolation && violation.isCommentOnly
+        ? 'warning'
+        : null,
   ),
   RuleAnalyzer(
     id: 'FG-KEY-001r',

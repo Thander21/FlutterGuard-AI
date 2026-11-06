@@ -8,9 +8,9 @@ analysis: "parse-only"
 ast_nodes:
   - "Token.precedingComments[type='//']"
   - "CatchClause[body empty]"
-invariant: "No single-line comment MUST contain a bare 'ignore:' or 'ignore_for_file:' (a suppression without trailing rationale); no catch clause MUST have an empty body."
+invariant: "No single-line comment MUST contain a bare 'ignore:' or 'ignore_for_file:' (a suppression without trailing or preceding-line rationale); no catch clause MUST have an empty body. Fully-empty catches and bare suppressions are errors; comment-only catches are warnings."
 fp_limits:
-  - "justified suppressions (directive + trailing // rationale)"
+  - "justified suppressions (directive + trailing or preceding-line // rationale)"
   - "doc (///) and block (/* */) comments mentioning ignore"
   - "comments mentioning ignore without the colon"
   - "non-empty catch blocks (handle or rethrow)"
@@ -31,7 +31,10 @@ lint and never throws. This rule enforces Root Cause Only: fix the
 finding, handle the error, or `rethrow` — never suppress, never swallow.
 A suppression that carries its rationale on the same line
 (`// ignore: x // why`) is a reviewed decision, not a silencing:
-the gate spares it (SYS-CAL-002 P1-5).
+the gate spares it (SYS-CAL-002 P1-5). A rationale on the
+immediately preceding own-line `//` comment justifies too
+(SYS-CAL-003 R2-3); and a catch holding only a comment warns
+where a fully-empty catch errors.
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -62,7 +65,10 @@ counts as empty when every statement is an `EmptyStatement` (bare
 - Own-line `// ignore: x`: MUST be flagged. [eval: TC-11.bad]
 - `// ignore_for_file: x` (any position): MUST be flagged.
   [eval: TC-11.bad]
-- Empty `catch (_) {}`: MUST be flagged. [eval: TC-11.bad]
+- Empty `catch (_) {}`: MUST be flagged as error.
+  [eval: TC-11.bad]
+- Comment-only catch: MUST be flagged as warning (R2-2
+  channel). [eval: TC-11.bad]
 - Non-empty catch (log + `rethrow`): MUST NOT be flagged.
   [eval: TC-11.good]
 - `///` doc comment containing `ignore:`: MUST NOT be flagged (the
@@ -83,8 +89,12 @@ counts as empty when every statement is an `EmptyStatement` (bare
   [eval: TC-11.good]
 - `// ignore: x //` (empty rationale): MUST be flagged (bare).
   [eval: unit fixture]
-- Preceding-line rationale (reason on the line above): still
-  flagged — justification must be same-line. [unevaluated]
+- Preceding-line rationale (reason on the immediately
+  preceding own-line `//`, non-doc, non-ignore, non-blank,
+  no blank gap): MUST NOT be flagged. [eval: TC-11.good]
+- Preceding-line `///`, `// ignore:`, empty `//`, or
+  blank-gap lines do NOT justify: MUST be flagged.
+  [eval: unit fixture]
 - `ignore` without the colon: MUST NOT be flagged. [eval: unit fixture]
 - Print-only catch: clean (non-empty by design). [unevaluated]
 

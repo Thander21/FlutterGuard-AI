@@ -17,7 +17,11 @@ import 'rule_violation.dart';
 
 /// A single FG-LINT-009 violation.
 class LintSuppressionViolation implements RuleViolation {
-  const LintSuppressionViolation({required this.line, required this.message});
+  const LintSuppressionViolation({
+    required this.line,
+    required this.message,
+    this.isCommentOnly = false,
+  });
 
   /// 1-based line number of the suppression comment or catch clause.
   @override
@@ -25,6 +29,9 @@ class LintSuppressionViolation implements RuleViolation {
 
   @override
   final String message;
+
+  /// True for a catch holding only a comment (warns, not errors).
+  final bool isCommentOnly;
 
   @override
   String toString() => 'line $line: $message';
@@ -34,7 +41,7 @@ class LintSuppressionViolation implements RuleViolation {
 List<LintSuppressionViolation> analyzeLintSuppressionFile(String path) {
   final source = File(path).readAsStringSync();
   final result = parseString(content: source, path: path);
-  final guard = LintSuppressionGuard(result.lineInfo);
+  final guard = LintSuppressionGuard(result.lineInfo, source);
   result.unit.accept(guard);
   _scanComments(result.unit, guard.checkComment);
   return guard.violations..sort((a, b) => a.line.compareTo(b.line));
@@ -62,22 +69,28 @@ void _scanComments(
 
 /// Flags suppression comments and empty catch blocks.
 ///
-/// Scope (v0): any `//` line comment containing a bare `ignore:` or
+/// Scope (R2-3): any `//` line comment containing a bare `ignore:` or
 /// `ignore_for_file:` (case-sensitive, anywhere in the file), and any
 /// catch clause whose body holds no real statement. Justified
-/// suppressions (trailing `//` rationale), doc (`///`), and block
-/// (`/* */`) comments are never suppressions and stay clean.
+/// suppressions (trailing or preceding-line `//` rationale), doc
+/// (`///`), and block (`/* */`) comments are never suppressions and
+/// stay clean. Comment-only catches warn; fully-empty catches error.
 class LintSuppressionGuard extends RecursiveAstVisitor<void> {
-  LintSuppressionGuard(this._lineInfo);
+  LintSuppressionGuard(this._lineInfo, this._source);
 
   final LineInfo _lineInfo;
+  final String _source;
   final List<LintSuppressionViolation> violations = [];
+
+  late final List<String> _lines = _source.split('\n');
 
   /// Flags [lexeme] when it is a bare `//` suppression comment.
   ///
   /// A suppression carrying trailing rationale (a second `//`
   /// after the directive with non-blank text) is a reviewed
-  /// decision and stays clean (SYS-CAL-002 P1-5).
+  /// decision and stays clean (SYS-CAL-002 P1-5), as is one with
+  /// rationale on the immediately preceding own-line `//`
+  /// comment (SYS-CAL-003 R2-3).
   void checkComment(String lexeme, int offset) {
     if (!_isLineComment(lexeme)) return;
     final String? directive;
@@ -89,25 +102,46 @@ class LintSuppressionGuard extends RecursiveAstVisitor<void> {
       return;
     }
     if (_isJustified(lexeme, directive)) return;
+    if (_hasPrecedingRationale(offset)) return;
     violations.add(
       LintSuppressionViolation(
         line: _lineInfo.getLocation(offset).lineNumber,
         message:
             "'//$directive' suppressions are forbidden; "
-            'fix the root cause instead (or justify with trailing '
-            '// rationale)',
+            'fix the root cause instead (or justify with // rationale '
+            'on the same or preceding line)',
       ),
     );
+  }
+
+  /// True when the line above [offset] carries `//` rationale: an
+  /// own-line `//` comment (non-doc, non-ignore) with non-blank
+  /// text and no blank gap.
+  bool _hasPrecedingRationale(int offset) {
+    final line = _lineInfo.getLocation(offset).lineNumber;
+    if (line < 2) return false;
+    final previous = _lines[line - 2].trim();
+    if (!_isLineComment(previous)) return false;
+    if (previous.contains('ignore_for_file:') || previous.contains('ignore:')) {
+      return false;
+    }
+    return previous.substring(2).trim().isNotEmpty;
   }
 
   @override
   void visitCatchClause(CatchClause node) {
     if (node.body.statements.every((s) => s is EmptyStatement)) {
+      final body = _source.substring(node.body.offset, node.body.end);
+      final commentOnly = body.contains('//') || body.contains('/*');
       violations.add(
         LintSuppressionViolation(
           line: _lineInfo.getLocation(node.offset).lineNumber,
-          message:
-              'empty catch block swallows errors; handle the error or rethrow',
+          message: commentOnly
+              ? 'comment-only catch block swallows errors; '
+                    'handle the error or rethrow'
+              : 'empty catch block swallows errors; '
+                    'handle the error or rethrow',
+          isCommentOnly: commentOnly,
         ),
       );
     }

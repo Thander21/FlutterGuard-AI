@@ -20,3 +20,9 @@ void load() {
 void audit() {
   print('audit');
 }
+
+// Fetch retries are intentional: the server coalesces bursts (R2-3).
+// ignore: cancel_subscriptions
+void retry() {
+  fetch();
+}

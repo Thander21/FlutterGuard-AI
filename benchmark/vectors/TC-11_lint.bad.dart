@@ -16,3 +16,11 @@ void load() {
 void log(String message) {
   print(message);
 }
+
+void save() {
+  try {
+    persist();
+  } catch (_) {
+    // TODO: surface save errors in the UI
+  }
+}
