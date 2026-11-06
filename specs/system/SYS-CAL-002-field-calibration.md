@@ -419,7 +419,9 @@ vectors or regression tests plus a spec diff.
    RESOLVED 2026-11-05: fixed 50 (implemented, P0-2).
 5. Pilot re-run access: who re-runs `check` on the ERP corpus after
    P0+P1, and is a redacted finding sample available for FP review?
-   OPEN — needed before the §5 re-run.
+   RESOLVED 2026-11-05: the user re-runs from a clean clone and
+   brings per-rule samples checked against the code (round-2
+   report); same shape assumed for round 3 (SYS-CAL-003 Q8).
 
 # 5. Acceptance (pilot re-run bar)
 
@@ -479,3 +481,9 @@ out of band.
   + redacted FP sample). Bar: <1% unparseable, ≈0 FP on
   the pilot patterns, 3 connection_io catches flagged,
   mutation-first adoption via Backlog 113.
+- §5 RE-RUN EXECUTED 2026-11-05 (`fb61306`, clean clone,
+  same method): parse bar MET (694/694, 0 errors), FMT bar
+  MET (completes on Windows), connection_io TP bar MET (3
+  catches among 13 flagged); FP bar NOT met (residual +
+  new FP classes). Round-2 program chartered as
+  SYS-CAL-003.
