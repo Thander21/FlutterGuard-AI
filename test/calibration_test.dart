@@ -38,9 +38,12 @@ const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 /// new CoverageRunner~=MutationRunner runner-pipeline FP; 3 pinned.
 /// SYS-CAL-003 R2-1: AsyncContextGuard growth (scope + closures)
 /// surfaced the async~listkey guard-idiom FP; 4 pinned.
+/// SYS-CAL-003 R2-2: check() growth (baseline/diff/counts)
+/// surfaced the check~=init procedural-flow-twin FP; 5 pinned.
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
   'lib/src/ast/async_context_guard.dart:47~lib/src/ast/list_key_guard.dart:77',
+  'lib/src/cli/check.dart:221~lib/src/cli/init.dart:75',
   'lib/src/coverage/runner.dart:63~lib/src/mutation/runner.dart:50',
   'lib/src/mcp/tools.dart:196~lib/src/mcp/tools.dart:218',
 };

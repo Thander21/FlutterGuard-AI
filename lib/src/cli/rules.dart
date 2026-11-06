@@ -29,6 +29,7 @@ class RuleAnalyzer {
     required this.spec,
     required this.analyze,
     this.severity = 'error',
+    this.severityFor,
   });
 
   /// Stable rule id (e.g. `FG-BLOC-001`).
@@ -43,6 +44,11 @@ class RuleAnalyzer {
   /// Gate impact: `error` fails `check`, `warning` is advisory-only.
   /// The warning→error flip is owned by the rule's calibration spec.
   final String severity;
+
+  /// Optional per-violation severity override (R2-2 warn channel):
+  /// returns a severity or null to keep [severity]. The
+  /// [RuleViolation] interface stays untouched (SYS-CAL-003 R2-3).
+  final String? Function(RuleViolation violation)? severityFor;
 }
 
 /// Every rule the CLI can run (P0 ships four; P1 extends this list).

@@ -16,13 +16,18 @@ duty.
 
 # 2. Interface / Schema
 
-`check <path> [--json] [--include-generated] [--help]`, parsed with `package:args` (`args`
-dependency). Exit codes: 0 clean or warnings-only, 1 error-severity
-violations found, 2 bad arguments (REVIEW-01 verified the launcher
-swallows returned codes, so `main` calls `exit()` explicitly).
-`--help` prints usage and exits 0. Warnings (today: FG-MET-007
-advisories until SYS-CAL-001 calibrates them) are reported but never
-fail the gate; blocking on uncalibrated thresholds is barred.
+`check <path> [--json] [--include-generated] [--baseline=<path>]
+[--update-baseline] [--diff] [--diff-base=<ref>] [--help]`, parsed
+with `package:args` (`args` dependency). Exit codes: 0 clean or
+warnings-only, 1 error-severity violations found, 2 bad arguments
+(REVIEW-01 verified the launcher swallows returned codes, so `main`
+calls `exit()` explicitly). `--help` prints usage and exits 0.
+Warnings (today: FG-MET-007 advisories until SYS-CAL-001
+calibrates them) are reported but never fail the gate; blocking
+on uncalibrated thresholds is barred. `--diff-base` implies
+`--diff` (base defaults to `origin/main`); `--update-baseline`
+requires `--baseline` and rejects `--diff` (a diff-scoped
+rewrite would silently prune the legacy baseline).
 
 Generated files are skipped by default: `*.g.dart`,
 `*.freezed.dart`, `*.gr.dart`, `*.mocks.dart`, Flutter l10n
@@ -36,6 +41,42 @@ Rules disabled by the nearest `flutterguard.yaml` are skipped
 target to the filesystem root; a missing or broken file means
 all-enabled (the gate never silently shrinks). `grade` always
 runs the full registry — it validates the rules themselves.
+
+## Adoption scope (SYS-CAL-003 R2-2)
+
+Dedup: `checkPath` collapses findings on (file, line, rule) after
+the sort, joining distinct messages with `; `. `grade` is
+untouched (it validates rules, not output); the MCP `analyze_ast`
+tool inherits the collapse via `checkPath`.
+
+Baseline: a JSON object `{file: {rule_id: count}}` (per-file
+per-rule finding counts, campodeforca-shaped). `--baseline
+<path>` reads it and reports only findings ABOVE the stored
+count per (file, rule), in deterministic finding order; files
+or rules absent from the baseline fail on any finding
+(fail-closed for new code). Keys match on absolute-normalized
+paths (findings still display as-walked), so the baseline is
+stable across working directories. Disabled rules are never
+counted and baseline entries for them are ignored silently.
+`--update-baseline` rewrites `<path>` from the current
+unfiltered run (never from the suppressed set), pruning stale
+entries, and exits 0 with a delta note; it never reads the old
+file. No walk-up discovery in v1 (explicit flag only);
+`.flutterguard/baseline.json` is the suggested conventional
+path. Counts cover errors and warnings alike (the legacy
+noise is mostly warnings).
+
+Diff: `--diff` restricts the run to files changed in the
+worktree versus the merge-base with `<base>` (`--diff-base`,
+default `origin/main`), plus untracked files (honoring
+`.gitignore`), intersected with the target walk — file-level
+v1 (line-level deferred). Design note: this worktree scope
+(rather than committed-vs-HEAD only) is what makes the mode
+useful to the agent loop, whose edits are uncommitted; the Q2
+"merge-base with HEAD" shorthand is read this way. The hook
+keeps whole-tree `check .` (the baseline makes legacy green);
+`--diff` is for the agent loop and CI. A file target is
+checked iff changed, else reported clean.
 
 `--json` shape (from `CheckResult.toJson()`):
 
@@ -52,12 +93,18 @@ runs the full registry — it validates the rules themselves.
       "severity": "error"
     }
   ],
-  "errors": [{"file": "lib/broken.dart", "error": "…"}]
+  "errors": [{"file": "lib/broken.dart", "error": "…"}],
+  "summary": {"errors": 1, "warnings": 0}
 }
 ```
 
 Text rendering prefixes warnings (`warning: FG-MET-007 …`); error
-lines keep the bare `RULE file:line message` shape.
+lines keep the bare `RULE file:line message` shape. The summary
+line is `N violation(s) (E errors, W warnings) in <target>.`
+(counts of reported findings, post-baseline). `--update-baseline`
+prints `Baseline written to <path>: F files, N findings (E
+errors, W warnings).` instead (JSON: `{"baseline": ..., "files":
+F, "summary": {"errors": E, "warnings": W}}).
 
 ## Gate mapping (ForceField §2)
 
@@ -87,14 +134,16 @@ order of magnitude, startup-dominated): `check` over
 overruns warn, violations fail closed.
 
 Deterministic invocation: `check` sorts files and findings (file, rule,
-line) so output is byte-stable; test gates run with `--concurrency=1`
-(ClientAgents §2 Gate 3) plus a pinned ordering seed where the runner
-supports one.
+line, message) so output is byte-stable, and dedup collapses
+post-sort on (file, line, rule), so the collapse is stable too;
+test gates run with `--concurrency=1` (ClientAgents §2 Gate 3)
+plus a pinned ordering seed where the runner supports one.
 
 Evidence-presence enforcement: `commit-check` rejects a commit whose
 touched specs lack matching SYS-TELE-001 lines. `grade` is the producer;
 `check` stays read-only (never writes evidence — foreign-target safe per
-the pollution budget).
+the pollution budget), with one exception: `--update-baseline` writes
+only the explicitly named baseline path, never the target tree.
 
 ## 3. File Placement
 
@@ -102,8 +151,13 @@ the pollution budget).
 - `lib/src/cli/check.dart` (`checkPath`: pure core, per-file errors
   collected, sorted output).
 - `lib/src/cli/rules.dart` (registry both `grade` and `check` run).
+- `lib/src/cli/baseline.dart` (R2-2 adoption scope: baseline
+  load/write/ratchet filter + diff file-set resolution; the git and
+  baseline reads run at the `check()` edge so `checkPath` stays
+  stdio-free). Re-exported from `lib/flutterguard_ai.dart`.
 - Tests: `test/check_test.dart` (audit behavior), `test/check_cli_test.dart`
-  (arg parsing, exit codes).
+  (arg parsing, exit codes), `test/baseline_test.dart` (ratchet math,
+  key stability, diff scope, flag matrix).
 - `lib/src/ast/format_guard.dart` (FG-FMT-016 batch core:
   bounded `dart format` spawns per `checkPath` call, 50 files
   each (TS-16); called by `checkPath`, not the per-file loop).
@@ -134,6 +188,19 @@ SYS-TELE-001 subset heal/MCP consume; no key is claimed identical.
   no verdict for unparseable files (owned by FG-SYN-017).
 - Unknown flags / wrong arity: usage → exit 2. `--help` (or `-h`): usage
   → exit 0. `--json` never changes exit codes.
+- Missing, unreadable, or malformed `--baseline` file (bad JSON,
+  non-map shape, non-integer or negative counts): usage error →
+  exit 2 naming the cause (an explicit path that cannot be read
+  is a typo, not an empty baseline).
+- `--update-baseline` without `--baseline`, or combined with
+  `--diff`: usage error → exit 2.
+- Unwritable baseline path on update: exit 2 naming the cause.
+- `--diff` outside a git worktree, unresolvable base ref, or git
+  failure (missing binary, no commits): exit 2 naming the cause.
+- Empty diff set (nothing changed under the target): clean run,
+  exit 0 with zero findings.
+- Baseline entries for disabled rules or vanished files are
+  ignored on read and pruned on update (never an error).
 
 # 6. Contradictions Resolved
 

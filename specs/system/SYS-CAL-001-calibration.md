@@ -333,6 +333,20 @@ SYS-TELE-001 first (canon rule §4).
   TPs); `bin/`/`tool/` 0 pairs; skip set unchanged;
   corpus at 120 files. CRAP re-measured: 3/0/0, same
   methods.
+- Re-ratifications: 2026-11-05 — SYS-CAL-003 R2-2
+  (adoption scope: baseline/diff/counts): new pair
+  `check`~=`init` @0.837 (whole-function units,
+  check:221-362 ~= init:75-194), judged FP,
+  procedural-flow-twin class (3rd of class — same CLI
+  scaffolding shape as the `heal`~=`init` and
+  `init`~=`CoverageRunner.run` pairs: ArgParser setup,
+  parse, help, usage exits; each command's surface
+  diverges after the scaffold, so extraction is forced,
+  not actionable). 5 pairs pinned, 0 actionable, HOLD
+  reaffirmed. MET set unchanged (same 2 TPs); `bin/`/
+  `tool/` 0 pairs; skip set unchanged; corpus at 122
+  files (+2: `baseline.dart` + `baseline_test.dart`).
+  CRAP re-measured: 3/0/0, same methods.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

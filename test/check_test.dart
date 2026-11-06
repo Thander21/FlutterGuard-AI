@@ -203,5 +203,57 @@ void main() {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('deduplicates findings on file, line, and rule (R2-2)', () {
+      const first = CheckFinding(
+        ruleId: 'FG-X',
+        spec: 's',
+        file: 'f.dart',
+        line: 3,
+        message: 'first',
+      );
+      const dupe = CheckFinding(
+        ruleId: 'FG-X',
+        spec: 's',
+        file: 'f.dart',
+        line: 3,
+        message: 'first',
+      );
+      const second = CheckFinding(
+        ruleId: 'FG-X',
+        spec: 's',
+        file: 'f.dart',
+        line: 3,
+        message: 'second',
+      );
+      const other = CheckFinding(
+        ruleId: 'FG-Y',
+        spec: 's',
+        file: 'f.dart',
+        line: 3,
+        message: 'first',
+      );
+      final merged = deduplicateFindings([first, dupe, second, other]);
+      expect(merged, hasLength(2));
+      expect(merged.first.message, 'first; second');
+      expect(merged.last.ruleId, 'FG-Y');
+    });
+
+    test('checkPath emits no duplicate finding keys over the vectors', () {
+      final result = checkPath('benchmark/vectors');
+      final keys = result.findings
+          .map((f) => '${f.file}:${f.line}:${f.ruleId}')
+          .toList();
+      expect(keys.toSet(), hasLength(keys.length));
+    });
+
+    test('checkPath summary counts errors and warnings (R2-2)', () {
+      final errors = checkPath('benchmark/vectors/TC-01_bloc.bad.dart');
+      expect(errors.toJson()['summary'], {'errors': 1, 'warnings': 0});
+      final advisories = checkPath('benchmark/vectors/TC-13_met.bad.dart');
+      final summary = advisories.toJson()['summary'] as Map;
+      expect(summary['errors'], isZero);
+      expect(summary['warnings'], greaterThan(0));
+    });
   });
 }

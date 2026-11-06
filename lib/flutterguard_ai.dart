@@ -20,6 +20,7 @@ export 'src/ast/state_mutation_guard.dart';
 export 'src/ast/syntax_guard.dart';
 export 'src/ast/widget_immutable_guard.dart';
 export 'src/ast/rule_violation.dart';
+export 'src/cli/baseline.dart';
 export 'src/cli/check.dart';
 export 'src/cli/config.dart';
 export 'src/cli/grade.dart';
