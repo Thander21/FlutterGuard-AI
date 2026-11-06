@@ -2,9 +2,9 @@
 //
 // Per-class field map, parse-only (no type resolution): an explicit field
 // type wins, initializer/assignment shapes infer the rest. A releasable
-// field with no matching release call in dispose() is flagged at its
-// declaration; addListener without a paired removeListener is flagged at
-// the call. Vectors need no dependencies.
+// field with no matching release call in a release method is flagged at
+// its declaration; addListener without a paired removeListener is flagged
+// at the call. Vectors need no dependencies.
 
 import 'dart:io';
 
@@ -60,6 +60,12 @@ class _Field {
   final String name;
   String? type;
   final int line;
+
+  /// True when the field provably comes from the constructor.
+  bool borrowed = false;
+
+  /// True when the field is acquired by a construction shape.
+  bool constructed = false;
 }
 
 /// One named `addListener` registration awaiting its `removeListener`.
@@ -92,14 +98,25 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
         final declared = member.fields.type;
         for (final variable in member.fields.variables) {
           final name = variable.name.lexeme;
-          fields[name] = _Field(
+          final field = _Field(
             name,
             _fieldType(variable, declared),
             _lineInfo.getLocation(variable.name.offset).lineNumber,
           );
+          if (_inferType(variable.initializer) != null) {
+            field.constructed = true;
+          }
+          fields[name] = field;
         }
       }
     }
+    final ctorParams = _constructorParams(node);
+    for (final name in _fieldFormals(node)) {
+      fields[name]?.borrowed = true;
+    }
+    final extended =
+        !_isStateLike(node.extendsClause?.superclass) &&
+        !_isNotifierLike(node.extendsClause?.superclass);
     final releases = <String>{};
     final adds = <_AddListener>[];
     for (final member in node.body.members) {
@@ -107,7 +124,21 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
         member.body.accept(
           _MemberScanner(
             fields: fields,
-            isDispose: member.name.lexeme == 'dispose',
+            ctorParams: ctorParams,
+            isReleaseMethod: _isReleaseMethod(member.name.lexeme, extended),
+            releases: releases,
+            adds: adds,
+            source: _source,
+            lineInfo: _lineInfo,
+          ),
+        );
+      } else if (member is ConstructorDeclaration) {
+        _scanConstructor(member, fields, ctorParams);
+        member.body.accept(
+          _MemberScanner(
+            fields: fields,
+            ctorParams: ctorParams,
+            isReleaseMethod: false,
             releases: releases,
             adds: adds,
             source: _source,
@@ -118,7 +149,8 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
     }
     for (final field in fields.values) {
       final type = field.type;
-      if (type != null && !releases.contains(field.name)) {
+      final borrowed = field.borrowed && !field.constructed;
+      if (type != null && !borrowed && !releases.contains(field.name)) {
         violations.add(
           LifecycleViolation(
             line: field.line,
@@ -150,14 +182,38 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
     }
     return _inferType(variable.initializer);
   }
+
+  /// Tracks initializer-list acquires: construction marks ownership,
+  /// constructor-parameter values mark borrowed receipt.
+  void _scanConstructor(
+    ConstructorDeclaration node,
+    Map<String, _Field> fields,
+    Set<String> ctorParams,
+  ) {
+    for (final initializer in node.initializers) {
+      if (initializer is ConstructorFieldInitializer) {
+        final field = fields[initializer.fieldName.name];
+        if (field == null) continue;
+        final value = initializer.expression;
+        final inferred = _inferType(value);
+        field.type ??= inferred;
+        if (inferred != null) field.constructed = true;
+        if (value is SimpleIdentifier && ctorParams.contains(value.name)) {
+          field.borrowed = true;
+        }
+      }
+    }
+  }
 }
 
-/// Scans one method body for assignments (type inference), releases (in
-/// `dispose`), and listener registrations.
+/// Scans one method body for assignments (type inference and
+/// ownership), releases (in release methods), and listener
+/// registrations.
 class _MemberScanner extends RecursiveAstVisitor<void> {
   _MemberScanner({
     required this.fields,
-    required this.isDispose,
+    required this.ctorParams,
+    required this.isReleaseMethod,
     required this.releases,
     required this.adds,
     required this.source,
@@ -165,7 +221,8 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
   });
 
   final Map<String, _Field> fields;
-  final bool isDispose;
+  final Set<String> ctorParams;
+  final bool isReleaseMethod;
   final Set<String> releases;
   final List<_AddListener> adds;
   final String source;
@@ -173,11 +230,17 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
 
   @override
   void visitAssignmentExpression(AssignmentExpression node) {
-    final lhs = node.leftHandSide;
-    if (lhs is SimpleIdentifier) {
-      final field = fields[lhs.name];
-      if (field != null && field.type == null) {
-        field.type = _inferType(node.rightHandSide);
+    final target = _assignedField(node.leftHandSide);
+    if (target != null) {
+      final field = fields[target];
+      if (field != null) {
+        final rhs = node.rightHandSide;
+        final inferred = _inferType(rhs);
+        field.type ??= inferred;
+        if (inferred != null) field.constructed = true;
+        if (rhs is SimpleIdentifier && ctorParams.contains(rhs.name)) {
+          field.borrowed = true;
+        }
       }
     }
     super.visitAssignmentExpression(node);
@@ -198,7 +261,7 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
     final receiver = _receiverName(node.target);
     if (receiver != null) {
       final name = node.methodName.name;
-      if (isDispose && (name == 'cancel' || name == 'dispose')) {
+      if (isReleaseMethod && _isReleaseName(name)) {
         releases.add(receiver);
       } else if (name == 'addListener' &&
           node.argumentList.arguments.isNotEmpty) {
@@ -212,7 +275,7 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
             ),
           );
         }
-      } else if (isDispose &&
+      } else if (isReleaseMethod &&
           name == 'removeListener' &&
           node.argumentList.arguments.isNotEmpty) {
         releases.add(
@@ -258,11 +321,18 @@ String? _inferType(Expression? expression) {
   return null;
 }
 
-/// True for `ref.onDispose(...)` with a bare `ref` target.
+/// True for `ref.onDispose(...)` with a bare `ref` target, including
+/// the cascaded `ref..onDispose(...)` form.
 bool _isRefOnDispose(MethodInvocation node) {
   if (node.methodName.name != 'onDispose') return false;
   final target = node.target;
-  return target is SimpleIdentifier && target.name == 'ref';
+  if (target is SimpleIdentifier) return target.name == 'ref';
+  final parent = node.parent;
+  if (target == null && parent is CascadeExpression) {
+    final cascade = parent.target;
+    return cascade is SimpleIdentifier && cascade.name == 'ref';
+  }
+  return false;
 }
 
 /// Counts an `onDispose` registration as a release: closures run with
@@ -280,7 +350,8 @@ void _collectOnDisposeRelease(
     arg.body.accept(
       _MemberScanner(
         fields: fields,
-        isDispose: true,
+        ctorParams: const {},
+        isReleaseMethod: true,
         releases: releases,
         adds: adds,
         source: source,
@@ -299,5 +370,73 @@ void _collectOnDisposeRelease(
   }
 }
 
-/// True for a release method name (`dispose`/`cancel`).
-bool _isReleaseName(String name) => name == 'dispose' || name == 'cancel';
+/// True for a release method name (`dispose`/`cancel`/`close`).
+bool _isReleaseName(String name) =>
+    name == 'dispose' || name == 'cancel' || name == 'close';
+
+/// True for `State`/`ConsumerState`/`StateNotifier` superclasses
+/// (dispose-only release discipline).
+bool _isStateLike(NamedType? superclass) {
+  if (superclass == null) return false;
+  const names = {'State', 'ConsumerState', 'StateNotifier'};
+  return names.contains(superclass.name.lexeme);
+}
+
+/// True for Riverpod notifier superclasses (cleanup via
+/// `ref.onDispose`, never release methods).
+bool _isNotifierLike(NamedType? superclass) {
+  if (superclass == null) return false;
+  const names = {'Notifier', 'AsyncNotifier'};
+  return names.contains(superclass.name.lexeme);
+}
+
+/// True for a method name in which releases count: `dispose`
+/// always, plus `close`/`stop`/`cancel` outside State/Notifier.
+bool _isReleaseMethod(String name, bool extended) {
+  if (name == 'dispose') return true;
+  return extended && (name == 'close' || name == 'stop' || name == 'cancel');
+}
+
+/// Names bound by [node]'s constructors as plain value parameters
+/// (field and super formals excluded: they are not value sources).
+Set<String> _constructorParams(ClassDeclaration node) {
+  final names = <String>{};
+  for (final member in node.body.members) {
+    if (member is ConstructorDeclaration) {
+      for (final parameter in member.parameters.parameters) {
+        final name = parameter.name?.lexeme;
+        if (name == null ||
+            parameter is FieldFormalParameter ||
+            parameter is SuperFormalParameter) {
+          continue;
+        }
+        names.add(name);
+      }
+    }
+  }
+  return names;
+}
+
+/// Fields initialized straight from the constructor (`this.x`).
+Set<String> _fieldFormals(ClassDeclaration node) {
+  final names = <String>{};
+  for (final member in node.body.members) {
+    if (member is ConstructorDeclaration) {
+      for (final parameter in member.parameters.parameters) {
+        if (parameter is FieldFormalParameter) {
+          names.add(parameter.name.lexeme);
+        }
+      }
+    }
+  }
+  return names;
+}
+
+/// Field name assigned by [lhs] (`field` or `this.field`), or null.
+String? _assignedField(Expression lhs) {
+  if (lhs is SimpleIdentifier) return lhs.name;
+  if (lhs is PropertyAccess && lhs.target is ThisExpression) {
+    return lhs.propertyName.name;
+  }
+  return null;
+}
