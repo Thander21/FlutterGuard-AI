@@ -15,6 +15,19 @@ final overriddenProvider = counterProvider.overrideWith(
   (ref) => ref.watch(doubledProvider),
 );
 
+// Modifier chains are factories too (SYS-CAL-003 R2-3).
+final companyProvider = FutureProvider.autoDispose.family<Company, String>(
+  (ref, id) async => fetchCompany(ref.watch(authProvider), id),
+);
+final categoryProvider = FutureProvider.autoDispose<Category>(
+  (ref) async => fetchCategory(ref.watch(authProvider)),
+);
+
+// Widget builders run at build time, not as callbacks (R2-3).
+final panel = Consumer(
+  builder: (context, ref, child) => Text(ref.watch(counterProvider).toString()),
+);
+
 class CounterButton extends ConsumerWidget {
   const CounterButton({super.key});
 

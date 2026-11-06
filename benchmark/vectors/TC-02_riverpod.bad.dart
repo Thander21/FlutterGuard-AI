@@ -20,3 +20,19 @@ class CounterButton extends ConsumerWidget {
     );
   }
 }
+
+// Event listeners stay callbacks: builder-scope never applies (R2-3).
+class MuteButton extends ConsumerWidget {
+  const MuteButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return BlocListener<AudioBloc, AudioState>(
+      listener: (context, state) {
+        final volume = ref.watch(counterProvider);
+        debugPrint('$volume');
+      },
+      child: const Text('mute'),
+    );
+  }
+}

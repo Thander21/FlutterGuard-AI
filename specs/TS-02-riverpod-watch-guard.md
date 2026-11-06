@@ -8,11 +8,13 @@ analysis: "parse-only"
 ast_nodes:
   - "MethodInvocation[target='ref',name='watch']"
   - "FunctionExpression"
-invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead. A function expression that is the builder argument of a Riverpod provider factory is a build, not a callback."
+  - "NamedArgument"
+invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead. A function expression that is the builder argument of a Riverpod provider factory is a build, not a callback. A 'builder:' argument of 'Consumer'/'BlocBuilder' is a build, not a callback."
 fp_limits:
   - "ref.watch directly in build()"
   - "ref.read anywhere, including callbacks"
-  - "ref.watch inside provider builders (Provider, X.family, overrideWith)"
+  - "ref.watch inside provider builders (Provider, Factory(.autoDispose|.family)*, overrideWith)"
+  - "ref.watch inside `builder:` closures of Consumer/BlocBuilder"
 golden_vectors:
   failing: "benchmark/vectors/TC-02_riverpod.bad.dart"
   passing: "benchmark/vectors/TC-02_riverpod.good.dart"
@@ -27,7 +29,11 @@ during the synchronous widget build. AI-generated handlers routinely copy the
 build-time read into the callback, where the correct call is `ref.read`.
 Provider builders (`Provider((ref) => ...)`) take the same syntactic
 shape as callbacks but run as builds; the guard excludes the
-factory set (SYS-CAL-002 P1-1).
+factory set (SYS-CAL-002 P1-1). Modifier chains
+(`FutureProvider.autoDispose.family`) and widget `builder:`
+closures (`Consumer`, `BlocBuilder`) take the same callback
+shape but run as builds; the guard excludes both
+(SYS-CAL-003 R2-3).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -48,17 +54,32 @@ callback.
 - `ref.read` anywhere, including callbacks: MUST NOT be flagged.
   [eval: TC-02.good]
 - Nested closures inside a callback: still a callback, MUST be flagged.
-  [unevaluated]
+  [eval: unit fixture]
 - Torn-off named handlers (`onTap: _handler`) and callbacks stored in
   variables: out of scope for v0, NOT flagged. [unevaluated]
 - `ref.watch` in a provider builder (`Provider((ref) => ...)`,
-  `X.family((ref, arg) => ...)`, `x.overrideWith((ref) => ...)`):
+  `X.family((ref, arg) => ...)`, `x.overrideWith((ref) => ...)`,
+  plus any `Factory(.autoDispose|.family)*` modifier chain):
   MUST NOT be flagged — builders run as builds. Factory set:
   `Provider`, `FutureProvider`, `StreamProvider`,
   `StateProvider`, `NotifierProvider`, `AsyncNotifierProvider`,
   `StateNotifierProvider`, `ChangeNotifierProvider`
   (bare, prefixed, and explicit `new`/`const` spellings).
   [eval: TC-02.good]
+- `ref.watch` in a `Consumer(builder: ...)` closure: MUST NOT
+  be flagged — builders run at build time. [eval: TC-02.good]
+- `ref.watch` in a `BlocBuilder(builder: ...)` closure: MUST
+  NOT be flagged — same build-time doctrine.
+  [eval: unit fixture]
+- `listener:` closures (`BlocListener`, `BlocConsumer`) stay
+  callbacks: MUST be flagged. [eval: TC-02.bad]
+- `ConsumerWidget.build()` bodies: MUST NOT be flagged.
+  [eval: TC-02.good]
+- `HookConsumerWidget.build()` bodies: MUST NOT be flagged.
+  [eval: unit fixture]
+- `BlocConsumer`/`BlocSelector` `builder:` closures: same
+  doctrine, unwired — follow-up, still flag today.
+  [unevaluated]
 - `overrideWithValue` takes a value, not a builder: no exclusion
   applies (a closure there carries no `ref` in valid Riverpod).
   [unevaluated]

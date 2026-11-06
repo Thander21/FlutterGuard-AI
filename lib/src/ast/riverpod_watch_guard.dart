@@ -50,11 +50,17 @@ const _providerFactories = <String>{
   'ChangeNotifierProvider',
 };
 
+/// Widget callees whose `builder:` argument runs at build time, not
+/// as an event callback (TS-02 §3; SYS-CAL-003 R2-3).
+const _buildWidgets = <String>{'Consumer', 'BlocBuilder'};
+
 /// Flags `ref.watch` calls enclosed in an argument callback.
 ///
-/// Scope (v0): a callback is any function expression passed directly as a
-/// positional or named argument (`onTap: () {...}`), except provider
-/// builders. Torn-off named functions and callbacks stored in
+/// Scope (R2-3): a callback is any function expression passed directly
+/// as a positional or named argument (`onTap: () {...}`), except
+/// provider builders (any `Factory(.autoDispose|.family)*` chain or
+/// `overrideWith`) and widget `builder:` arguments (`Consumer`,
+/// `BlocBuilder`). Torn-off named functions and callbacks stored in
 /// variables are not tracked.
 class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   RiverpodWatchGuard(this._lineInfo);
@@ -67,8 +73,7 @@ class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   void visitFunctionExpression(FunctionExpression node) {
     final parent = node.parent;
     final isArgCallback = parent is ArgumentList || parent is NamedArgument;
-    final isBuilder = parent is ArgumentList && _isFactoryCall(parent.parent);
-    final isCallback = isArgCallback && !isBuilder;
+    final isCallback = isArgCallback && !_isBuilderScope(node);
     if (isCallback) _callbackDepth++;
     super.visitFunctionExpression(node);
     if (isCallback) _callbackDepth--;
@@ -96,30 +101,61 @@ bool _isRefWatch(MethodInvocation node) {
   return target is SimpleIdentifier && target.name == 'ref';
 }
 
-/// True for a provider-factory invocation whose function argument is a
-/// build: `Provider(...)` (any target — prefixed factories included),
-/// `X.family(...)` on a factory, and `x.overrideWith(...)` (always a
-/// provider builder). Covers bare-call and explicit `new`/`const`
-/// spellings (unresolved constructor calls parse as
-/// [MethodInvocation]; explicit ones as creations).
-bool _isFactoryCall(AstNode? node) {
-  if (node is MethodInvocation) {
-    if (node.methodName.name == 'overrideWith') return true;
-    if (node.methodName.name == 'family') {
-      return _providerFactories.contains(_targetName(node.target));
-    }
-    return _providerFactories.contains(node.methodName.name);
+/// True when [node] is a build, not an event callback: a provider
+/// factory argument (any `Factory(.autoDispose|.family)*` chain or
+/// `overrideWith`), or a `builder:` argument of a build-running
+/// widget (`Consumer`, `BlocBuilder`).
+bool _isBuilderScope(FunctionExpression node) {
+  final parent = node.parent;
+  if (parent is ArgumentList) return _isFactoryCall(parent.parent);
+  if (parent is NamedArgument) return _isBuilderArgument(parent);
+  return false;
+}
+
+/// True for a `builder:` closure of [_buildWidgets] (bare, prefixed,
+/// or explicit `new`/`const` spellings).
+bool _isBuilderArgument(NamedArgument node) {
+  if (node.name.lexeme != 'builder') return false;
+  final args = node.parent;
+  if (args is! ArgumentList) return false;
+  final call = args.parent;
+  if (call is MethodInvocation) {
+    return _buildWidgets.contains(call.methodName.name);
   }
-  if (node is InstanceCreationExpression) {
-    return _providerFactories.contains(node.constructorName.type.name.lexeme);
+  if (call is InstanceCreationExpression) {
+    return _buildWidgets.contains(call.constructorName.type.name.lexeme);
   }
   return false;
 }
 
-/// Simple name of an invocation target (prefixes stripped), or null
-/// when the target has no static name.
-String? _targetName(Expression? target) {
-  if (target is SimpleIdentifier) return target.name;
-  if (target is PrefixedIdentifier) return target.identifier.name;
-  return null;
+/// True for a provider-factory invocation whose function argument is a
+/// build: any `Factory(.autoDispose|.family)*` chain (bare, prefixed,
+/// or explicit `new`/`const` spellings — unresolved constructor calls
+/// parse as [MethodInvocation]) and any `x.overrideWith(...)`.
+bool _isFactoryCall(AstNode? node) {
+  if (node is InstanceCreationExpression) {
+    return _providerFactories.contains(node.constructorName.type.name.lexeme);
+  }
+  if (node is! MethodInvocation) return false;
+  if (node.methodName.name == 'overrideWith') return true;
+  var base = node.methodName.name;
+  Expression? target = node.target;
+  while (base == 'family' || base == 'autoDispose') {
+    if (target is MethodInvocation) {
+      base = target.methodName.name;
+      target = target.target;
+    } else if (target is PropertyAccess) {
+      base = target.propertyName.name;
+      target = target.target;
+    } else if (target is PrefixedIdentifier) {
+      base = target.identifier.name;
+      target = target.prefix;
+    } else if (target is SimpleIdentifier) {
+      base = target.name;
+      target = null;
+    } else {
+      return false;
+    }
+  }
+  return _providerFactories.contains(base);
 }
