@@ -20,3 +20,19 @@ Future<void> submitOrder(BuildContext context) async {
   if (!context.mounted) return;
   Navigator.of(context).pop();
 }
+
+// Method parameters pass in any class (SYS-CAL-003 R2-3).
+class CartHolder extends Cubit<CartState> {
+  CartHolder() : super(CartState());
+
+  void rename(BuildContext context, String name) {
+    emit(state.copyWith(name: name));
+  }
+}
+
+// Builder signatures pass: context flows through, nothing stored (R2-3).
+class TileFactory {
+  Widget tile(BuildContext context, String label) {
+    return Text(label);
+  }
+}

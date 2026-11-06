@@ -43,6 +43,7 @@ const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
   'lib/src/ast/async_context_guard.dart:47~lib/src/ast/list_key_guard.dart:77',
+  'lib/src/ast/context_scope_guard.dart:91~lib/src/ast/list_key_guard.dart:223',
   'lib/src/cli/check.dart:221~lib/src/cli/init.dart:75',
   'lib/src/coverage/runner.dart:63~lib/src/mutation/runner.dart:50',
   'lib/src/mcp/tools.dart:196~lib/src/mcp/tools.dart:218',

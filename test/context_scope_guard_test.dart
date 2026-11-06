@@ -9,7 +9,7 @@ void main() {
       final violations = analyzeContextScopeFile(
         'benchmark/vectors/TC-09_ctx.bad.dart',
       );
-      expect(violations.map((v) => v.line), [9, 20]);
+      expect(violations.map((v) => v.line), [9, 18]);
       expect(violations.first.message, contains('BuildContext'));
       expect(violations.first.message, contains('pass data'));
     });
@@ -47,7 +47,7 @@ class _CartScreenState extends State<CartScreen> {
       }
     });
 
-    test('flags globals and service return types', () {
+    test('flags stored globals, spares service return types (R2-3)', () {
       final root = Directory.systemTemp.createTempSync('ctx_test.');
       try {
         final path = '${root.path}/service.dart';
@@ -59,13 +59,13 @@ class CartService {
 }
 ''');
         final violations = analyzeContextScopeFile(path);
-        expect(violations.map((v) => v.line), [1, 4]);
+        expect(violations.map((v) => v.line), [1]);
       } finally {
         root.deleteSync(recursive: true);
       }
     });
 
-    test('allows context extensions, flags foreign ones', () {
+    test('spares extensions with context parameters (R2-3)', () {
       final root = Directory.systemTemp.createTempSync('ctx_test.');
       try {
         final path = '${root.path}/extensions.dart';
@@ -80,8 +80,7 @@ extension StrX on String {
   void showIn(BuildContext context) {}
 }
 ''');
-        final violations = analyzeContextScopeFile(path);
-        expect(violations.map((v) => v.line), [8]);
+        expect(analyzeContextScopeFile(path), isEmpty);
       } finally {
         root.deleteSync(recursive: true);
       }
@@ -102,7 +101,7 @@ class CartState extends ConsumerState<CartScreen> {
       }
     });
 
-    test('flags Bloc-state subclasses (not UI scope)', () {
+    test('flags fields in Bloc-state subclasses (R2-3)', () {
       final root = Directory.systemTemp.createTempSync('ctx_test.');
       try {
         final path = '${root.path}/saved.dart';
@@ -114,6 +113,42 @@ class CartSaved extends CartState {
 ''');
         final violations = analyzeContextScopeFile(path);
         expect(violations.map((v) => v.line), [3]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('spares locals, casts, and type arguments (R2-3)', () {
+      final root = Directory.systemTemp.createTempSync('ctx_test.');
+      try {
+        final path = '${root.path}/flow.dart';
+        File(path).writeAsStringSync('''
+class CartService {
+  void checkout(BuildContext context) {
+    final BuildContext current = context;
+    final queue = <BuildContext>[];
+    final raw = context as BuildContext;
+    _api.pay();
+  }
+}
+''');
+        expect(analyzeContextScopeFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('spares function-typed fields (R2-3)', () {
+      final root = Directory.systemTemp.createTempSync('ctx_test.');
+      try {
+        final path = '${root.path}/callbacks.dart';
+        File(path).writeAsStringSync('''
+class Buttons {
+  final void Function(BuildContext context)? onTap;
+  final BuildContext Function()? fetch;
+}
+''');
+        expect(analyzeContextScopeFile(path), isEmpty);
       } finally {
         root.deleteSync(recursive: true);
       }

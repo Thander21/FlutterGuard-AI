@@ -1,9 +1,10 @@
-// FG-CTX-006: forbid BuildContext outside Widget/State.
+// FG-CTX-006: forbid stored BuildContext.
 //
-// A service, repository, or bloc that takes or stores BuildContext couples
-// business logic to the widget tree: untestable without a widget harness,
-// leaking Element subtrees after navigation. Services must receive data,
-// never context. Parsing only (no type resolution), so vectors need no
+// A service, repository, or bloc that stores BuildContext in a field or
+// global couples business logic to the widget tree: untestable without
+// a widget harness, leaking Element subtrees after navigation.
+// Parameters, returns, locals, and casts only flow context through and
+// stay clean. Parsing only (no type resolution), so vectors need no
 // dependencies.
 
 import 'dart:io';
@@ -13,7 +14,6 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/source/line_info.dart';
 
-import 'arch_layer_guard.dart' show isWidgetTypeName;
 import 'rule_violation.dart';
 
 /// A single FG-CTX-006 violation.
@@ -40,72 +40,21 @@ List<ContextScopeViolation> analyzeContextScopeFile(String path) {
   return guard.violations..sort((a, b) => a.line.compareTo(b.line));
 }
 
-/// Flags BuildContext bound outside the widget tree.
+/// Flags stored BuildContext.
 ///
-/// Scope (v0): any `BuildContext` type reference inside a class that is
-/// not a Widget/State/UI-extension is flagged, as is every stored
-/// position (fields in any class, top-level variables). Widget/State
-/// bodies and top-level functions (explicit flow-through, the
-/// FG-ASYNC-002 recipe shape) are always clean.
+/// Scope (R2-3): fields and top-level variables whose type mentions
+/// `BuildContext` flag in every scope, UI included. Signatures,
+/// locals, casts, and type arguments flow context through and stay
+/// clean, as do function-typed fields (callbacks, not storage).
 class ContextScopeGuard extends RecursiveAstVisitor<void> {
   ContextScopeGuard(this._lineInfo);
 
   final LineInfo _lineInfo;
   final List<ContextScopeViolation> violations = [];
-  bool _inScope = false;
-  bool _inUi = false;
-
-  @override
-  void visitClassDeclaration(ClassDeclaration node) {
-    final wasScope = _inScope;
-    final wasUi = _inUi;
-    _inScope = true;
-    _inUi = _isUiClass(node.extendsClause?.superclass);
-    super.visitClassDeclaration(node);
-    _inScope = wasScope;
-    _inUi = wasUi;
-  }
-
-  @override
-  void visitMixinDeclaration(MixinDeclaration node) {
-    final wasScope = _inScope;
-    final wasUi = _inUi;
-    _inScope = true;
-    _inUi = false;
-    super.visitMixinDeclaration(node);
-    _inScope = wasScope;
-    _inUi = wasUi;
-  }
-
-  @override
-  void visitEnumDeclaration(EnumDeclaration node) {
-    final wasScope = _inScope;
-    final wasUi = _inUi;
-    _inScope = true;
-    _inUi = false;
-    super.visitEnumDeclaration(node);
-    _inScope = wasScope;
-    _inUi = wasUi;
-  }
-
-  @override
-  void visitExtensionDeclaration(ExtensionDeclaration node) {
-    final wasScope = _inScope;
-    final wasUi = _inUi;
-    _inScope = true;
-    _inUi = _isUiExtension(node.onClause?.extendedType);
-    super.visitExtensionDeclaration(node);
-    _inScope = wasScope;
-    _inUi = wasUi;
-  }
 
   @override
   void visitFieldDeclaration(FieldDeclaration node) {
-    // Stored context is flagged in every scope — except when the scope
-    // rule already covers it, so service fields flag exactly once.
-    if (!(_inScope && !_inUi)) {
-      _flagStored(node.fields.type);
-    }
+    _flagStored(node.fields.type);
     super.visitFieldDeclaration(node);
   }
 
@@ -113,17 +62,6 @@ class ContextScopeGuard extends RecursiveAstVisitor<void> {
   void visitTopLevelVariableDeclaration(TopLevelVariableDeclaration node) {
     _flagStored(node.variables.type);
     super.visitTopLevelVariableDeclaration(node);
-  }
-
-  @override
-  void visitNamedType(NamedType node) {
-    if (node.name.lexeme == 'BuildContext' && _inScope && !_inUi) {
-      _flag(
-        node.offset,
-        'BuildContext outside Widget/State; pass data instead of context',
-      );
-    }
-    super.visitNamedType(node);
   }
 
   /// Flags BuildContext references in a stored type (field or global).
@@ -155,28 +93,15 @@ class _StoredTypeCollector extends RecursiveAstVisitor<void> {
   final List<int> offsets = [];
 
   @override
+  void visitGenericFunctionType(GenericFunctionType node) {
+    // Callbacks flow context through; they never store it (R2-3).
+  }
+
+  @override
   void visitNamedType(NamedType node) {
     if (node.name.lexeme == 'BuildContext') {
       offsets.add(node.offset);
     }
     super.visitNamedType(node);
   }
-}
-
-/// True for Widget subclasses (set or `Widget` suffix) and exactly
-/// `State`/`ConsumerState` (Bloc states stay out of scope by design).
-bool _isUiClass(NamedType? superclass) {
-  if (superclass == null) return false;
-  final name = superclass.name.lexeme;
-  return name == 'State' || name == 'ConsumerState' || isWidgetTypeName(name);
-}
-
-/// True for extensions on BuildContext, State, or a widget.
-bool _isUiExtension(TypeAnnotation? extendedType) {
-  if (extendedType is! NamedType) return false;
-  final name = extendedType.name.lexeme;
-  return name == 'BuildContext' ||
-      name == 'State' ||
-      name == 'ConsumerState' ||
-      isWidgetTypeName(name);
 }

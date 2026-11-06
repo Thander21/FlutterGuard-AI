@@ -1,5 +1,5 @@
 // Golden failing vector for FG-CTX-006.
-// BuildContext bound to service objects and stored in fields.
+// BuildContext stored in fields and globals.
 // The AST gate MUST flag this file.
 import 'package:flutter/widgets.dart';
 
@@ -14,10 +14,5 @@ class CartService {
   }
 }
 
-class CartHolder extends Cubit<CartState> {
-  CartHolder() : super(CartState());
-
-  void rename(BuildContext context, String name) {
-    emit(state.copyWith(name: name));
-  }
-}
+// Stored globals flag in any scope (R2-3).
+BuildContext? lastContext;

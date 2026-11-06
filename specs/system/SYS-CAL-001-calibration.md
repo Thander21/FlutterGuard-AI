@@ -347,6 +347,20 @@ SYS-TELE-001 first (canon rule §4).
   `tool/` 0 pairs; skip set unchanged; corpus at 122
   files (+2: `baseline.dart` + `baseline_test.dart`).
   CRAP re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-05 — SYS-CAL-003 R2-3
+  (CTX-006 stored-only rewrite): new pair
+  `_StoredTypeCollector`~=`_RootCollector` @0.840
+  (private-collector units, ctx:91-107 ~=
+  listkey:223-243), judged FP, guard-idiom class (4th
+  of class — same private visitor-collector skeleton
+  as the whole-guard pairs; different collection
+  targets — BuildContext offsets vs creation
+  expressions — in different rules, extraction forced,
+  not actionable). 6 pairs pinned, 0 actionable, HOLD
+  reaffirmed. MET set unchanged (same 2 TPs); `bin/`/
+  `tool/` 0 pairs; skip set unchanged; corpus still
+  122 files (R2-3 edited in place). CRAP re-measured:
+  3/0/0, same methods.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).
