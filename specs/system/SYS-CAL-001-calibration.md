@@ -711,6 +711,19 @@ SYS-TELE-001 first (canon rule §4).
   — MET set and 14 DRY pins unchanged (no check.dart
   pair remains to re-key; ledger units twin-clean).
   Corpus at 191 files (+2: ledger lib + test).
+- Re-ratifications: 2026-11-06 — SYS-MUT-001 shadow staging
+  (flat-pair + shadow-package strategies + compile canary):
+  the `CoverageRunner`~=`MutationRunner` twin dissolved
+  (eliminated-FP — the shadow lifecycle reshaped
+  MutationRunner below threshold; was FP, runner-pipeline
+  class). Re-key: `_viewport`~=`_mutation` `:196`/`:218` →
+  `:197`/`:219` (same pair, same FP judgment — one
+  tool-description line). 13 pairs pinned, 0 actionable,
+  HOLD reaffirmed. MET set unchanged (2 TPs + the pinned
+  config-ctor FP); `bin/`/`tool/` 0 pairs; skip set
+  unchanged; corpus still 191 files. CRAP: detector trio
+  UNMEASURED this pass (8s coverage timeout under load),
+  metric/mcp trios 0 over budget (tripwire-excluded).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

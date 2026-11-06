@@ -150,11 +150,12 @@ MUST amend SYS-TELE-001 first (canon rule §4).
 - `get_telemetry` `limit <= 0` or `> 500`: `-32602`. Malformed log
   lines are skipped (tolerant read; writer bugs must not break the
   audit tool).
-- `run_mutation_check` stages volatile `fixtures/mutation/`
-  sandboxes under the server cwd (in-tree staging is required: the
-  copies resolve `package:` imports through the target's own
-  `.dart_tool`). Targets should gitignore `fixtures/`; `init`
-  never edits `.gitignore` silently.
+- `run_mutation_check` stages volatile pair sandboxes under
+  `fixtures/mutation/` (server cwd; targets should gitignore
+  `fixtures/`, and `init` never edits `.gitignore` silently) or
+  shadow packages under the system temp dir (SYS-MUT-001 routing;
+  shadows fetch their own dependencies, so in-tree staging is no
+  longer required for `package:` resolution).
 - Launcher silence: `pub global run` re-resolves `--source path`
   activations on every run, printing to stdout (fatal for MCP
   framing) — path activation is dev-only. `--source git` installs
