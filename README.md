@@ -194,7 +194,7 @@ already runs:
 
 | Rule | What it adds | If you already run … |
 |---|---|---|
-| FG-ARCH-003 | layer-direction guard | a layer validator: disable |
+| FG-ARCH-003 | persistence/network imports in widget files | layer validators miss package flows: keep (complements) |
 | FG-ASYNC-002 | post-await context safety | use_build_context_synchronously: disable |
 | FG-LAY-004 | unbounded scrollables in flex | a layout validator: disable |
 | FG-ST-005 | in-place state mutation | — : keep (no stock equivalent) |

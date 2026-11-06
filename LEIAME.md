@@ -198,7 +198,7 @@ equivalente tipado já roda:
 
 | Regra | O que adiciona | Se você já roda … |
 |---|---|---|
-| FG-ARCH-003 | guarda de direção de camadas | um validador de camadas: desabilite |
+| FG-ARCH-003 | imports de persistência/rede em arquivos de widget | validadores de camada não veem fluxos de pacote: mantenha (complementa) |
 | FG-ASYNC-002 | segurança de context pós-await | use_build_context_synchronously: desabilite |
 | FG-LAY-004 | scrollables ilimitados em flex | um validador de layout: desabilite |
 | FG-ST-005 | mutação de estado no lugar | — : mantenha (sem equivalente stock) |
