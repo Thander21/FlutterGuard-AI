@@ -36,6 +36,21 @@ class _CalmViewState extends ConsumerState<CalmView> {
   Future<void> _reload() async {}
 }
 
+// Non-Widget builds are not widget build scope (SYS-CAL-003 R2-3).
+class ReportBuilder {
+  Future<void> build() async {
+    await Future.delayed(const Duration(seconds: 1));
+  }
+}
+
+class CacheWarmer {
+  void build(Cache cache) {
+    cache.entries.then(_store);
+  }
+
+  void _store(Object? entries) {}
+}
+
 // Notifier.build runs once as provider initialization (SYS-CAL-002 P1-3).
 class BootNotifier extends Notifier<BootState> {
   @override

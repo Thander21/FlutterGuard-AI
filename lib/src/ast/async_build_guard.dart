@@ -45,10 +45,11 @@ List<AsyncBuildViolation> analyzeAsyncBuildFile(String path) {
 
 /// Flags async triggers directly in build scope.
 ///
-/// Scope: `build()` methods and `Widget`-returning functions. A trigger
-/// fires only at function depth 1 (the build scope itself): anything
-/// nested in a closure, local function, or nested method is an event
-/// handler or helper, not direct build flow, and stays clean.
+/// Scope: `Widget`-typed or untyped `build()` methods and
+/// `Widget`-returning functions. A trigger fires only at function
+/// depth 1 (the build scope itself): anything nested in a closure,
+/// local function, or nested method is an event handler or helper,
+/// not direct build flow, and stays clean.
 class AsyncBuildGuard extends RecursiveAstVisitor<void> {
   AsyncBuildGuard(this._lineInfo);
 
@@ -194,13 +195,18 @@ const _notifierSuperclasses = <String>{
   'AutoDisposeFamilyAsyncNotifier',
 };
 
-/// True for `build()` methods and `Widget`-returning functions,
-/// except a `build` owned by a Riverpod notifier.
+/// True for `Widget`-typed or untyped `build()` methods and
+/// `Widget`-returning functions, except a `build` owned by a
+/// Riverpod notifier. A `build` with a declared non-`Widget`
+/// return type is a builder of another kind (SYS-CAL-003 R2-3).
 bool _isMeasured(AstNode scope, ClassDeclaration? owner) {
   if (scope is MethodDeclaration) {
     if (_isNotifierBuild(scope, owner)) return false;
-    if (scope.name.lexeme == 'build') return true;
-    return _isWidgetType(scope.returnType);
+    if (scope.name.lexeme != 'build') {
+      return _isWidgetType(scope.returnType);
+    }
+    final returnType = scope.returnType;
+    return returnType == null || _isWidgetType(returnType);
   }
   if (scope is FunctionDeclaration) {
     return _isWidgetType(scope.returnType);

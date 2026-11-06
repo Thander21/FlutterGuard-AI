@@ -11,7 +11,7 @@ ast_nodes:
   - "MethodInvocation[then/catchError/whenComplete]"
   - "MethodInvocation[unawaited]"
   - "InstanceCreationExpression[socket types]"
-invariant: "No Future-creating, Timer-starting, socket-opening, or future-chaining invocation may execute directly in a build() method or Widget-returning function body (closures excluded: event handlers are legitimately async). A build method whose enclosing class extends a Riverpod notifier is provider initialization, not build scope."
+invariant: "No Future-creating, Timer-starting, socket-opening, or future-chaining invocation may execute directly in a build() method or Widget-returning function body (closures excluded: event handlers are legitimately async). A build method whose enclosing class extends a Riverpod notifier is provider initialization, not build scope. A build method whose declared return type is not Widget is not build scope (untyped build stays measured)."
 fp_limits:
   - "async event handlers (closures): onPressed () async {} is correct"
   - "Future.value (pure constructor, no scheduled work)"
@@ -20,6 +20,7 @@ fp_limits:
   - "compute/scheduleMicrotask (the fix, not the bug / borderline excluded)"
   - "trigger invocations outside build()/Widget-returning functions"
   - "Notifier.build deferred work (provider initialization)"
+  - "non-Widget build methods (void/Future/...)"
 golden_vectors:
   failing: "benchmark/vectors/TC-14_build.bad.dart"
   passing: "benchmark/vectors/TC-14_build.good.dart"
@@ -38,7 +39,10 @@ Hoisting the work to `initState`, an event handler, or a
 `FutureBuilder` fixes it once, structurally. Riverpod
 `Notifier.build` runs once as provider initialization, so
 deferred work there (`Future.microtask`) is intentional and
-excluded (SYS-CAL-002 P1-3).
+excluded (SYS-CAL-002 P1-3). Methods named `build` that return
+`void`, `Future`, or anything but `Widget` are builders of
+another kind (reports, caches); only `Widget`-typed or untyped
+`build` is measured (SYS-CAL-003 R2-3).
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -97,6 +101,13 @@ closure/function-expression exempts): `Future.<anything>` except
 - Indirect notifier subclasses (custom intermediate bases):
   the guard reads only the direct superclass name, so they
   stay measured (known FP). [unevaluated]
+- Triggers in `void`/`Future` `build()`: MUST NOT be flagged.
+  [eval: TC-14.good]
+- Triggers in untyped `build()`: MUST be flagged
+  (fail-closed). [eval: TC-14.bad]
+- `dynamic`, typedef-named, and `Future<Widget>` `build()`:
+  MUST NOT be flagged (declared type is not `Widget`;
+  typedefs unresolvable parse-only). [eval: unit fixture]
 - Deep `build()` trees in vectors: out of scope (vectors stay
   MET-neutral by design). [unevaluated]
 

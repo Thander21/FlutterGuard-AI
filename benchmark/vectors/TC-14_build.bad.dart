@@ -25,3 +25,16 @@ class _StormyViewState extends State<StormyView> {
   void _poll(Timer timer) {}
   void _showOrders(Object? orders) {}
 }
+
+// Untyped build() stays measured (fail-closed, R2-3).
+class SketchyView extends StatelessWidget {
+  const SketchyView({super.key});
+
+  @override
+  build(BuildContext context) {
+    Future.delayed(const Duration(seconds: 1), _refresh);
+    return const Text('sketchy');
+  }
+
+  void _refresh() {}
+}
