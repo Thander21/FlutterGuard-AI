@@ -361,6 +361,276 @@ SYS-TELE-001 first (canon rule §4).
   `tool/` 0 pairs; skip set unchanged; corpus still
   122 files (R2-3 edited in place). CRAP re-measured:
   3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-4
+  (KEY-001r v3 scope + MET holder v3): the R2-1
+  `AsyncContextGuard`~=`ListKeyGuard` guard-idiom FP
+  fell below threshold after the ListKeyGuard rewrite
+  (scope facts, state-bearing/foreign branches) —
+  re-judged eliminated-FP (was FP, still 0
+  actionable). The `ctx:91`~=`listkey:223` collector
+  pair shifted to `:306` (same pair, same FP
+  judgment, similarity 0.840). 5 pairs pinned, 0
+  actionable, HOLD reaffirmed. MET set unchanged
+  (same 2 TPs — the holder widening moves nothing on
+  this corpus); `bin/`/`tool/` 0 pairs; skip set
+  unchanged; corpus still 122 files (R2-4 edited in
+  place). CRAP re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  1 (FG-BAN-018 banned symbols): new pair
+  `BannedSymbolGuard`~=`MetricGuard` @0.801
+  (whole-class units, banned:160-219 ~=
+  metric:53-140), judged FP, guard-idiom class (5th
+  of class — same deliberate per-rule visitor
+  skeleton as the pinned whole-guard pairs;
+  different rules and domains, extraction across
+  node/violation types forced, not actionable). The
+  `check:221`~=`init:75` procedural-flow twin
+  shifted to `:80` (same pair, same FP judgment,
+  similarity 0.837 — the init template gained a
+  commented example). 6 pairs pinned, 0 actionable,
+  HOLD reaffirmed. MET set unchanged (same 2 TPs —
+  new code MET-clean); `bin/`/`tool/` 0 pairs;
+  skip set unchanged; corpus at 127 files (+5: the
+  new guard, 2 tests, 2 tc18 vectors). CRAP
+  re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  2 (FG-LOG-019 print/logger + shared `rule_params`
+  extraction): new pair `analyzeBannedSymbolFile`~=
+  `analyzeLogFile` @0.851 (entry-function units,
+  banned:107-128 ~= log:103-123), judged FP,
+  runner-pipeline class (2nd of class — both are
+  load→except→parse→visit pipelines in different
+  rules; the shared section-load/except already
+  lives in `rule_params.dart`, the rest is rule
+  logic, extraction forced — merging across
+  different config shapes trades clarity for
+  indirection). The `banned:160`~=`metric:53`
+  guard-idiom pair shifted to `:130` (same pair,
+  same FP judgment, similarity 0.801 — the BAN
+  refactor into `rule_params` removed 30 lines);
+  the `check:221`~=`init:80` twin shifted to `:85`
+  (same pair, same FP judgment, similarity 0.837 —
+  the init template gained the print_logger
+  example). 7 pairs pinned, 0 actionable, HOLD
+  reaffirmed. MET set unchanged (same 2 TPs);
+  `bin/`/`tool/` 0 pairs; skip set unchanged;
+  corpus at 132 files (+5: the log guard, the log
+  test, `rule_params`, 2 tc19 vectors). CRAP
+  re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  3 (FG-TOK-020 theme tokens): two new pairs, both
+  judged FP, runner-pipeline class (3rd/4th of
+  class): `LogConfig`~=`TokConfig` @0.839
+  (config-class units, log:23-86 ~= tok:52-103 —
+  both are section-parse pipelines with different
+  schemas, extraction across field sets forced)
+  and `analyzeLogFile`~=`analyzeTokFile` @0.854
+  (entry-function units, log:103-123 ~=
+  tok:120-138 — same load→except→parse→visit
+  pipeline reasoning as gate 2). The
+  `check:221`~=`init:85` twin shifted to `:90`
+  (same pair, same FP judgment, similarity 0.837
+  — the init template gained the theme_tokens
+  example). 9 pairs pinned, 0 actionable, HOLD
+  reaffirmed. MET set unchanged (same 2 TPs);
+  `bin/`/`tool/` 0 pairs; skip set unchanged;
+  corpus at 136 files (+4: the tok guard, the tok
+  test, 2 vectors). CRAP detector+metric trios
+  UNMEASURED (8s breaker under load — known
+  load-sensitivity, method constraint, unpinned
+  by design); tools trio 0 OVER.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  4 (FG-I18N-021 i18n + FlatRuleConfig heal): the
+  i18n landing first fanned the config/entry
+  family to 16 pairs (two at ≥0.99 — structural
+  clones), which re-judged the gate-2/gate-3
+  runner-pipeline FPs as TPs: the per-rule
+  config classes and entry functions were
+  HEALED into a shared `FlatRuleConfig` +
+  `runFlatRule` in `lib/src/rule_params.dart`
+  with behavior pinned by the 20 guard tests —
+  all 8 config/entry twins verified gone. Two
+  whole-guard pairs survive the heal:
+  `BannedSymbolGuard`~=`I18nGuard` @0.842 and
+  `I18nGuard`~=`ThemeTokenGuard` @0.831, both
+  judged FP, guard-idiom class (6th/7th of
+  class — deliberate per-rule visitor skeletons,
+  extraction across node/violation types forced,
+  not actionable). The `check:221`~=`init:90`
+  twin shifted to `:95` (same pair, same FP
+  judgment, similarity 0.837 — the init template
+  gained the i18n example). 8 pairs pinned, 0
+  actionable, HOLD reaffirmed. MET set unchanged
+  (same 2 TPs); `bin/`/`tool/` 0 pairs; skip set
+  unchanged; corpus at 140 files (+4: the i18n
+  guard, the i18n test, 2 tc21 vectors). CRAP
+  re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  5 (FG-ENC-022 encoding): no movement — the
+  byte-level guard twins nothing (no visitor
+  skeleton, no config class) and the init
+  template is untouched (no config section), so
+  all 8 pairs re-verified identical, 0
+  actionable, HOLD reaffirmed. No pin changes.
+  MET set unchanged (same 2 TPs); `bin/`/`tool/`
+  0 pairs; skip set unchanged; corpus at 144
+  files (+4: the enc guard, the enc test, 2
+  vectors). CRAP re-measured: 3/0/0, same
+  methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  6 (FG-ORP-023 orphans): no movement — the tiny
+  path-oracle guard twins nothing and the init
+  template is untouched (no config section), so
+  all 8 pairs re-verified identical, 0
+  actionable, HOLD reaffirmed. No pin changes.
+  MET set unchanged (same 2 TPs); `bin/`/`tool/`
+  0 pairs; skip set unchanged; corpus at 149
+  files (+5: the orp guard, the orp test, 3 tc23
+  files). CRAP re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 gate
+  7 (FG-LYR-024 layers + list-rule heal): the
+  landing first fanned to 11 pairs with three
+  BAN~=LYR twins at up to 0.984, re-judged TP
+  and HEALED in two passes — shared
+  `loadRuleList`/`stringListField`/`scanTarget`
+  plus a generic `RuleListConfig<T>` replacing
+  both config shells, with behavior pinned by
+  the 10 BAN+LYR tests; the `_scanTokFile` loop
+  twin dissolved via an idiomatic
+  map/whereType cleanup. Residual
+  `analyzeBannedSymbolFile`~=`analyzeLayerFile`
+  @0.919 judged FP, runner-pipeline class: every
+  line of load/parse/scan logic now lives once
+  in `rule_params.dart` — the residual is
+  per-rule wiring (load-or-inject, gating
+  predicate, guard closure) with rule-specific
+  cores, and a 2-type-param generic over it
+  would trade clarity for indirection.
+  Recorded precedent: twins at ≥0.95 sharing
+  logic heal; twins at ≤0.95 sharing only wiring
+  shape rate FP (a third list-rule reopens the
+  question). The BAN-guard pairs re-keyed to
+  `:97` (config deletion moved the class),
+  `I18nGuard`~=`ThemeTokenGuard` to `tok:98`
+  (scan shrink), `check:221`~=`init:95` to
+  `:100` (init template gained the layer_rules
+  example); the gate-6 BAN-entry~LOG-entry twin
+  dissolved (BAN entry reshaped). 9 pairs
+  pinned, 0 actionable, HOLD reaffirmed. MET
+  set unchanged (same 2 TPs); `bin/`/`tool/` 0
+  pairs; skip set unchanged; corpus at 153
+  files (+4: the lyr guard, the lyr test, 2
+  tc24 vectors). CRAP re-measured: 3/0/0, same
+  methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 tail
+  T1 (FG-CC-025 complexity ceiling): no movement — the
+  flat AST counter twins nothing (no visitor skeleton
+  growth, no config class) and the init template is
+  untouched (fixed ceiling, no config section), so
+  all 9 pairs re-verified identical, 0
+  actionable, HOLD reaffirmed. No pin changes.
+  MET set unchanged (same 2 TPs); `bin/`/`tool/`
+  0 pairs; skip set unchanged; corpus at 157
+  files (+4: the cc guard, the cc test, 2
+  vectors). CRAP re-measured: 3/0/0, same
+  methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 tail
+  T2 (FG-RIV-026 provider naming): new pair
+  `ContextScopeGuard`~=`ProviderNamingGuard`
+  @0.870 (whole-class units, ctx:43-89 ~=
+  prov:60-107), judged FP, guard-idiom class
+  (8th of class — same deliberate per-rule
+  visitor skeleton as the pinned whole-guard
+  pairs; different rules and domains,
+  extraction across node/violation types
+  forced, not actionable). 10 pairs pinned, 0
+  actionable, HOLD reaffirmed. MET set
+  unchanged (same 2 TPs); `bin/`/`tool/` 0
+  pairs; skip set unchanged; corpus at 161
+  files (+4: the prov guard, the prov test, 2
+  vectors). CRAP re-measured: 3/0/0, same
+  methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 tail
+  T3 (FG-LAY-004 v4 Text-in-Row): no movement —
+  the `_textName` ladder twins nothing (near
+  `_scrollableName` in shape, below threshold
+  in tokens) and the shared `_flag` emit kept
+  the message block single, so all 10 pairs
+  re-verified identical, 0 actionable, HOLD
+  reaffirmed. No pin changes. MET set
+  unchanged (same 2 TPs — the TC-13.good:32
+  Row→Column maintenance preserves the
+  depth-5 boundary exactly); `bin/`/`tool/` 0
+  pairs; skip set unchanged; corpus still 161
+  files (T3 edited in place). CRAP
+  re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 tail
+  T4 (FG-ARB-027 arb metadata + file scopes): the
+  `check:221`~=`init:100` procedural-flow twin
+  re-keyed to `:233` (same pair, same FP
+  judgment, similarity 0.837→0.832 — the
+  check() doc growth plus the batch-filter
+  lines). New pair `checkFiles`~=
+  `_siblingImport` @0.810 (check:111-146 ~=
+  mutation:229-274), judged FP,
+  procedural-flow-twin class (4th of class —
+  the checkFiles growth pushed a near-miss
+  over the line; CLI fan-out vs mutation
+  import-rewriting share only
+  sequential-procedure shape — loops, a sort,
+  guards — with no shared logic and no
+  extractable unit, far below the 0.95-heal
+  bar). 11 pairs pinned, 0 actionable, HOLD
+  reaffirmed. MET set unchanged (same 2 TPs);
+  `bin/`/`tool/` 0 pairs; skip set unchanged;
+  corpus at 163 files (+2: the arb guard +
+  test — the `.arb` vectors sit outside the
+  Dart-only MET/DRY walks by construction).
+  CRAP re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 tail
+  T5 (FG-PII-028 PII in logs): the
+  `check:233`~=`init:100` procedural-flow twin
+  re-keyed to `:107` (same pair, same FP
+  judgment, similarity 0.832 — the init
+  template gained the pii example). New pair
+  `BannedSymbolGuard`~=`_ArgScanner` @0.807
+  (whole-visitor units, banned:97-156 ~=
+  pii:182-254), judged FP, guard-idiom class
+  (9th of class — the PII argument scanner's
+  multi-override skeleton twins the deliberate
+  per-rule visitor shape; different rules and
+  domains, extraction across node/violation
+  types forced, not actionable). 12 pairs
+  pinned, 0 actionable, HOLD reaffirmed. MET
+  set unchanged (same 2 TPs); `bin/`/`tool/`
+  0 pairs; skip set unchanged; corpus at 167
+  files (+4: the pii guard, the pii test, 2
+  tc28 vectors). CRAP re-measured: 3/0/0,
+  same methods.
+- Re-ratifications: 2026-11-06 — SYS-CAL-003 R2-5 tail
+  T6 (FG-ENV-029 env parity + prefix scopes): the
+  `check:111`~=`_siblingImport` and
+  `check:233`~=`init:107` twins re-keyed to
+  `:112`/`:234` (same pairs, same FP judgments;
+  the check() call-site growth nudged its
+  similarity 0.832→0.829). New pair
+  `analyzeEncFile`~=`analyzeEnvFile` @0.814
+  (entry-function units, enc:39-82 ~=
+  env:30-72), judged FP, runner-pipeline class
+  (6th of class — byte-decode-plus-marker
+  scan vs key-set parity share only the
+  oracle-entry skeleton — read, guard, loop,
+  collect, sort — with disjoint cores and
+  opposite failure modes (fail-closed vs
+  fail-open); no extractable unit, far below
+  the 0.95-heal bar). 13 pairs pinned, 0
+  actionable, HOLD reaffirmed. MET set
+  unchanged (same 2 TPs); `bin/`/`tool/` 0
+  pairs; skip set unchanged; corpus at 169
+  files (+2: the env guard + test — the
+  `.env` vectors sit outside the Dart-only
+  MET/DRY walks by construction). CRAP
+  re-measured: 3/0/0, same methods.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

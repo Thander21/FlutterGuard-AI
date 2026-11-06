@@ -1,29 +1,14 @@
 // Schema-v2 config loader (SYS-CLI-001a §2): walk-up discovery of
 // `flutterguard.yaml` plus per-rule toggles. Shared by `check` and
 // the lite loop; `grade` always runs the full registry (it validates
-// the rules themselves).
+// the rules themselves). Discovery itself lives in `../util.dart`
+// (shared with self-loading rules); this file owns the `rules` map.
 import 'dart:io';
 
 import 'package:yaml/yaml.dart';
 
+import '../util.dart';
 import 'rules.dart';
-
-/// Config file name discovered by walking up from the target.
-const configFileName = 'flutterguard.yaml';
-
-/// Nearest config walking up from [target] (a file or directory),
-/// or null when none exists up to the filesystem root.
-String? findConfig(String target) {
-  var dir = _startDir(target);
-  while (true) {
-    final candidate = '$dir/$configFileName';
-    if (File(candidate).existsSync()) return candidate;
-    if (dir == '/' || RegExp(r'^[A-Za-z]:/?$').hasMatch(dir)) return null;
-    final idx = dir.lastIndexOf('/');
-    if (idx < 0) return null;
-    dir = idx == 0 ? '/' : dir.substring(0, idx);
-  }
-}
 
 /// [analyzers] minus the rules disabled for [target] by the nearest
 /// config. No config, unparseable YAML, non-map `rules`,
@@ -73,13 +58,4 @@ _RulesConfig? _loadRules(String target) {
     explicit[key] = value;
   });
   return _RulesConfig(defaultEnabled: defaultEnabled, explicit: explicit);
-}
-
-/// Absolute, forward-slash directory to start discovery from: [target]
-/// itself for directories, its parent for files.
-String _startDir(String target) {
-  final abs = File(target).absolute.path.replaceAll(r'\', '/');
-  if (FileSystemEntity.isDirectorySync(target)) return abs;
-  final idx = abs.lastIndexOf('/');
-  return idx < 0 ? abs : abs.substring(0, idx);
 }

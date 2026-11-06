@@ -6,8 +6,8 @@
 
 *Read in English: [README.md](README.md)*
 
-> **Escopo:** 17 regras AST implementadas (16 bloqueantes + `FG-MET-007`
-> consultiva) com comandos CLI `grade` + `check` + `init` + `sandbox`,
+> **Escopo:** 29 regras implementadas (27 bloqueantes + `FG-MET-007`
+> / `FG-RIV-026` consultivas) com comandos CLI `grade` + `check` + `init` + `sandbox`,
 > hook pre-commit, dispatcher de autocura, mutation runner, Tier-1
 > viewport runner (com fallback AST Tier-1-lite), pipeline de
 > cobertura/CRAP, detector de duplicação estrutural e servidor MCP
@@ -200,7 +200,7 @@ equivalente tipado já roda:
 |---|---|---|
 | FG-ARCH-003 | imports de persistência/rede em arquivos de widget | validadores de camada não veem fluxos de pacote: mantenha (complementa) |
 | FG-ASYNC-002 | segurança de context pós-await | use_build_context_synchronously: desabilite |
-| FG-LAY-004 | scrollables ilimitados em flex | um validador de layout: desabilite |
+| FG-LAY-004 | scrollables ilimitados em flex, Text puro em Row | um validador de layout: desabilite |
 | FG-ST-005 | mutação de estado no lugar | — : mantenha (sem equivalente stock) |
 | FG-CTX-006 | context fora de Widget/State | — : mantenha (sem equivalente stock) |
 | FG-WID-008 | campos mutáveis em widget | must_be_immutable: desabilite |
@@ -215,6 +215,18 @@ equivalente tipado já roda:
 | FG-IMP-015 | ban de mirrors, imports fora de lib | avoid_relative_lib_imports cobre escape em parte |
 | FG-FMT-016 | dart-format limpo | dart format no CI: desabilite |
 | FG-SYN-017 | gate de sintaxe fail-closed | dart analyze no CI: desabilite |
+| FG-BAN-018 | símbolos banidos do projeto | — : mantenha (sem equivalente stock) |
+| FG-LOG-019 | print/debugPrint fora do logger | avoid_print cobre só print: mantenha para debugPrint + roteamento |
+| FG-TOK-020 | cores fixas fora do tema | — : mantenha (sem equivalente stock) |
+| FG-I18N-021 | strings fixas em widgets de texto | — : mantenha (sem equivalente stock) |
+| FG-ENC-022 | UTF-8 inválido / mojibake | — : mantenha (sem equivalente stock) |
+| FG-ORP-023 | arquivos gerados órfãos | — : mantenha (sem equivalente stock) |
+| FG-LYR-024 | regras de direção de camadas | — : mantenha (sem equivalente stock) |
+| FG-CC-025 | teto de complexidade ciclomática | — : mantenha (sem equivalente stock) |
+| FG-RIV-026 | nomes de provider terminam em Provider (consultiva) | só Riverpod, sem equivalente stock: mantenha |
+| FG-ARB-027 | placeholders arb sem metadados @key | — : mantenha (sem equivalente stock) |
+| FG-PII-028 | PII sem máscara em logs | — : mantenha (sem equivalente stock) |
+| FG-ENV-029 | chaves .env fora do .env.example | — : mantenha (sem equivalente stock) |
 
 (Do piloto de campo SYS-CAL-002: só FG-ST-001, FG-ST-005 e
 FG-KEY-001r não tinham equivalente nos validadores do ERP.)

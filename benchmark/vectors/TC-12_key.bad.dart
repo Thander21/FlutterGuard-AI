@@ -1,7 +1,22 @@
 // Golden failing vector for FG-KEY-001r.
-// List items built without keys.
+// Load-bearing list items built without keys.
 // The AST gate MUST flag this file.
 import 'package:flutter/widgets.dart';
+
+class CartTile extends StatefulWidget {
+  const CartTile(this.item, {super.key, this.controller});
+
+  final String item;
+  final Object? controller;
+
+  @override
+  State<CartTile> createState() => _CartTileState();
+}
+
+class _CartTileState extends State<CartTile> {
+  @override
+  Widget build(BuildContext context) => Text(widget.item);
+}
 
 class CartList extends StatelessWidget {
   const CartList({super.key, required this.items});
@@ -16,7 +31,8 @@ class CartList extends StatelessWidget {
         Expanded(
           child: ListView.builder(
             itemCount: items.length,
-            itemBuilder: (context, index) => CartTile(items[index]),
+            itemBuilder: (context, index) =>
+                CartTile(items[index], controller: searchCtrl),
           ),
         ),
       ],
@@ -25,9 +41,7 @@ class CartList extends StatelessWidget {
 }
 
 class OrderList extends StatelessWidget {
-  const OrderList({super.key, required this.items});
-
-  final List<Widget> items;
+  const OrderList({super.key});
 
   @override
   Widget build(BuildContext context) {

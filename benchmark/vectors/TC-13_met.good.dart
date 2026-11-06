@@ -29,7 +29,7 @@ class SmallForm extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Column(
             children: [
-              Row(children: [Text('ok')]),
+              Column(children: [Text('ok')]),
             ],
           ),
         ),

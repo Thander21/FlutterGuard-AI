@@ -24,6 +24,38 @@ gates:
 # Per-rule toggles (absent = enabled; unknown ids ignored):
 # rules:
 #   FG-BLOC-001: false
+# Project-banned symbols (FG-BAN-018; absent section = silent):
+# banned_symbols:
+#   - symbol: SnackBar
+#     message: "route through NotificationService"
+#     except: ["lib/src/notifications/**"]
+# Print routing (FG-LOG-019; absent section = silent):
+# print_logger:
+#   symbols: [tattle]
+#   except: ["lib/src/log/**"]
+#   message: "use AppLogger"
+# Design tokens (FG-TOK-020; Color default always on):
+# theme_tokens:
+#   except: ["lib/src/theme/**"]
+#   extra_ctors: ["BorderRadius.circular"]
+#   message: "use AppTheme"
+# Widget strings (FG-I18N-021; absent section = silent):
+# i18n:
+#   widgets: [SelectableText]
+#   except: ["lib/src/l10n/**"]
+#   message: "use appLocalizations"
+# Layer direction (FG-LYR-024; absent section = silent):
+# layer_rules:
+#   - files: ["lib/ui/**"]
+#     deny_imports: ["package:drift/**"]
+#     message: "route through the repository"
+# PII in logs (FG-PII-028; email/password defaults always on):
+# pii:
+#   sinks: [auditLog]
+#   names: [cpf, senha]
+#   patterns: ['\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}']
+#   masks: [maskDoc]
+#   message: "mask PII before logging"
 ''';
 
 /// Marker guarding the generated pre-commit hook (SYS-CLI-001b).

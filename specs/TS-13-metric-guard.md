@@ -10,13 +10,14 @@ ast_nodes:
   - "InstanceCreationExpression"
   - "MethodInvocation[constructor-shaped]"
   - "ConstructorDeclaration"
-invariant: "Widget trees SHOULD nest at most 5 non-scaffold creation levels deep and constructors SHOULD declare at most 7 parameters (data-holder constructors exempt); over-budget findings are advisory warnings until SYS-CAL-001 calibrates the thresholds."
+invariant: "Widget trees SHOULD nest at most 5 non-scaffold creation levels deep and classic constructors SHOULD declare at most 7 parameters (data-holder constructors exempt — finals-only fields with only value-identity, serialization, copyWith, and Equatable companions); over-budget findings are advisory warnings until SYS-CAL-001 calibrates the thresholds."
 fp_limits:
   - "trees nested 5 deep or less"
   - "constructors with 7 parameters or fewer"
   - "deep trees outside build()/Widget-returning methods"
   - "scaffold creations (MaterialApp, Scaffold — transparent to depth)"
-  - "constructors of pure data-holder classes"
+  - "constructors of data-holder classes (incl. serialization/Equatable companions)"
+  - "primary-constructor declarations (unmeasured by design)"
 golden_vectors:
   failing: "benchmark/vectors/TC-13_met.bad.dart"
   passing: "benchmark/vectors/TC-13_met.good.dart"
@@ -51,6 +52,30 @@ longer count constructors of pure data-holder classes: every field
 and constructors (a config object there adds indirection without
 benefit). Thresholds 5/7 are unchanged: this is detector refinement,
 not a retune.
+
+v3 (SYS-CAL-003 R2-4, item-turn Q6/Q9) widens the holder
+doctrine past value-identity: real-world models carry
+serialization and copy companions, and the v2 doctrine flagged
+86 of them in the field pilot. A holder is now finals-only
+fields plus, beyond fields and constructors, only
+`toString`/`==`/`hashCode`, `toJson`/`fromJson`/`toMap`/
+`fromMap`, `copyWith`, and the Equatable `props`/`stringify`
+getters (closed set — shared with the DRY collector via
+`isDataHolderClass`). Anything else (behavior methods,
+derived getters beyond `props`/`stringify`, setters,
+non-final fields) still breaks holder status, fail-closed;
+further widening waits on pilot-3 samples. freezed models
+need no rule: factory-only source is vacuously holder.
+Primary-constructor declarations (`PrimaryConstructor-
+Declaration`) are unmeasured by design — no visitor
+observes them, and the feature exists for wide data models,
+so measuring would reintroduce the noise class v3 removes
+(SYS-CAL-003 §2.6 correction). Depth HOLDS at 5: SYS-CAL-001
+§5 bars a retune without a fresh corpus pass, and no field
+corpus exists; the pilot's cited 6-level screen shape is
+verified clean under v2 scaffold transparency (cited
+pattern CLOSED), with a full retune awaiting pilot-3
+counts.
 
 Spike record (Semantic Ratio 15%, PLAN-02 P1): DROPPED. No parse-only
 node classifier separates business-rule nodes from UI-plumbing nodes —
@@ -133,6 +158,26 @@ creation up through its enclosing function; every creation deeper than
   `toString` only): MUST NOT be flagged. [eval: unit fixture]
 - 9-parameter finals-only class with an extra behavior method:
   MUST be flagged (advisory). [eval: unit fixture]
+- 9-parameter model with `toJson` + `copyWith` companions:
+  MUST NOT be flagged. [eval: unit fixture]
+- 9-parameter Equatable model (`props` getter): MUST NOT be
+  flagged. [eval: unit fixture]
+- 9-parameter json_serializable model (`toJson` + `fromJson`
+  factory): MUST NOT be flagged. [eval: unit fixture]
+- 9-parameter freezed-shaped model (factory ctors only): MUST
+  NOT be flagged (vacuously holder). [eval: unit fixture]
+- 9-parameter `.new` named constructor with companions: MUST
+  NOT be flagged (the ERP breaker shape). [eval: unit fixture]
+- 29-field true primary constructor: MUST NOT be flagged
+  (unmeasured by design). [eval: unit fixture]
+- 9-parameter finals-only class with a derived display getter:
+  MUST be flagged (advisory — fail-closed, widening deferred
+  to pilot-3 samples). [eval: unit fixture]
+- 9-parameter finals-only class with a setter: MUST be
+  flagged (advisory). [eval: unit fixture]
+- Cited ERP 6-level screen (`Scaffold → Padding → Column →
+  Card → Row → Text`): MUST NOT be flagged (5 non-scaffold
+  levels — cited pattern CLOSED). [eval: unit fixture]
 - Deep trees in field initializers or constructors: skipped
   (build-scope). [unevaluated]
 - Closures accumulate outer depth (the runtime tree is one tree).

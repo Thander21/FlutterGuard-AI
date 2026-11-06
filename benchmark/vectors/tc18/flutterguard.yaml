@@ -1,0 +1,8 @@
+# Golden fixture config for FG-BAN-018 (TS-18). Nearest-config
+# discovery applies it to the tc18/ vectors only.
+banned_symbols:
+  - symbol: SnackBar
+    message: "route through NotificationService"
+    except: []
+  - symbol: trace
+    message: "route through TelemetryService"

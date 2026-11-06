@@ -52,13 +52,15 @@ List<MetricViolation> analyzeMetricFile(String path) {
 
 /// Flags over-deep widget trees and over-wide constructors.
 ///
-/// Scope (v2): depth is measured only inside `build()` methods and
+/// Scope (v3): depth is measured only inside `build()` methods and
 /// `Widget`-returning functions, counting non-scaffold creation
 /// ancestors (explicit or constructor-shaped calls; method calls,
 /// properties, closures, and scaffold creations are transparent).
 /// Every creation deeper than 5 is flagged with its depth. Every
-/// constructor declaring more than 7 parameters is flagged at its
-/// name, unless it belongs to a pure data-holder class.
+/// classic constructor declaring more than 7 parameters is flagged
+/// at its name, unless it belongs to a data-holder class (TS-13
+/// v3 companions included). Primary-constructor declarations are
+/// unmeasured by design (TS-13 §1) — no override observes them.
 class MetricGuard extends RecursiveAstVisitor<void> {
   MetricGuard(this._lineInfo);
 

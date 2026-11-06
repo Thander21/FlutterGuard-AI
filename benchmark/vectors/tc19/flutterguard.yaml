@@ -1,0 +1,5 @@
+# Golden fixture config for FG-LOG-019 (TS-19). Nearest-config
+# discovery applies it to the tc19/ vectors only.
+print_logger:
+  symbols: [tattle]
+  message: "use AppLogger"

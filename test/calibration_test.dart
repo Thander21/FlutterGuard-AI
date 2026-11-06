@@ -40,11 +40,55 @@ const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 /// surfaced the async~listkey guard-idiom FP; 4 pinned.
 /// SYS-CAL-003 R2-2: check() growth (baseline/diff/counts)
 /// surfaced the check~=init procedural-flow-twin FP; 5 pinned.
+/// SYS-CAL-003 R2-3: CTX-006 rewrite surfaced the collector
+/// guard-idiom FP; 6 pinned.
+/// SYS-CAL-003 R2-4: ListKeyGuard rewrite dissolved the
+/// async~=listkey twin (eliminated-FP) and shifted the collector
+/// pair key 223 -> 306; 5 pinned.
+/// SYS-CAL-003 R2-5 gate 1: new BannedSymbolGuard growth
+/// surfaced the banned~=metric guard-idiom FP; the init
+/// template example shifted the check~=init key 75 -> 80;
+/// 6 pinned.
+/// SYS-CAL-003 R2-5 gate 2: shared rule_params extraction +
+/// new PrintLoggerGuard surfaced the entry-function
+/// runner-pipeline FP; the BAN shrink shifted banned 160 ->
+/// 130 and the init example shifted init 80 -> 85; 7 pinned.
+/// SYS-CAL-003 R2-5 gate 3: new ThemeTokenGuard surfaced the
+/// config-class and entry-function runner-pipeline FPs; the
+/// init example shifted init 85 -> 90; 9 pinned.
+/// SYS-CAL-003 R2-5 gate 4: FlatRuleConfig heal dissolved all
+/// 8 config/entry twins; 2 whole-guard idiom FPs survive; the
+/// init example shifted init 90 -> 95; 8 pinned.
+/// SYS-CAL-003 R2-5 gate 7: RuleListConfig heal dissolved the
+/// config/parse twins; the residual entry twin rates FP
+/// (wiring only); BAN keys to 73/97, tok to 98, init to 100;
+/// 9 pinned.
+/// SYS-CAL-003 R2-5 tail T1: complexity guard twins nothing;
+/// 9 pinned.
+/// SYS-CAL-003 R2-5 tail T2: new ProviderNamingGuard surfaced
+/// the ctx~=prov whole-guard idiom FP; 10 pinned.
+/// SYS-CAL-003 R2-5 tail T4: check() growth (file scopes +
+/// batch filter) re-keyed check~=init 221 -> 233 and surfaced
+/// the checkFiles~=_siblingImport procedural-flow-twin FP;
+/// 11 pinned.
+/// SYS-CAL-003 R2-5 tail T5: init template growth (pii
+/// example) re-keyed check~=init 100 -> 107; new PiiGuard
+/// surfaced the banned~=_ArgScanner guard-idiom FP; 12 pinned.
+/// SYS-CAL-003 R2-5 tail T6: call-site growth (prefix scopes)
+/// re-keyed checkFiles 111 -> 112 and check 233 -> 234; new
+/// EnvGuard surfaced the enc~=env runner-pipeline FP; 13 pinned.
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
-  'lib/src/ast/async_context_guard.dart:47~lib/src/ast/list_key_guard.dart:77',
-  'lib/src/ast/context_scope_guard.dart:91~lib/src/ast/list_key_guard.dart:223',
-  'lib/src/cli/check.dart:221~lib/src/cli/init.dart:75',
+  'lib/src/ast/banned_symbol_guard.dart:73~lib/src/ast/layer_guard.dart:81',
+  'lib/src/ast/banned_symbol_guard.dart:97~lib/src/ast/i18n_guard.dart:67',
+  'lib/src/ast/banned_symbol_guard.dart:97~lib/src/ast/metric_guard.dart:53',
+  'lib/src/ast/banned_symbol_guard.dart:97~lib/src/ast/pii_guard.dart:182',
+  'lib/src/ast/context_scope_guard.dart:43~lib/src/ast/provider_naming_guard.dart:60',
+  'lib/src/ast/context_scope_guard.dart:91~lib/src/ast/list_key_guard.dart:306',
+  'lib/src/ast/encoding_guard.dart:39~lib/src/ast/env_guard.dart:30',
+  'lib/src/ast/i18n_guard.dart:67~lib/src/ast/theme_token_guard.dart:98',
+  'lib/src/cli/check.dart:112~lib/src/mutation/runner.dart:229',
+  'lib/src/cli/check.dart:234~lib/src/cli/init.dart:107',
   'lib/src/coverage/runner.dart:63~lib/src/mutation/runner.dart:50',
   'lib/src/mcp/tools.dart:196~lib/src/mcp/tools.dart:218',
 };

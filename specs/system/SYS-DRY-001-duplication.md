@@ -70,12 +70,14 @@ normalization keeps the structure that matters.
 
 Pure data-holder classes are never units (shared TS-13
 doctrine, `isDataHolderClass` in `lib/src/ast/data_holder.dart`:
-every field `final`/`const`, only `toString`/`==`/`hashCode`
-beyond fields and constructors) — their shape similarity is
-structural coincidence, never cloning. Mixins and enums are
-never excluded (no observed FP; classes only). Members below
-an excluded class are still collected normally: only the
-class-like unit is skipped.
+every field `final`/`const`, only value-identity,
+serialization, `copyWith`, and Equatable companions beyond
+fields and constructors — v3 widened by SYS-CAL-003 R2-4)
+— their shape similarity is structural coincidence, never
+cloning. Mixins and enums are never excluded (no observed
+FP; classes only). Members below an excluded class are
+still collected normally: only the class-like unit is
+skipped.
 
 Normalization (token walk
 `firstTokenAfterCommentAndMetadata..endToken`; doc comments and

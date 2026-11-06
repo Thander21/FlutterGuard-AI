@@ -1,0 +1,6 @@
+# Golden fixture config for FG-LYR-024 (TS-24). Nearest-config
+# discovery applies it to the tc24/ tree only.
+layer_rules:
+  - files: ["ui/**"]
+    deny_imports: ["package:drift/**"]
+    message: "ui must not touch the database directly"

@@ -85,18 +85,27 @@ class CheckResult {
 /// (FG-FMT-016: bounded `dart format` spawns per run, not per file).
 const batchRuleId = 'FG-FMT-016';
 
-/// Runs every registered visitor over [target] (one `.dart` file or a
-/// directory scanned recursively for `.dart` files, sorted).
+/// Runs every registered visitor over [target] (one file or a
+/// directory scanned recursively, sorted; the walk covers the
+/// registered extension union — `.dart` plus every non-Dart scope
+/// some rule declares).
 ///
 /// One bad file never kills the run: per-file failures are collected once
 /// per file in [CheckResult.errors]. Throws [ArgumentError] when [target]
 /// is missing. Generated files are skipped unless [includeGenerated]
-/// is true (see [collectDartFiles]). Rules disabled by the nearest
-/// `flutterguard.yaml` are skipped (see [enabledAnalyzers]).
+/// is true (see [collectScannableFiles]). Every rule sees only its
+/// scoped extensions, so Dart visitors never parse catalog files.
+/// Rules disabled by the nearest `flutterguard.yaml` are skipped
+/// (see [enabledAnalyzers]).
 /// Results sort by file, rule id, line, and message, then deduplicate
 /// on (file, line, rule) (see [deduplicateFindings]).
 CheckResult checkPath(String target, {bool includeGenerated = false}) {
-  final files = collectDartFiles(target, includeGenerated: includeGenerated);
+  final files = collectScannableFiles(
+    target,
+    extensions: registeredExtensions,
+    namePrefixes: registeredPrefixes,
+    includeGenerated: includeGenerated,
+  );
   return checkFiles(files, target);
 }
 
@@ -111,7 +120,10 @@ CheckResult checkFiles(List<String> files, String target) {
   final all = [...findings];
   for (final rule in batched) {
     try {
-      final verdicts = analyzeFormatBatch(files);
+      final verdicts = analyzeFormatBatch([
+        for (final file in files)
+          if (rule.scopes(file)) file,
+      ]);
       for (final entry in verdicts.entries) {
         for (final violation in entry.value) {
           all.add(
@@ -189,6 +201,7 @@ List<CheckFinding> deduplicateFindings(List<CheckFinding> sorted) {
   final seenErrors = <(String, String)>{};
   for (final file in files) {
     for (final rule in analyzers) {
+      if (!rule.scopes(file)) continue;
       try {
         for (final violation in rule.analyze(file)) {
           findings.add(
@@ -287,7 +300,12 @@ int check(List<String> args) {
   final target = targets.single;
   late final CheckResult result;
   try {
-    var files = collectDartFiles(target, includeGenerated: includeGenerated);
+    var files = collectScannableFiles(
+      target,
+      extensions: registeredExtensions,
+      namePrefixes: registeredPrefixes,
+      includeGenerated: includeGenerated,
+    );
     if (diffMode) {
       final changed = resolveChangedFiles(target, diffBase ?? 'origin/main');
       files = [

@@ -1,0 +1,5 @@
+# Golden fixture config for FG-I18N-021 (TS-21). Nearest-config
+# discovery applies it to the tc21/ vectors only.
+i18n:
+  widgets: [SelectableText]
+  message: "use appLocalizations"

@@ -133,3 +133,49 @@ class NestedWrapScreen extends StatelessWidget {
     );
   }
 }
+
+class RowTextScreen extends StatelessWidget {
+  const RowTextScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [Text('Version 2.0 now available everywhere')]);
+  }
+}
+
+class RowRichTextScreen extends StatelessWidget {
+  const RowRichTextScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [Text.rich(TextSpan(text: 'Version 2.0 now available'))],
+    );
+  }
+}
+
+class RowEllipsisTrapScreen extends StatelessWidget {
+  const RowEllipsisTrapScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('Version 2.0 now available', overflow: TextOverflow.ellipsis),
+      ],
+    );
+  }
+}
+
+class RowPaddedTextScreen extends StatelessWidget {
+  const RowPaddedTextScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Padding(padding: EdgeInsets.all(8), child: Text('Hello there')),
+      ],
+    );
+  }
+}

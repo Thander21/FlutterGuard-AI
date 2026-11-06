@@ -141,6 +141,16 @@ exact rule ratified in the TS-13 amendment), not a
 primary-ctor special case — and re-verifies SYS-CAL-001 DRY
 pins, since the doctrine is shared with the DRY collector.
 
+CORRECTION 2026-11-06 (R2-4 re-probe): the REFUTED claim
+above is itself wrong — true primary ctors
+(`class C(final x, …)`) parse as
+`PrimaryConstructorDeclaration`, which no visitor observes,
+so they are already clean. The 86 ERP param findings are
+classic-ctor models (including `.new` named ctors) with
+companions. The fix direction STANDS (holder widening, no
+primary-ctor special case); primary ctors stay unmeasured
+by design (TS-13 carves them out explicitly).
+
 ## 2.7 FG-KEY-001r scope — CONFIRMED
 
 `_simpleName` strips import prefixes (`pw.Padding` →
@@ -455,7 +465,36 @@ ERP access (§4 Q8). Still the largest isolated win.
    (fail-closed).
 6. KEY-001r scope: reorderable-only, or reorderable plus
    stateful/controller items? Foreign detection via
-   imports or prefix heuristic? OPEN — blocks R2-4 KEY.
+   imports or prefix heuristic?
+   RESOLVED 2026-11-06 (item-turn decision, TS-12
+   amended; owner reviews at the §5 re-run):
+   (a) Reorderable-strict + proven-stateful.
+   Reorderable-only is REJECTED (it drops the
+   deletion-transposition signal the rule exists for).
+   `ReorderableListView` children + `itemBuilder`
+   under it stay strict (runtime asserts, no leaf
+   exemption). Other `.map()`→`children:` and
+   `itemBuilder` roots flag only when state-bearing:
+   (i) the type matches a same-file
+   `class X extends StatefulWidget` (cross-file
+   unknowns pass — v0 fail-closed INVERTED to
+   fail-open: parse-only cannot resolve cross-file
+   statefulness); (ii) the creation carries a
+   `controller`/`focusNode` named argument (closed
+   v0 set). The 23-leaf allowlist is RETIRED
+   (subsumed: leaves are never state-bearing).
+   (b) Foreign via file gate + prefix rule. No
+   `package:flutter/` import → the rule is silent
+   (kills pdf-service and pure-Dart files). A
+   prefixed `p.X` is in scope only when `p` maps to
+   a Flutter or relative import; other-`package:`
+   or unmapped prefixes are foreign → skip
+   (unknown-prefix fail-open; watched in pilot-3
+   samples).
+   (c) `_isCapitalized` ignores leading underscores
+   (`_getNomeCfop` is not a creation, `_Tile`
+   still is) — kills the String-method class
+   generally, not just `_get*`.
 7. LIFE-001 sets: instantiation-detection rule
    (initializer or `= C()` assignment — what about
    `late`?); non-`State` release-method set.
@@ -480,6 +519,18 @@ ERP access (§4 Q8). Still the largest isolated win.
    or later? RATIFIED 2026-11-05: the §7 matrix stands as
    the R2 boundary; `BlocBuilder` scope and Equatable/freezed
    coverage are decided at their item's turn (R2-3/R2-4).
+   R2-4 ITEM-TURN CALL 2026-11-06 (TS-13 amended; owner
+   reviews at the §5 re-run): Equatable (`props`,
+   `stringify`) + json_serializable (`toJson`/`fromJson`,
+   `toMap`/`fromMap`) + `copyWith` join the holder
+   doctrine NOW; freezed is verified already-exempt
+   (factory-only source → vacuously holder, fixture
+   proves, no code); hand-rolled display getters stay
+   fail-closed, deferred to pilot-3 samples. Depth HOLDS
+   at 5 (CAL-001 §5 bars a retune without a fresh corpus
+   pass; the cited ERP 6-level shape is verified clean
+   under v2 scaffold transparency — cited pattern
+   CLOSED, full retune awaits pilot-3 counts).
 
 # 5. Acceptance (pilot-3 bar)
 
@@ -536,11 +587,146 @@ the three real-signal classes are fixed out of band.
   +1 guard-idiom FP pair, 6 pinned). Fixture
   acceptance per §2.1–§2.4 + §2.9 green; field
   acceptance pending the §5 re-run.
-- R2-4–R2-6 OPEN: specified; Q6 stays OPEN (item-local
-  grammar decided at the R2-4 KEY turn).
-- Recommended next: R2-4 (MET-007 + KEY-001r scope,
-  needs the §4 Q6 call and the Q9 Equatable/freezed
-  item-turn call).
+- R2-4 IMPLEMENTED 2026-11-06 (TS-12 v3 + TS-13 v3
+  amended per resolved Q6 and the Q9 Equatable/
+  json_serializable item-turn call; TC-12 pair
+  rewritten to the narrowed invariant; ListKeyGuard
+  gains the file gate, prefix-aware foreign rule,
+  and state-bearing scope with the leaf allowlist
+  retired; `isDataHolderClass` gains serialization/
+  `copyWith`/Equatable companions; §2.6 corrected —
+  true primary ctors are `PrimaryConstructor-
+  Declaration`, unmeasured by design; depth HOLDS
+  at 5 with the cited ERP shape verified clean;
+  full suite 301/301, `grade` green, analyzer
+  clean; CAL-001 re-ratified — async~listkey twin
+  eliminated-FP, collector key 223→306, 5 pinned).
+  Field acceptance pending the §5 re-run.
+- R2-5 IN PROGRESS 2026-11-06 — head gates 7/7
+  DONE. Gate 1: FG-BAN-018 banned symbols (TS-18
+  + tc18 golden pair with fixture config;
+  self-loading rule via shared walk-up discovery
+  in `util.dart`; v1 glob for `except`; CLI-001a
+  rule-parameters §2).
+  Gate 2: FG-LOG-019 print/logger (TS-19 + tc19
+  golden pair; section-presence opt-in — settled
+  TC-02/TC-11 prints force silent-by-default over
+  a universal ban; shared `rule_params.dart`
+  self-load extraction).
+  Gate 3: FG-TOK-020 theme tokens (TS-20 + direct
+  golden pair; default-ON `Color` unnamed +
+  channel ctors — no `Color(` in settled goldens
+  or dogfood roots; `Type`/`Type.ctor` extras;
+  bare/dotted creations decode without
+  resolution).
+  Gate 4: FG-I18N-021 i18n literals (TS-21 + tc21
+  golden pair; opt-in — `Text('x')` saturates
+  settled goldens; non-blank literal-text rule
+  with pure-interpolation carve-out) + the
+  FlatRuleConfig heal (the landing fanned
+  config/entry twins to 16 pairs at up to 1.00,
+  re-judged TP and healed into `runFlatRule`;
+  all 8 twins verified gone).
+  Gate 5: FG-ENC-022 encoding (TS-22 + direct
+  golden pair; byte oracle — strict UTF-8 +
+  U+FFFD/U+00C3/U+00C2 markers, one finding per
+  line; the rule caught its own §2 recipe in the
+  embed on first dogfood — rewritten with
+  codepoint escapes).
+  Gate 6: FG-ORP-023 orphans (TS-23 + tc23 golden
+  trio; path oracle over generated suffixes;
+  invisible to default scans by design — a
+  dedicated includeGenerated test pins the
+  interplay).
+  Gate 7: FG-LYR-024 layers (TS-24 + tc24 golden
+  tree; v1 file-scoped import/export denylists —
+  allow-graph deferred with documented identity
+  questions; list-rule heal into
+  `RuleListConfig<T>` + `scanTarget`, residual
+  entry twin FP at 0.919 with the ≥0.95-heal
+  precedent recorded). Registry + recipes +
+  README/LEIAME + init template wired
+  throughout. Tail T1: FG-CC-025 complexity
+  ceiling (TS-25 + direct golden pair, CC86
+  .bad vs CCall<=80 .good; fixed ceiling 80 via
+  SYS-COV-001 `analyzeComplexity`, warn-20 out —
+  severity is per-rule, advisories stay with
+  MET). Tail T2: FG-RIV-026 provider naming
+  (TS-26 + direct golden pair, 15-finding
+  .bad; warning severity — a name never breaks
+  a build; positional-closure discriminator
+  kills provider-package widgets without
+  import resolution). Full suite 344/344,
+  `grade` green, analyzer clean, dogfood 0/0;
+  CAL-001 re-ratified — +1 guard-idiom FP
+  (ctx~=prov @0.870, 8th of class), 10
+  pinned. Tail T3: FG-LAY-004 v4 Text-in-Row
+  (TS-07 amended; TC-07 pair extended
+  append-only, 16 findings; 8-cell runtime
+  probe on Flutter 3.47.9 — bare/rich/
+  ellipsis/softWrap/maxLines/padded throw,
+  Expanded/Column clean; strict, no arg
+  exemption — short labels flag by design) +
+  the TC-13.good:32 item-turn call (incidental
+  Row+Text re-hung on Column, MET role
+  preserved exactly — the narrowing floor is
+  barred overfit, the single-child exemption
+  is probe-contradicted, opt-in has no
+  project-varying surface). Full suite
+  345/345, `grade` green, analyzer clean,
+  dogfood 0/0; CAL-001 re-ratified — no
+  movement, 10 pinned. Tail T4: FG-ARB-027
+  arb metadata (TS-27 + `.arb` golden pair,
+  3 findings; quote-naive top-level-head
+  scan — strict quoting would miss real
+  placeholders after a `don't`; malformed
+  JSON fails closed) + engine file scopes
+  (`RuleAnalyzer.extensions` default
+  `.dart`, per-rule gate in the check loop,
+  batch filter, `collectScannableFiles`
+  with registered-union collection;
+  CLI-001a §2 amended). Full suite 353/353,
+  `grade` green (grade needed no change —
+  extension-agnostic by front-matter),
+  analyzer clean, dogfood 0/0; CAL-001
+  re-ratified — check~=init re-keyed
+  221→233 plus +1 procedural-flow-twin FP
+  (checkFiles~=_siblingImport @0.810, 4th
+  of class), 11 pinned. Tail T5: FG-PII-028
+  PII in logs (TS-28 + tc28 golden pair with
+  fixture config, 6 findings; default-ON —
+  probe-justified, no e-mail-shaped literal
+  in repo and no PII sink args in settled
+  vectors/dogfood; findings never echo
+  literal spans; quote/adjacent runs never
+  joined — no phantoms; arg labels probed
+  safe). Full suite 359/359, `grade` green,
+  analyzer clean, dogfood 0/0; CAL-001
+  re-ratified — check~=init re-keyed
+  100→107 plus +1 guard-idiom FP
+  (banned~=_ArgScanner @0.807, 9th of
+  class), 12 pinned. Tail T6: FG-ENV-029
+  env parity (TS-29 + tc29 golden quads,
+  2 findings; symmetric parity, values never
+  read or echoed, missing-oracle fail-open,
+  oracle never judged) + basename-prefix
+  scopes (`RuleAnalyzer.namePrefixes`,
+  union collection; CLI-001a §2 amended).
+  Full suite 367/367, `grade` green,
+  analyzer clean, dogfood 0/0; CAL-001
+  re-ratified — check twins re-keyed
+  111→112/233→234 plus +1 runner-pipeline
+  FP (enc~=env @0.814, 6th of class), 13
+  pinned. Tail T1–T6 COMPLETE (29 rules).
+  Remaining: the medium list (optional
+  analyze step, new-file tests,
+  changed-tests selection, assets/version/
+  deps/licenses/links, dart fix pre-step)
+  and engine items (parallel gate report,
+  per-run evidence ledger).
+- R2-6 OPEN: specified (mutation wedge, needs ERP
+  access per Q8).
+- Recommended next: R2-5 medium list or R2-6 (needs ERP access).
 - Scope broadened 2026-11-05 (§7 + Broadening notes): ERP is
   corpus #1, not the mold. Ratified 2026-11-05 (Q9).
 

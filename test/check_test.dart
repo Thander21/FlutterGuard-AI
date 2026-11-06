@@ -35,10 +35,20 @@ void main() {
           'benchmark/vectors/TC-15_imp.bad.dart',
           'benchmark/vectors/TC-16_fmt.bad.dart',
           'benchmark/vectors/TC-17_syn.bad.dart',
+          'benchmark/vectors/tc18/TC-18_ban.bad.dart',
+          'benchmark/vectors/tc19/TC-19_log.bad.dart',
+          'benchmark/vectors/TC-20_tok.bad.dart',
+          'benchmark/vectors/tc21/TC-21_i18n.bad.dart',
+          'benchmark/vectors/TC-22_enc.bad.dart',
+          'benchmark/vectors/tc24/ui/TC-24_layer.bad.dart',
+          'benchmark/vectors/TC-25_cc.bad.dart',
+          'benchmark/vectors/TC-27_arb.bad.arb',
+          'benchmark/vectors/tc28/TC-28_pii.bad.dart',
+          'benchmark/vectors/tc29/bad/.env',
         ]),
       );
       expect(
-        flagged.any((f) => f.endsWith('.good.dart')),
+        flagged.any((f) => f.contains('.good.')),
         isFalse,
         reason: 'zero false positives on .good vectors',
       );
@@ -58,6 +68,46 @@ void main() {
 
     test('throws on a missing target', () {
       expect(() => checkPath('does/not/exist'), throwsArgumentError);
+    });
+
+    test('rules run only on files matching their extensions', () {
+      RuleAnalyzer probe(String id, {Set<String>? extensions}) {
+        return RuleAnalyzer(
+          id: id,
+          spec: 'specs/TS-01-bloc-emit-guard.md',
+          analyze: (file) => [_ProbeViolation(file)],
+          extensions: extensions ?? const {'.dart'},
+        );
+      }
+
+      final result = analyzeFilesWithRules(
+        ['a.dart', 'b.arb'],
+        [
+          probe('FG-PROBE-DART'),
+          probe('FG-PROBE-ARB', extensions: const {'.arb'}),
+        ],
+      );
+      expect(result.findings.map((f) => '${f.ruleId}:${f.file}'), [
+        'FG-PROBE-DART:a.dart',
+        'FG-PROBE-ARB:b.arb',
+      ]);
+      expect(result.errors, isEmpty);
+    });
+
+    test('rules match basename prefixes (.env*)', () {
+      final envOnly = RuleAnalyzer(
+        id: 'FG-PROBE-ENV',
+        spec: 'specs/TS-01-bloc-emit-guard.md',
+        analyze: (file) => [_ProbeViolation(file)],
+        extensions: const {},
+        namePrefixes: const {'.env'},
+      );
+      final result = analyzeFilesWithRules(
+        ['a.dart', '.env', 'dir/.env.local'],
+        [envOnly],
+      );
+      expect(result.findings.map((f) => f.file), ['.env', 'dir/.env.local']);
+      expect(result.errors, isEmpty);
     });
 
     test('analyzer crash becomes a report-only error, run continues', () {
@@ -94,6 +144,17 @@ void main() {
         'benchmark/vectors/TC-15_imp.bad.dart': 'FG-IMP-015',
         'benchmark/vectors/TC-16_fmt.bad.dart': 'FG-FMT-016',
         'benchmark/vectors/TC-17_syn.bad.dart': 'FG-SYN-017',
+        'benchmark/vectors/tc18/TC-18_ban.bad.dart': 'FG-BAN-018',
+        'benchmark/vectors/tc19/TC-19_log.bad.dart': 'FG-LOG-019',
+        'benchmark/vectors/TC-20_tok.bad.dart': 'FG-TOK-020',
+        'benchmark/vectors/tc21/TC-21_i18n.bad.dart': 'FG-I18N-021',
+        'benchmark/vectors/TC-22_enc.bad.dart': 'FG-ENC-022',
+        'benchmark/vectors/tc24/ui/TC-24_layer.bad.dart': 'FG-LYR-024',
+        'benchmark/vectors/TC-25_cc.bad.dart': 'FG-CC-025',
+        'benchmark/vectors/TC-26_prov.bad.dart': 'FG-RIV-026',
+        'benchmark/vectors/TC-27_arb.bad.arb': 'FG-ARB-027',
+        'benchmark/vectors/tc28/TC-28_pii.bad.dart': 'FG-PII-028',
+        'benchmark/vectors/tc29/bad/.env': 'FG-ENV-029',
       };
       final result = checkPath('benchmark/vectors');
       for (final entry in expected.entries) {
@@ -256,4 +317,17 @@ void main() {
       expect(summary['warnings'], greaterThan(0));
     });
   });
+}
+
+/// Probe violation for the extension-scope test.
+class _ProbeViolation implements RuleViolation {
+  _ProbeViolation(this.file);
+
+  final String file;
+
+  @override
+  int get line => 1;
+
+  @override
+  String get message => 'probe $file';
 }

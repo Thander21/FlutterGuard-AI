@@ -4,21 +4,33 @@
 // visitor that enforces it. Both `grade` and `check` run this registry,
 // so adding a rule means adding one entry here.
 import '../ast/arch_layer_guard.dart';
+import '../ast/arb_guard.dart';
 import '../ast/async_build_guard.dart';
 import '../ast/async_context_guard.dart';
+import '../ast/banned_symbol_guard.dart';
 import '../ast/bloc_emit_guard.dart';
+import '../ast/complexity_guard.dart';
 import '../ast/context_scope_guard.dart';
+import '../ast/print_logger_guard.dart';
 import '../ast/controller_build_guard.dart';
+import '../ast/encoding_guard.dart';
+import '../ast/env_guard.dart';
 import '../ast/format_guard.dart';
+import '../ast/i18n_guard.dart';
 import '../ast/import_guard.dart';
+import '../ast/layer_guard.dart';
 import '../ast/lifecycle_guard.dart';
 import '../ast/lint_suppression_guard.dart';
 import '../ast/metric_guard.dart';
 import '../ast/list_key_guard.dart';
+import '../ast/orphan_guard.dart';
+import '../ast/pii_guard.dart';
+import '../ast/provider_naming_guard.dart';
 import '../ast/list_viewport_guard.dart';
 import '../ast/riverpod_watch_guard.dart';
 import '../ast/state_mutation_guard.dart';
 import '../ast/syntax_guard.dart';
+import '../ast/theme_token_guard.dart';
 import '../ast/widget_immutable_guard.dart';
 import '../ast/rule_violation.dart';
 
@@ -30,6 +42,8 @@ class RuleAnalyzer {
     required this.analyze,
     this.severity = 'error',
     this.severityFor,
+    this.extensions = const {'.dart'},
+    this.namePrefixes = const {},
   });
 
   /// Stable rule id (e.g. `FG-BLOC-001`).
@@ -49,6 +63,23 @@ class RuleAnalyzer {
   /// returns a severity or null to keep [severity]. The
   /// [RuleViolation] interface stays untouched (SYS-CAL-003 R2-3).
   final String? Function(RuleViolation violation)? severityFor;
+
+  /// File extensions this rule reads (default: Dart only).
+  /// The check loop never feeds a rule a file outside its scope,
+  /// so Dart visitors never parse `.arb` catalogs and vice versa.
+  final Set<String> extensions;
+
+  /// Basename prefixes this rule reads (default: none; dotfiles
+  /// like `.env*` carry no matchable extension).
+  final Set<String> namePrefixes;
+
+  /// True when [file] is in this rule's scope.
+  bool scopes(String file) {
+    if (extensions.any(file.endsWith)) return true;
+    if (namePrefixes.isEmpty) return false;
+    final base = file.replaceAll(r'\', '/').split('/').last;
+    return namePrefixes.any(base.startsWith);
+  }
 }
 
 /// Every rule the CLI can run (P0 ships four; P1 extends this list).
@@ -143,4 +174,80 @@ final ruleAnalyzers = <RuleAnalyzer>[
     spec: 'specs/TS-17-syntax-guard.md',
     analyze: analyzeSyntaxFile,
   ),
+  RuleAnalyzer(
+    id: 'FG-BAN-018',
+    spec: 'specs/TS-18-banned-symbol-guard.md',
+    analyze: analyzeBannedSymbolFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-LOG-019',
+    spec: 'specs/TS-19-print-logger-guard.md',
+    analyze: analyzeLogFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-TOK-020',
+    spec: 'specs/TS-20-theme-token-guard.md',
+    analyze: analyzeTokFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-I18N-021',
+    spec: 'specs/TS-21-i18n-guard.md',
+    analyze: analyzeI18nFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-ENC-022',
+    spec: 'specs/TS-22-encoding-guard.md',
+    analyze: analyzeEncFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-ORP-023',
+    spec: 'specs/TS-23-orphan-guard.md',
+    analyze: analyzeOrpFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-LYR-024',
+    spec: 'specs/TS-24-layer-guard.md',
+    analyze: analyzeLayerFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-CC-025',
+    spec: 'specs/TS-25-complexity-guard.md',
+    analyze: analyzeCcFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-RIV-026',
+    spec: 'specs/TS-26-provider-naming-guard.md',
+    analyze: analyzeProviderNamingFile,
+    severity: 'warning',
+  ),
+  RuleAnalyzer(
+    id: 'FG-ARB-027',
+    spec: 'specs/TS-27-arb-guard.md',
+    analyze: analyzeArbFile,
+    extensions: const {'.arb'},
+  ),
+  RuleAnalyzer(
+    id: 'FG-PII-028',
+    spec: 'specs/TS-28-pii-guard.md',
+    analyze: analyzePiiFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-ENV-029',
+    spec: 'specs/TS-29-env-guard.md',
+    analyze: analyzeEnvFile,
+    extensions: const {},
+    namePrefixes: const {'.env'},
+  ),
 ];
+
+/// Extension union over the registry: every file kind some rule
+/// reads. `check` collects exactly this set, so a newly registered
+/// scope joins the walk with no collection change.
+Set<String> get registeredExtensions => {
+  for (final rule in ruleAnalyzers) ...rule.extensions,
+};
+
+/// Basename-prefix union over the registry (dotfile scopes).
+Set<String> get registeredPrefixes => {
+  for (final rule in ruleAnalyzers) ...rule.namePrefixes,
+};

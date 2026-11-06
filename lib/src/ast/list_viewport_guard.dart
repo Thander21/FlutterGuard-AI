@@ -1,4 +1,5 @@
-// FG-LAY-004: forbid unbounded scrollables inside Column/Row.
+// FG-LAY-004: forbid unbounded scrollables inside Column/Row and bare
+// Text inside Row.
 //
 // A Column passes unbounded height (a Row, unbounded width) to its
 // children, so a bare ListView/GridView/CustomScrollView in `children`
@@ -6,8 +7,10 @@
 // unbounded-viewport error at runtime. The scrollable must be wrapped
 // in Expanded/Flexible, given a bounded height/width, or — in Column
 // only — declare `shrinkWrap: true` (the Row axis ignores shrinkWrap:
-// probed on Flutter 3.47.9). Parsing only (no type resolution), so
-// vectors need no dependencies.
+// probed on Flutter 3.47.9). Since v4 a bare Text/Text.rich in Row
+// children (same transparency) stripes RenderFlex — also probed, no
+// argument exempts. Parsing only (no type resolution), so vectors
+// need no dependencies.
 
 import 'dart:io';
 
@@ -56,17 +59,19 @@ List<ListViewportViolation> analyzeListViewportFile(String path) {
   return guard.violations..sort((a, b) => a.line.compareTo(b.line));
 }
 
-/// Flags unbounded scrollables in flex `children: …`.
+/// Flags unbounded scrollables in flex `children: …` and bare Text in
+/// Row `children: …`.
 ///
-/// Scope (v3): every `Column`/`Row` creation (explicit, bare, or
+/// Scope (v4): every `Column`/`Row` creation (explicit, bare, or
 /// prefixed call) is judged independently. Its `children` argument
 /// is walked through collection literals, `if`/`for` elements,
 /// spreads, and conditionals, then transitively through transparent
 /// wrappers (`Padding`/`Center`/`Align`) into `child`; a
 /// ListView/GridView/CustomScrollView creation found there is flagged
 /// unless it sets `shrinkWrap: true` in a Column (the Row axis ignores
-/// `shrinkWrap`). Other widget creations are never descended into, so
-/// opaquely wrapped scrollables stay clean.
+/// `shrinkWrap`), and a Text/Text.rich creation found there in a Row
+/// is flagged with no exemption. Other widget creations are never
+/// descended into, so opaquely wrapped children stay clean.
 class ListViewportGuard extends RecursiveAstVisitor<void> {
   ListViewportGuard(this._lineInfo);
 
@@ -135,9 +140,22 @@ class ListViewportGuard extends RecursiveAstVisitor<void> {
 
   void _checkWidget(Expression widget) {
     final descended = _descendTransparent(widget);
-    final name = _scrollableName(descended.target);
-    if (name == null) return;
-    if (!_inRow && _hasShrinkWrapTrue(descended.target)) return;
+    final scrollable = _scrollableName(descended.target);
+    if (scrollable != null) {
+      if (!_inRow && _hasShrinkWrapTrue(descended.target)) return;
+      _flag(descended, scrollable);
+      return;
+    }
+    if (!_inRow) return;
+    final text = _textName(descended.target);
+    if (text == null) return;
+    _flag(descended, text);
+  }
+
+  /// Records one unbounded-child finding (scrollable or Text).
+  /// Shared emit: one definition serves both paths so the
+  /// message block never twins (SYS-DRY-001).
+  void _flag(({Expression target, List<String> chain}) descended, String name) {
     final axis = _inRow
         ? 'Row() has unbounded width'
         : 'Column() has unbounded height';
@@ -268,6 +286,46 @@ String? _scrollableName(Expression widget) {
     }
     if (property == 'GridView' && _gridViewCtors.contains(method)) {
       return 'GridView';
+    }
+  }
+  return null;
+}
+
+/// Text widget created by [widget] (default or `.rich`), or null
+/// when it creates none. Covers explicit creations, bare calls,
+/// and import-prefixed shapes including prefixed `.rich`;
+/// call chains (`a().Text()`) are excluded as method calls.
+/// Arguments never exempt (v4 probe: overflow/softWrap/maxLines
+/// still stripe without bounded width).
+String? _textName(Expression widget) {
+  if (widget is InstanceCreationExpression) {
+    final name = _simpleName(widget.constructorName.type.toSource());
+    return name == 'Text' ? name : null;
+  }
+  if (widget is! MethodInvocation) return null;
+  final target = widget.target;
+  final method = widget.methodName.name;
+  if (target == null) {
+    return method == 'Text' ? method : null;
+  }
+  if (target is SimpleIdentifier) {
+    if (target.name == 'Text' && method == 'rich') return 'Text';
+    // Prefixed default (`widgets.Text()`): an UpperCamelCase
+    // method on a SimpleIdentifier target is a prefix, not a call.
+    if (method == 'Text') return method;
+    return null;
+  }
+  if (target is PrefixedIdentifier) {
+    // Prefixed named ctor (`widgets.Text.rich`).
+    if (target.identifier.name == 'Text' && method == 'rich') {
+      return 'Text';
+    }
+    return null;
+  }
+  if (target is PropertyAccess) {
+    // Deep-prefixed named ctor (`x.y.Text.rich`).
+    if (target.propertyName.name == 'Text' && method == 'rich') {
+      return 'Text';
     }
   }
   return null;

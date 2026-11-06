@@ -22,6 +22,10 @@ void main() {
         106,
         116,
         130,
+        142,
+        152,
+        164,
+        177,
       ]);
       expect(violations.first.message, contains('ListView'));
       expect(violations.first.message, contains('Expanded'));
@@ -34,6 +38,11 @@ void main() {
       expect(violations[10].message, contains('Row'));
       expect(violations[10].message, contains('through Align'));
       expect(violations[11].message, contains('through Padding > Center'));
+      expect(violations[12].message, contains('Text'));
+      expect(violations[12].message, contains('Row'));
+      expect(violations[13].message, contains('Text'));
+      expect(violations[14].message, contains('Text'));
+      expect(violations[15].message, contains('through Padding'));
     });
 
     test('spares bounded lists (zero false positives)', () {
@@ -216,6 +225,37 @@ Widget build(BuildContext context) {
 }
 ''');
         expect(analyzeListViewportFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags Text args, prefixed forms; spares opaque wraps', () {
+      final root = Directory.systemTemp.createTempSync('lay_test.');
+      try {
+        final path = '${root.path}/v4.dart';
+        File(path).writeAsStringSync('''
+Widget build(BuildContext context) {
+  return Column(
+    children: [
+      Text('loose'),
+      Row(
+        children: [
+          Text('a', softWrap: false),
+          Text('b', maxLines: 1),
+          widgets.Text('c'),
+          widgets.Text.rich(TextSpan(text: 'd')),
+          Container(child: Text('e')),
+          SizedBox(width: 80, child: Text('f')),
+          Column(children: [Text('g')]),
+        ],
+      ),
+    ],
+  );
+}
+''');
+        final violations = analyzeListViewportFile(path);
+        expect(violations.map((v) => v.line), [7, 8, 9, 10]);
       } finally {
         root.deleteSync(recursive: true);
       }

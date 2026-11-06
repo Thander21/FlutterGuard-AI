@@ -1,7 +1,7 @@
 ---
 spec_version: "openspec-1.0"
 id: "FG-LAY-004"
-title: "Forbid unbounded scrollables directly inside Column/Row"
+title: "Forbid unbounded scrollables and bare Text directly inside Column/Row"
 status: "approved"
 severity: "error"
 analysis: "parse-only"
@@ -13,12 +13,15 @@ ast_nodes:
   - "InstanceCreationExpression[type='Padding|Center|Align']"
   - "NamedExpression[name='child']"
   - "InstanceCreationExpression[type='ListView|GridView|CustomScrollView']"
-invariant: "A ListView, GridView, or CustomScrollView creation MUST NOT appear in a Column's or Row's 'children' list, either directly or through transparent wrappers (Padding/Center/Align, transitively); in Column, 'shrinkWrap: true' on the scrollable exempts (Row-axis ignores shrinkWrap — probed). An unbounded scrollable MUST be wrapped in Expanded/Flexible or given a bounded height/width."
+  - "InstanceCreationExpression[type='Text'] / Text.rich"
+invariant: "A ListView, GridView, or CustomScrollView creation MUST NOT appear in a Column's or Row's 'children' list, either directly or through transparent wrappers (Padding/Center/Align, transitively); in Column, 'shrinkWrap: true' on the scrollable exempts (Row-axis ignores shrinkWrap — probed). A Text creation (default or .rich) MUST NOT appear in a Row's 'children' list, either directly or through transparent wrappers — no argument exempts (overflow/softWrap/maxLines still stripe — probed). An unbounded child MUST be wrapped in Expanded/Flexible or given a bounded height/width."
 fp_limits:
   - "Scrollables wrapped in Expanded/Flexible/SizedBox (never descended into)"
   - "Scrollable(shrinkWrap: true) in Column (direct or through transparent wrappers)"
   - "Scrollables outside any Column/Row children list"
   - "Scrollables behind opaque wrappers (Container and other opaque creations — never descended into)"
+  - "Text in Column (bounded width — probed clean)"
+  - "Text wrapped in Expanded/Flexible/SizedBox or behind opaque wrappers in Row (never descended into)"
 golden_vectors:
   failing: "benchmark/vectors/TC-07_lay.bad.dart"
   passing: "benchmark/vectors/TC-07_lay.good.dart"
@@ -59,6 +62,31 @@ visitor now descends transitively through that closed set into
 clean through `Padding`). `Container` stays opaque: boundedness
 there depends on its own args (axis-aware analysis, future
 work).
+
+v4 extends the theorem to the campodeforca `LayoutPatterns`
+gate (SYS-CAL-003 R2-5 tail T3): the "Defensive Text Pattern"
+— a bare `Text` directly in `Row` children stripes
+(`RenderFlex overflowed`) once the copy outgrows the
+remaining width. Runtime truth was probed on Flutter 3.47.9
+(throwaway `viewport/test/zz_textrow_probe_tmp.dart`, removed
+after the probe): bare `Text` in `Row` throws; `Text.rich`
+throws; `overflow: ellipsis`, `softWrap: false`, and
+`maxLines` do NOT exempt (no bounded width to clip or wrap
+against — still throw); `Padding`-wrapped `Text` throws
+(same transparency); `Expanded`-wrapped `Text` is clean;
+bare `Text` in `Column` is clean (bounded width). So the
+rule flags `Text`/`Text.rich` in `Row` children — direct or
+through transparent wrappers — with no argument-based
+exemption, and stays silent in `Column`. Short labels that
+never overflow still flag: that is the defensive pattern
+the gate exists for (wrap once, never stripe), and legacy
+trees ratchet it through the baseline. Cross-vector
+maintenance: `TC-13_met.good:32` hung its depth-5-boundary
+scaffolding on an incidental single-child `Row` + `Text`;
+v4 re-hangs that line on `Column` (same depth, same params
+— the MET oracle role is preserved exactly) since strict
+v4 correctly flags it. Item-turn call (SYS-CAL-003 R2-5
+tail T3); owner reviews at the §5 re-run.
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -117,6 +145,19 @@ Transparent wrapper — bound the chain (v3):
 +            itemBuilder: (context, index) => Text('Item $index'),
 +          ),
 +        ),
++      ),
+     ],
+   )
+```
+
+Text in Row — wrap the copy (v4):
+
+```diff
+   Row(
+     children: [
+-      Text('Version 2.0 now available everywhere'),
++      Expanded(
++        child: Text('Version 2.0 now available everywhere'),
 +      ),
      ],
    )
@@ -191,6 +232,28 @@ clean and nested flexes are judged independently.
 - Scrollable under a bounded grandchild (`Expanded(child:
   Column(children: [ListView]))`): still flagged (known false
   positive; flexes are judged independently). [unevaluated]
+- `Text` as a direct `Row` child: MUST be flagged.
+  [eval: TC-07.bad]
+- `Text.rich` in `Row`: MUST be flagged. [eval: TC-07.bad]
+- `Text(overflow: …)` / `softWrap: false` / `maxLines` in
+  `Row`: MUST be flagged (no argument exempts — probed).
+  [eval: TC-07.bad, unit fixture]
+- `Text` through transparent wrappers in `Row`: MUST be
+  flagged. [eval: TC-07.bad]
+- `Text` in `Column`: MUST NOT be flagged (bounded width —
+  probed). [eval: TC-07.good]
+- `Expanded`/`Flexible`-wrapped `Text` in `Row`: MUST NOT be
+  flagged (never descended into). [eval: TC-07.good]
+- `Text` behind opaque wrappers (`Container`, `SizedBox`) in
+  `Row`: MUST NOT be flagged. [eval: unit fixture]
+- Prefixed forms (`widgets.Text`, `widgets.Text.rich`):
+  matched by simple name. [eval: unit fixture]
+- `RichText` / `SelectableText` in `Row`: out of scope v0
+  (one-line follow-ups on the same theorem), NOT flagged.
+  [unevaluated]
+- `Flex(direction: Axis.horizontal)` + `Text`: out of scope
+  v0 (direction needs arg analysis), NOT flagged.
+  [unevaluated]
 
 `wrap_with_expanded` is model-owned per the SYS-HEAL-001 closed
 fast-path list (two-sided edit: insert the wrapper above plus close it

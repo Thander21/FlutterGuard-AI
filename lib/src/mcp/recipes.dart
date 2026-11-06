@@ -5,6 +5,18 @@
 // `dart tool/embed_recipes.dart --check` (run by the mcp sync test)
 // fails naming drifted rules.
 const canonicalRecipes = <String, String>{
+  'FG-ARB-027': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   "greeting": "Hello {userName}!",
+   "@greeting": {
+-    "description": "Greets the user."
++    "description": "Greets the user.",
++    "placeholders": {
++      "userName": {"type": "String"}
++    }
+   }
+```''',
   'FG-ARCH-003': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -32,6 +44,16 @@ The injected form is always `if (!context.mounted) return;`: it is valid
 in `State` methods (via the `State.context` getter) and in helpers that
 take `context` as a parameter, where bare `mounted` does not resolve.
 Bare `if (!mounted) return;` is accepted as a guard but never injected.''',
+  'FG-BAN-018': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   void submitOrder(BuildContext context) {
+-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved')));
++    NotificationService.showSuccess(context, 'Saved');
+   }
+```
+
+The service file itself goes in the entry's `except` list.''',
   'FG-BLOC-001': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -57,6 +79,15 @@ Bare `if (!mounted) return;` is accepted as a guard but never injected.''',
 +    Future.delayed(const Duration(seconds: 1), _refresh);
 +  }
 ```''',
+  'FG-CC-025': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   int classify(Order order) {
+-    if (order.a) return 1;
+-    // ... eighty more branches ...
++    return _classifyType(order) + _classifyRegion(order);
+   }
+```''',
   'FG-CTX-006': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -76,6 +107,25 @@ Bare `if (!mounted) return;` is accepted as a guard but never injected.''',
 
 The service returns data; the calling widget navigates with its own
 context (guarded per FG-ASYNC-002 when asynchronous).''',
+  'FG-ENC-022': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+-  // Relat<U+00C3><U+00B3>rio de vendas
++  // Relatório de vendas
+```
+
+Re-save the file as UTF-8 (the mojibake above is Latin-1-read
+UTF-8: U+00C3 U+00B3 is the ghost of `ó`). Markers are spelled
+as codepoints here: a literal marker in this section would ride
+the recipe embed into `lib/` and flag the repo itself.''',
+  'FG-ENV-029': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   # .env (sibling .env.example documents API_URL + API_KEY)
+   API_URL=https://staging.example
+-EXTRA_KEY=oops
++API_KEY=changeme
+```''',
   'FG-FMT-016': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -87,6 +137,14 @@ context (guarded per FG-ASYNC-002 when asynchronous).''',
 
 Run `dart format <file>` (or accept the formatter's output) to
 heal; the gate compares against exactly that output.''',
+  'FG-I18N-021': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   Widget build(BuildContext context) {
+-    return Text('Hello');
++    return Text(AppLocalizations.of(context).hello);
+   }
+```''',
   'FG-IMP-015': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -105,9 +163,9 @@ heal; the gate compares against exactly that output.''',
 ```diff
    ListView.builder(
      itemCount: items.length,
--    itemBuilder: (context, index) => CartTile(items[index]),
-+    itemBuilder: (context, index) =>
-+        CartTile(items[index], key: ValueKey(items[index].id)),
+-    itemBuilder: (context, index) => CartTile(items[index], controller: _ctrl),
++    itemBuilder: (context, index) => CartTile(
++        items[index], controller: _ctrl, key: ValueKey(items[index].id)),
    )
 ```''',
   'FG-LAY-004': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
@@ -170,6 +228,19 @@ Transparent wrapper — bound the chain (v3):
 +      ),
      ],
    )
+```
+
+Text in Row — wrap the copy (v4):
+
+```diff
+   Row(
+     children: [
+-      Text('Version 2.0 now available everywhere'),
++      Expanded(
++        child: Text('Version 2.0 now available everywhere'),
++      ),
+     ],
+   )
 ```''',
   'FG-LIFE-001': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -206,6 +277,23 @@ Transparent wrapper — bound the chain (v3):
 
 (And every bare `// ignore:` line is deleted, with the underlying
 finding fixed at its root cause.)''',
+  'FG-LOG-019': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   void submitOrder(Order order) {
+-    print('submitting ${order.id}');
++    AppLogger.info('submitting ${order.id}');
+   }
+```
+
+The logger implementation itself goes in `except`.''',
+  'FG-LYR-024': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   // lib/ui/users_page.dart
+-  import 'package:drift/drift.dart';
++  import 'package:app/domain/users.dart';
+```''',
   'FG-MET-007': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 Depth — extract the subtree:
@@ -244,6 +332,21 @@ Params — group into a config object:
 +    required this.address,
    });
 ```''',
+  'FG-ORP-023': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+-  lib/user.g.dart          (orphan — lib/user.dart is gone)
++  (deleted; regenerate with build_runner after restoring the source)
+```
+
+Confirm the source is truly gone — not a `build.yaml`
+redirect — then delete the orphan.''',
+  'FG-PII-028': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+-  print('contact ${user.email}');
++  print('contact ${mask(user.email)}');
+```''',
   'FG-RIV-001': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -252,6 +355,12 @@ Params — group into a config object:
 +   final current = ref.read(counterProvider);
     debugPrint('$current');
   },
+```''',
+  'FG-RIV-026': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+-final counter = Provider((ref) => 0);
++final counterProvider = Provider((ref) => 0);
 ```''',
   'FG-ST-001': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
@@ -303,6 +412,14 @@ Params — group into a config object:
      print(greeting);
    }
 ```''',
+  'FG-TOK-020': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   Tile(
+-    color: Color(0xFF0000),
++    color: Theme.of(context).colorScheme.error,
+   )
+```''',
   'FG-WID-008': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -323,21 +440,33 @@ Params — group into a config object:
 
 /// Owning spec contract per rule id (repo-relative paths).
 const canonicalRecipeSpecs = <String, String>{
+  'FG-ARB-027': 'specs/TS-27-arb-guard.md',
   'FG-ARCH-003': 'specs/TS-05-arch-layer-guard.md',
   'FG-ASYNC-002': 'specs/TS-06-async-context-guard.md',
+  'FG-BAN-018': 'specs/TS-18-banned-symbol-guard.md',
   'FG-BLOC-001': 'specs/TS-01-bloc-emit-guard.md',
   'FG-BUILD-014': 'specs/TS-14-async-in-build-guard.md',
+  'FG-CC-025': 'specs/TS-25-complexity-guard.md',
   'FG-CTX-006': 'specs/TS-09-context-scope-guard.md',
+  'FG-ENC-022': 'specs/TS-22-encoding-guard.md',
+  'FG-ENV-029': 'specs/TS-29-env-guard.md',
   'FG-FMT-016': 'specs/TS-16-format-guard.md',
+  'FG-I18N-021': 'specs/TS-21-i18n-guard.md',
   'FG-IMP-015': 'specs/TS-15-import-guard.md',
   'FG-KEY-001r': 'specs/TS-12-list-key-guard.md',
   'FG-LAY-004': 'specs/TS-07-list-viewport-guard.md',
   'FG-LIFE-001': 'specs/TS-04-life-symmetry-guard.md',
   'FG-LINT-009': 'specs/TS-11-lint-suppression-guard.md',
+  'FG-LOG-019': 'specs/TS-19-print-logger-guard.md',
+  'FG-LYR-024': 'specs/TS-24-layer-guard.md',
   'FG-MET-007': 'specs/TS-13-metric-guard.md',
+  'FG-ORP-023': 'specs/TS-23-orphan-guard.md',
+  'FG-PII-028': 'specs/TS-28-pii-guard.md',
   'FG-RIV-001': 'specs/TS-02-riverpod-watch-guard.md',
+  'FG-RIV-026': 'specs/TS-26-provider-naming-guard.md',
   'FG-ST-001': 'specs/TS-03-controller-in-build-guard.md',
   'FG-ST-005': 'specs/TS-08-state-mutation-guard.md',
   'FG-SYN-017': 'specs/TS-17-syntax-guard.md',
+  'FG-TOK-020': 'specs/TS-20-theme-token-guard.md',
   'FG-WID-008': 'specs/TS-10-widget-immutable-guard.md',
 };

@@ -6,8 +6,8 @@
 
 *Leia em português: [LEIAME.md](LEIAME.md)*
 
-> **Scope:** 17 AST rules implemented (16 blocking + `FG-MET-007`
-> advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
+> **Scope:** 29 rules implemented (27 blocking + `FG-MET-007`
+> / `FG-RIV-026` advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
 > a pre-commit hook, a heal dispatcher, a mutation runner, a
 > Tier-1 viewport runner (with Tier-1-lite AST fallback), a
 > coverage/CRAP pipeline, a structural duplication detector, and an
@@ -196,7 +196,7 @@ already runs:
 |---|---|---|
 | FG-ARCH-003 | persistence/network imports in widget files | layer validators miss package flows: keep (complements) |
 | FG-ASYNC-002 | post-await context safety | use_build_context_synchronously: disable |
-| FG-LAY-004 | unbounded scrollables in flex | a layout validator: disable |
+| FG-LAY-004 | unbounded scrollables in flex, bare Text in Row | a layout validator: disable |
 | FG-ST-005 | in-place state mutation | — : keep (no stock equivalent) |
 | FG-CTX-006 | context outside Widget/State | — : keep (no stock equivalent) |
 | FG-WID-008 | mutable widget fields | must_be_immutable: disable |
@@ -211,6 +211,18 @@ already runs:
 | FG-IMP-015 | mirrors ban, lib-escape imports | avoid_relative_lib_imports covers escape partly |
 | FG-FMT-016 | dart-format clean | dart format in CI: disable |
 | FG-SYN-017 | fail-closed syntax gate | dart analyze in CI: disable |
+| FG-BAN-018 | project-banned symbols | — : keep (no stock equivalent) |
+| FG-LOG-019 | print/debugPrint outside the logger | avoid_print covers print only: keep for debugPrint + routing |
+| FG-TOK-020 | hardcoded colors outside the theme | — : keep (no stock equivalent) |
+| FG-I18N-021 | hardcoded strings in text widgets | — : keep (no stock equivalent) |
+| FG-ENC-022 | invalid UTF-8 / mojibake | — : keep (no stock equivalent) |
+| FG-ORP-023 | orphaned generated files | — : keep (no stock equivalent) |
+| FG-LYR-024 | layer direction rules | — : keep (no stock equivalent) |
+| FG-CC-025 | cyclomatic complexity ceiling | — : keep (no stock equivalent) |
+| FG-RIV-026 | provider names end in Provider (advisory) | Riverpod-only, no stock equivalent: keep |
+| FG-ARB-027 | arb placeholders lack @key metadata | — : keep (no stock equivalent) |
+| FG-PII-028 | unmasked PII in log calls | — : keep (no stock equivalent) |
+| FG-ENV-029 | .env keys drift from .env.example | — : keep (no stock equivalent) |
 
 (From the SYS-CAL-002 field pilot: only FG-ST-001, FG-ST-005, and
 FG-KEY-001r had no equivalent in the ERP's own validators.)

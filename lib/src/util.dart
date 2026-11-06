@@ -51,14 +51,44 @@ bool isGeneratedDartFile(String normalizedPath) {
 /// [isGeneratedDartFile]) are skipped unless [includeGenerated] is
 /// true — including an explicitly targeted single generated file.
 List<String> collectDartFiles(String target, {bool includeGenerated = false}) {
+  return collectScannableFiles(
+    target,
+    extensions: const {'.dart'},
+    includeGenerated: includeGenerated,
+  );
+}
+
+/// Collects files under [target] whose extension is in [extensions]
+/// or whose basename starts with a [namePrefixes] entry (one file
+/// or a directory scanned recursively, sorted, forward-slash
+/// normalized).
+///
+/// Same semantics as [collectDartFiles] generalized: a missing
+/// target throws [ArgumentError]; a non-matching file target (or a
+/// directory with no matching file) yields an empty list; generated
+/// files are skipped unless [includeGenerated] is true. `check`
+/// passes the registered rules' extension/prefix unions, so
+/// non-Dart rules (`.arb`, `.env*`) join the walk without touching
+/// this loop.
+List<String> collectScannableFiles(
+  String target, {
+  required Set<String> extensions,
+  Set<String> namePrefixes = const {},
+  bool includeGenerated = false,
+}) {
   final type = FileSystemEntity.typeSync(target);
   if (type == FileSystemEntityType.notFound) {
     throw ArgumentError('No such file or directory: $target');
   }
   if (type == FileSystemEntityType.directory) {
-    return _walkDir(target, includeGenerated: includeGenerated);
+    return _walkDir(
+      target,
+      extensions: extensions,
+      namePrefixes: namePrefixes,
+      includeGenerated: includeGenerated,
+    );
   }
-  if (target.endsWith('.dart')) {
+  if (_matchesScope(target, extensions, namePrefixes)) {
     final file = _normalize(target);
     if (!includeGenerated && isGeneratedDartFile(file)) return const [];
     return [file];
@@ -66,18 +96,36 @@ List<String> collectDartFiles(String target, {bool includeGenerated = false}) {
   return const [];
 }
 
-/// Sorted `.dart` files under directory [target].
-List<String> _walkDir(String target, {required bool includeGenerated}) {
+/// Sorted files under directory [target] matching the scope.
+List<String> _walkDir(
+  String target, {
+  required Set<String> extensions,
+  required Set<String> namePrefixes,
+  required bool includeGenerated,
+}) {
   final files =
       Directory(target)
           .listSync(recursive: true)
           .whereType<File>()
-          .where((file) => file.path.endsWith('.dart'))
+          .where((file) => _matchesScope(file.path, extensions, namePrefixes))
           .map((file) => _normalize(file.path))
           .where((file) => includeGenerated || !isGeneratedDartFile(file))
           .toList()
         ..sort();
   return files;
+}
+
+/// True when [path] matches [extensions] (suffix) or [namePrefixes]
+/// (basename prefix — dotfiles carry no matchable extension).
+bool _matchesScope(
+  String path,
+  Set<String> extensions,
+  Set<String> namePrefixes,
+) {
+  if (extensions.any(path.endsWith)) return true;
+  if (namePrefixes.isEmpty) return false;
+  final base = path.replaceAll(r'\', '/').split('/').last;
+  return namePrefixes.any(base.startsWith);
 }
 
 /// Forward slashes on every platform, so findings sort and compare
@@ -163,3 +211,85 @@ bool resolvesOnPath(
 /// Joins [root] with a repo-relative [path], leaving CLI behavior and
 /// output byte-identical when [root] is the default '.'.
 String joinRoot(String root, String path) => root == '.' ? path : '$root/$path';
+
+/// Config file name discovered by walking up from the target.
+const configFileName = 'flutterguard.yaml';
+
+/// Nearest config walking up from [target] (a file or directory),
+/// or null when none exists up to the filesystem root. Shared
+/// bottom: rule toggles (`cli/config.dart`) and self-loading rules
+/// (FG-BAN-018) discover through here, so every consumer agrees on
+/// which config governs a target.
+String? findConfig(String target) {
+  var dir = _startDir(target);
+  while (true) {
+    final candidate = '$dir/$configFileName';
+    if (File(candidate).existsSync()) return candidate;
+    if (dir == '/' || RegExp(r'^[A-Za-z]:/?$').hasMatch(dir)) return null;
+    final idx = dir.lastIndexOf('/');
+    if (idx < 0) return null;
+    dir = idx == 0 ? '/' : dir.substring(0, idx);
+  }
+}
+
+/// Absolute, forward-slash directory to start discovery from: [target]
+/// itself for directories, its parent for files.
+String _startDir(String target) {
+  final abs = File(target).absolute.path.replaceAll(r'\', '/');
+  if (FileSystemEntity.isDirectorySync(target)) return abs;
+  final idx = abs.lastIndexOf('/');
+  return idx < 0 ? abs : abs.substring(0, idx);
+}
+
+/// True when forward-slash [path] matches glob [pattern] (v1):
+/// `*` spans within one segment, `?` matches one character, and a
+/// full `**` segment crosses segments. Serves `except` lists; both
+/// sides use forward slashes.
+bool globMatches(String pattern, String path) {
+  return _matchSegments(pattern.split('/'), 0, path.split('/'), 0);
+}
+
+/// Segment-wise glob match with `**` backtracking.
+bool _matchSegments(List<String> p, int pi, List<String> f, int fi) {
+  while (true) {
+    if (pi == p.length) return fi == f.length;
+    if (p[pi] == '**') {
+      for (var skip = fi; skip <= f.length; skip++) {
+        if (_matchSegments(p, pi + 1, f, skip)) return true;
+      }
+      return false;
+    }
+    if (fi == f.length) return false;
+    if (!_matchSegment(p[pi], f[fi])) return false;
+    pi++;
+    fi++;
+  }
+}
+
+/// One-segment `*`/`?` match (linear backtracking; an embedded
+/// `**` degrades to single stars).
+bool _matchSegment(String pattern, String name) {
+  var px = 0;
+  var nx = 0;
+  var star = -1;
+  var mark = 0;
+  while (nx < name.length) {
+    if (px < pattern.length &&
+        (pattern[px] == '?' || pattern[px] == name[nx])) {
+      px++;
+      nx++;
+    } else if (px < pattern.length && pattern[px] == '*') {
+      star = px++;
+      mark = nx;
+    } else if (star != -1) {
+      px = star + 1;
+      nx = ++mark;
+    } else {
+      return false;
+    }
+  }
+  while (px < pattern.length && pattern[px] == '*') {
+    px++;
+  }
+  return px == pattern.length;
+}

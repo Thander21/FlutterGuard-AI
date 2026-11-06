@@ -23,7 +23,8 @@ warnings-only, 1 error-severity violations found, 2 bad arguments
 (REVIEW-01 verified the launcher swallows returned codes, so `main`
 calls `exit()` explicitly). `--help` prints usage and exits 0.
 Warnings (today: FG-MET-007 advisories until SYS-CAL-001
-calibrates them) are reported but never fail the gate; blocking
+calibrates them, plus FG-RIV-026 naming advisories) are
+reported but never fail the gate; blocking
 on uncalibrated thresholds is barred. `--diff-base` implies
 `--diff` (base defaults to `origin/main`); `--update-baseline`
 requires `--baseline` and rejects `--diff` (a diff-scoped
@@ -36,11 +37,79 @@ catalogs (`app_localizations*.dart`), and anything under a
 there are unactionable (the next build overwrites any fix).
 `--include-generated` scans them (SYS-CAL-002 P0-3).
 
+File scopes (SYS-CAL-003 R2-5 tail T4): the walk covers the
+registered extension union (`.dart` plus every non-Dart scope
+some rule declares — `.arb` today), and every rule sees only
+its scoped extensions. Dart visitors never parse catalog
+files (so FG-SYN-017 never fails closed on them); catalog
+rules never see `.dart`. A single non-matching file target
+yields an empty run; a missing target still throws. Tail T6
+adds basename-prefix scopes for dotfiles (`.env*`), matched
+on the basename start and collected by the same union.
+
 Rules disabled by the nearest `flutterguard.yaml` are skipped
 (schema v2, SYS-CAL-002 P3-1): discovery walks up from the
 target to the filesystem root; a missing or broken file means
 all-enabled (the gate never silently shrinks). `grade` always
 runs the full registry — it validates the rules themselves.
+
+## Rule parameters (SYS-CAL-003 R2-5)
+
+Parameterized rules self-load their section from the nearest
+`flutterguard.yaml` (shared walk-up discovery — the same config
+that governs rule toggles governs parameters; nearest wins, no
+merging). Missing/unparseable configs, missing sections, and
+malformed entries degrade to each rule's documented default
+(silent unless the rule says otherwise); config problems are
+never file verdicts (§5).
+
+`banned_symbols` (FG-BAN-018): a list of `{symbol, message?,
+except?}` — `symbol` the case-sensitive simple name
+(required), `message` project guidance (optional), `except` a
+glob list (`*`, `?`, full-segment `**`) matched against the
+analyzed file relative to the config directory (absolute when
+outside it). Non-map entries, missing/non-string `symbol`s,
+and non-list `except`s are skipped silently.
+
+`print_logger` (FG-LOG-019): a map `{symbols?, except?,
+message?}` — presence (even an empty map) opts in, banning
+bare `print`/`debugPrint` plus the extra `symbols` names;
+`except` globs and `message` behave as above. A missing or
+non-map section disables the rule; malformed `symbols`/
+`except`/`message` fields degrade leniently (defaults still
+flag) — the gate never shrinks on partial garbage.
+
+`theme_tokens` (FG-TOK-020): a map `{extra_ctors?, except?,
+message?}` — unlike the opt-in rules above, the `Color`
+default (unnamed + `fromARGB`/`fromRGBO` ctors) fires with
+or without the section; the map only adds `Type`/`Type.ctor`
+extras, theme `except` globs, and a custom message.
+Malformed extras (wrong arity, empty segments, lowercase
+types, non-strings) are ignored.
+
+`i18n` (FG-I18N-021): a map `{widgets?, except?, message?}` —
+presence (even an empty map) opts in, banning literal text in
+`Text` plus the extra `widgets` names; `except` globs and
+`message` behave as above. A missing or non-map section
+disables the rule; malformed `widgets`/`except`/`message`
+fields degrade leniently (defaults still flag).
+
+`layer_rules` (FG-LYR-024): a list of
+`{files, deny_imports, except?, message?}` — `files` globs
+select the capped files (config-relative), `deny_imports`
+globs match import/export URI strings as written (no
+resolution), `except` globs exempt files. Malformed rules
+(non-map, missing/empty glob lists, non-string entries, bad
+`except`) are skipped like `banned_symbols` entries.
+
+`pii` (FG-PII-028): a map `{sinks?, names?, patterns?,
+masks?, except?, message?}` — like `theme_tokens`, the
+e-mail/`email`/`password` defaults fire with or without the
+section; the map only adds sink names (simple-name match on
+any target), PII identifier names, Dart regex sources over
+literal runs, and mask verbs. Malformed regexes drop
+silently; other malformed fields degrade leniently
+(defaults still flag).
 
 ## Adoption scope (SYS-CAL-003 R2-2)
 
@@ -110,7 +179,7 @@ F, "summary": {"errors": E, "warnings": W}}).
 
 | Gate | Contents | Budget | Status |
 |------|----------|--------|--------|
-| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
+| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017, FG-BAN-018, FG-LOG-019, FG-TOK-020, FG-I18N-021, FG-ENC-022, FG-ORP-023, FG-LYR-024, FG-CC-025, FG-RIV-026 advisory, FG-ARB-027, FG-PII-028, FG-ENV-029); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
 | `test` | changed-file unit tests via `dart test` / `flutter test --concurrency=1`; 100% green, no warnings | ~5–15 s | live |
 | `validate` | `dart analyze --fatal-infos` over the module, cross-regression tests, contract integrity; resolved-analysis rules attach here | ~30–60 s | live (analyzer part) |
 | `commit-check` | evidence presence per SYS-TELE-001, no temp files, clean diff | ~2 s | defined here, enforced by the hook in SYS-CLI-001b |

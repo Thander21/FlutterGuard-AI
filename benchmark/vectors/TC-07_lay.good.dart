@@ -100,3 +100,30 @@ class OutsideFlexScreen extends StatelessWidget {
     return Padding(padding: EdgeInsets.all(8), child: ListView());
   }
 }
+
+class ColumnTextScreen extends StatelessWidget {
+  const ColumnTextScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [Text('Version 2.0 now available everywhere')]);
+  }
+}
+
+class RowExpandedTextScreen extends StatelessWidget {
+  const RowExpandedTextScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [Expanded(child: Text('Hello there'))]);
+  }
+}
+
+class RowFlexibleTextScreen extends StatelessWidget {
+  const RowFlexibleTextScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [Flexible(child: Text('Hello there'))]);
+  }
+}
