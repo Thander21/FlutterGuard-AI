@@ -100,7 +100,7 @@ const mcpToolDefs = <McpToolDef>[
     description:
         'Judge a test file against surgical mutants of its '
         'source. passed=false means a complacent test survived. Writes '
-        'volatile fixtures/mutation/ sandboxes under the server cwd.',
+        'volatile pair sandboxes or temp shadow packages.',
     inputSchema: {
       'type': 'object',
       'properties': {
@@ -110,7 +110,8 @@ const mcpToolDefs = <McpToolDef>[
         },
         'test_file': {
           'type': 'string',
-          'description': 'Test file relatively importing the source.',
+          'description':
+              'Test file importing the source (relative or package:).',
         },
       },
       'required': ['source_file', 'test_file'],

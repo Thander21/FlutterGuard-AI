@@ -106,8 +106,7 @@ const _ratifiedLibPairs = {
   'lib/src/ast/i18n_guard.dart:67~lib/src/ast/theme_token_guard.dart:98',
   'lib/src/cli/baseline.dart:169~lib/src/cli/deps.dart:87',
   'lib/src/cli/heal.dart:76~lib/src/cli/init.dart:113',
-  'lib/src/coverage/runner.dart:63~lib/src/mutation/runner.dart:50',
-  'lib/src/mcp/tools.dart:196~lib/src/mcp/tools.dart:218',
+  'lib/src/mcp/tools.dart:197~lib/src/mcp/tools.dart:219',
 };
 
 const _ratifiedViewportPairs = {

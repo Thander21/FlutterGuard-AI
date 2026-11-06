@@ -166,12 +166,19 @@ class BreakerResult {
 /// Runs [executable] with [args], SIGKILLing the process after
 /// [timeout]. Exact historical shape (Timer + trip flag + SIGKILL +
 /// joined drains) shared by the mutation and coverage runners.
+/// [workingDirectory] (null = inherit) scopes the child to a staged
+/// copy, e.g. the mutation shadow package.
 Future<BreakerResult> runWithBreaker(
   String executable,
   List<String> args,
-  Duration timeout,
-) async {
-  final process = await Process.start(executable, args);
+  Duration timeout, {
+  String? workingDirectory,
+}) async {
+  final process = await Process.start(
+    executable,
+    args,
+    workingDirectory: workingDirectory,
+  );
   final stdoutDone = process.stdout.transform(utf8.decoder).join();
   final stderrDone = process.stderr.transform(utf8.decoder).join();
   var timedOut = false;

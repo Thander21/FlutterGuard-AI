@@ -1,12 +1,15 @@
 // SYS-MUT-001 contract test: rewriter units, the canary pair
 // (complacent test FAILs, honest test PASSes), the timeout breaker,
-// the relative-import guard, and the zero-mutant PASS.
+// the pair import guard, shadow-package staging with its compile
+// canary, and the zero-mutant PASS.
 //
 // Runner tests stage real `dart test` subprocess runs under
-// fixtures/mutation/<runId>/ (volatile, gitignored) with fixture
-// inputs under the system temp dir; both are removed in tearDown.
+// fixtures/mutation/<runId>/ (volatile, gitignored) or shadow
+// packages under the system temp dir, with fixture inputs under the
+// system temp dir; all are removed in tearDown.
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:flutterguard_ai/flutterguard_ai.dart';
 import 'package:test/test.dart';
 
@@ -62,14 +65,29 @@ bool no() => false;
     late Directory inputs;
     late List<String> runIds;
 
+    /// Shadow package dir for [id] under the system temp dir.
+    String shadowDir(String id) =>
+        '${Directory.systemTemp.path}/${MutationRunner.shadowDirPrefix}$id';
+
+    /// Best-effort cleanup: temp/volatile litter must never mask a
+    /// test outcome (a breaker-killed child may still hold file
+    /// handles when this runs).
+    void deleteBestEffort(Directory dir) {
+      try {
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      } catch (_) {
+        // Left for the OS temp reaper / stale sweep.
+      }
+    }
+
     setUp(() {
       inputs = Directory.systemTemp.createTempSync('mut_inputs_');
       runIds = [];
       addTearDown(() {
-        if (inputs.existsSync()) inputs.deleteSync(recursive: true);
+        deleteBestEffort(inputs);
         for (final id in runIds) {
-          final dir = Directory('fixtures/mutation/$id');
-          if (dir.existsSync()) dir.deleteSync(recursive: true);
+          deleteBestEffort(Directory('fixtures/mutation/$id'));
+          deleteBestEffort(Directory(shadowDir(id)));
         }
       });
     });
@@ -86,6 +104,33 @@ bool no() => false;
       final testFile = File('${testDir.path}/target_test.dart')
         ..writeAsStringSync(test);
       return [sourceFile.path, testFile.path];
+    }
+
+    /// Writes a zero-dependency package `$name/` (`pubspec.yaml` +
+    /// `lib/target.dart` + `test/target_test.dart`, the test importing
+    /// `package:<name>_app/target.dart`) and returns [root, source,
+    /// test].
+    List<String> writePackage(String name, String source, String test) {
+      final root = Directory('${inputs.path}/$name')
+        ..createSync(recursive: true);
+      File(
+        '${root.path}/pubspec.yaml',
+      ).writeAsStringSync('name: ${name}_app\nenvironment:\n  sdk: ^3.13.0\n');
+      final lib = Directory('${root.path}/lib')..createSync(recursive: true);
+      final testDir = Directory('${root.path}/test')
+        ..createSync(recursive: true);
+      final sourceFile = File('${lib.path}/target.dart')
+        ..writeAsStringSync(source);
+      final testFile = File('${testDir.path}/target_test.dart')
+        ..writeAsStringSync(test);
+      return [root.path, sourceFile.path, testFile.path];
+    }
+
+    /// Writes a fake test-runner script (spawned with cwd = shadow
+    /// root, argv = [staged test, --concurrency=1]) and returns it.
+    String writeFake(String name, String body) {
+      final fake = File('${inputs.path}/$name.dart')..writeAsStringSync(body);
+      return fake.path;
     }
 
     String nextId(String name) {
@@ -234,6 +279,285 @@ void main() {
       );
     });
 
+    test('pair: package: import without enclosing pubspec rejects', () async {
+      final lib = Directory('${inputs.path}/nopkg/lib')
+        ..createSync(recursive: true);
+      final source = File('${lib.path}/target.dart')
+        ..writeAsStringSync('bool isAboveZero(int n) => n > 0;\n');
+      final testFile = File('${inputs.path}/nopkg/nopkg_test.dart')
+        ..writeAsStringSync('''
+import 'package:test/test.dart';
+import 'package:nopkg_app/target.dart';
+void main() {
+  test('nopkg', () {
+    expect(1, 1);
+  });
+}
+''');
+      await expectLater(
+        MutationRunner().run(
+          sourcePath: source.path,
+          testPath: testFile.path,
+          runId: nextId('nopkg'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('shadow: honest package pair kills the mutant', () async {
+      final pkg = writePackage(
+        'shadowhonest',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
+import 'package:test/test.dart';
+import 'package:shadowhonest_app/target.dart';
+void main() {
+  test('honest', () {
+    expect(isAboveZero(1), isTrue);
+    expect(isAboveZero(-1), isFalse);
+  });
+}
+''',
+      );
+      final fake = writeFake('shadow_honest', '''
+import 'dart:io';
+void main(List<String> args) {
+  if (args.isEmpty || !args.first.endsWith('target_test.dart')) exit(3);
+  if (File('lib/target.dart').readAsStringSync() !=
+      'bool isAboveZero(int n) => n > 0;\\n') {
+    exit(1);
+  }
+}
+''');
+      final id = nextId('shadowhonest');
+      final verdict = await MutationRunner(
+        testCommand: ({required bool usesFlutterTest}) => [
+          Platform.resolvedExecutable,
+          fake,
+        ],
+      ).run(sourcePath: pkg[1], testPath: pkg[2], runId: id);
+      expect(verdict.passed, isTrue);
+      expect(verdict.results.single.status, MutantStatus.killed);
+      // The package tree is untouched and the shadow is removed.
+      expect(
+        File(pkg[1]).readAsStringSync(),
+        'bool isAboveZero(int n) => n > 0;\n',
+      );
+      final rootEntries =
+          Directory(pkg[0])
+              .listSync()
+              .map((e) => e.path.replaceAll(r'\', '/').split('/').last)
+              .toList()
+            ..sort();
+      expect(rootEntries, ['lib', 'pubspec.yaml', 'test']);
+      expect(Directory(shadowDir(id)).existsSync(), isFalse);
+    }, timeout: const Timeout(Duration(seconds: 120)));
+
+    test('shadow: complacent package pair survives', () async {
+      final pkg = writePackage(
+        'shadowcompl',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
+import 'package:test/test.dart';
+import 'package:shadowcompl_app/target.dart';
+void main() {
+  test('complacent', () {
+    expect(isAboveZero, isNotNull);
+  });
+}
+''',
+      );
+      // White-box on MutationRunner.canarySnippet: anything but the
+      // canary exits 0 (see the canary-token test below).
+      final fake = writeFake('shadow_compl', '''
+import 'dart:io';
+void main(List<String> args) {
+  if (args.isEmpty || !args.first.endsWith('target_test.dart')) exit(3);
+  if (File('lib/target.dart').readAsStringSync().contains('MUTATION_CANARY')) {
+    exit(1);
+  }
+}
+''');
+      final verdict = await MutationRunner(
+        testCommand: ({required bool usesFlutterTest}) => [
+          Platform.resolvedExecutable,
+          fake,
+        ],
+      ).run(sourcePath: pkg[1], testPath: pkg[2], runId: nextId('shadowcompl'));
+      expect(verdict.passed, isFalse);
+      expect(verdict.results.single.status, MutantStatus.survived);
+      expect(verdict.results.single.exitCode, 0);
+    }, timeout: const Timeout(Duration(seconds: 120)));
+
+    test('shadow: real dart test run kills the mutant end to end', () async {
+      final root = Directory('${inputs.path}/shadowreal')
+        ..createSync(recursive: true);
+      File('${root.path}/pubspec.yaml').writeAsStringSync(
+        'name: shadowreal_app\nenvironment:\n  sdk: ^3.13.0\n'
+        'dev_dependencies:\n  test: ^1.24.0\n',
+      );
+      final lib = Directory('${root.path}/lib')..createSync(recursive: true);
+      final testDir = Directory('${root.path}/test')
+        ..createSync(recursive: true);
+      final source = File('${lib.path}/target.dart')
+        ..writeAsStringSync('bool isAboveZero(int n) => n > 0;\n');
+      final testFile = File('${testDir.path}/target_test.dart')
+        ..writeAsStringSync('''
+import 'package:test/test.dart';
+import 'package:shadowreal_app/target.dart';
+void main() {
+  test('honest', () {
+    expect(isAboveZero(1), isTrue);
+    expect(isAboveZero(-1), isFalse);
+  });
+}
+''');
+      // Generous per-invocation breaker: nested `dart test` under
+      // full-suite parallel load can exceed the 8s default.
+      final verdict = await MutationRunner(timeout: const Duration(seconds: 60))
+          .run(
+            sourcePath: source.path,
+            testPath: testFile.path,
+            runId: nextId('shadowreal'),
+          );
+      expect(verdict.passed, isTrue);
+      expect(verdict.results.single.status, MutantStatus.killed);
+    }, timeout: const Timeout(Duration(seconds: 300)));
+
+    test('shadow: passing canary aborts fail-closed', () async {
+      final pkg = writePackage(
+        'shadowcanary',
+        'bool isAboveZero(int n) => n > 0;\n',
+        '''
+import 'package:test/test.dart';
+import 'package:shadowcanary_app/target.dart';
+void main() {
+  test('honest', () {
+    expect(isAboveZero(1), isTrue);
+  });
+}
+''',
+      );
+      final fake = writeFake(
+        'shadow_canary',
+        'void main(List<String> args) {}\n',
+      );
+      final id = nextId('shadowcanary');
+      await expectLater(
+        MutationRunner(
+          testCommand: ({required bool usesFlutterTest}) => [
+            Platform.resolvedExecutable,
+            fake,
+          ],
+        ).run(sourcePath: pkg[1], testPath: pkg[2], runId: id),
+        throwsStateError,
+      );
+      // A staging failure keeps the shadow for inspection.
+      final shadow = Directory(shadowDir(id));
+      expect(shadow.existsSync(), isTrue);
+      shadow.deleteSync(recursive: true); // Asserted; leave no litter.
+    }, timeout: const Timeout(Duration(seconds: 120)));
+
+    test('shadow: canary snippet breaks parsing', () {
+      expect(MutationRunner.canarySnippet, contains('MUTATION_CANARY'));
+      final result = parseString(
+        content: 'bool ok() => true;\n${MutationRunner.canarySnippet}',
+        throwIfDiagnostics: false,
+      );
+      expect(result.errors, isNotEmpty);
+    });
+
+    test('shadow: test outside the package rejects', () async {
+      final root = Directory('${inputs.path}/splitpkg')
+        ..createSync(recursive: true);
+      File('${root.path}/pubspec.yaml')
+          .writeAsStringSync('name: splitpkg\nenvironment:\n  sdk: ^3.13.0\n');
+      final lib = Directory('${root.path}/lib')..createSync(recursive: true);
+      final source = File('${lib.path}/target.dart')
+        ..writeAsStringSync('bool isAboveZero(int n) => n > 0;\n');
+      final testFile = File('${inputs.path}/split_test.dart')
+        ..writeAsStringSync('''
+import 'package:test/test.dart';
+import 'splitpkg/lib/target.dart';
+void main() {
+  test('split', () {
+    expect(1, 1);
+  });
+}
+''');
+      await expectLater(
+        MutationRunner().run(
+          sourcePath: source.path,
+          testPath: testFile.path,
+          runId: nextId('split'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('a package: import for another file still rejects', () async {
+      final root = Directory('${inputs.path}/pkgother')
+        ..createSync(recursive: true);
+      File('${root.path}/pubspec.yaml')
+          .writeAsStringSync('name: pkgother\nenvironment:\n  sdk: ^3.13.0\n');
+      final lib = Directory('${root.path}/lib')..createSync(recursive: true);
+      final source = File('${lib.path}/target.dart')
+        ..writeAsStringSync('bool isAboveZero(int n) => n > 0;\n');
+      final testFile = File('${root.path}/other_test.dart')
+        ..writeAsStringSync('''
+import 'package:test/test.dart';
+import 'package:pkgother/other.dart';
+void main() {
+  test('other', () {
+    expect(1, 1);
+  });
+}
+''');
+      await expectLater(
+        MutationRunner().run(
+          sourcePath: source.path,
+          testPath: testFile.path,
+          runId: nextId('pkgother'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('sweepStaleShadows removes only stale shadows', () {
+      // White-box on the runner's incomplete-run marker filename.
+      sweepStaleShadows(); // Clear the global temp: exact counts below.
+      final fresh = Directory(shadowDir(nextId('sweepfresh')))
+        ..createSync(recursive: true);
+      File('${fresh.path}/.fg-mutprobe-incomplete')
+          .writeAsStringSync('fresh\n');
+      final stale = Directory(shadowDir(nextId('sweepstale')))
+        ..createSync(recursive: true);
+      File('${stale.path}/.fg-mutprobe-incomplete')
+        ..writeAsStringSync('stale\n')
+        ..setLastModifiedSync(DateTime(2020));
+      final civilian = Directory('${inputs.path}/civilian')..createSync();
+      expect(sweepStaleShadows(), 1);
+      expect(fresh.existsSync(), isTrue);
+      expect(stale.existsSync(), isFalse);
+      expect(civilian.existsSync(), isTrue);
+      // Marker-less copies that died mid-flight sweep once stale: with
+      // a zero backdate even a fresh copy counts. Lower bound, not
+      // exact: a sibling failing just before would leave its fresh
+      // shadow here too.
+      final bare = Directory(shadowDir(nextId('sweepbare')))
+        ..createSync(recursive: true);
+      expect(
+        sweepStaleShadows(olderThan: Duration.zero),
+        greaterThanOrEqualTo(2),
+      );
+      expect(bare.existsSync(), isFalse);
+      expect(fresh.existsSync(), isFalse);
+    });
+
+    test('shadowDirPrefix spelling is pinned', () {
+      expect(MutationRunner.shadowDirPrefix, 'fg_mut_shadow_');
+    });
+
     test('rejects missing files, identical paths, and bad timeouts', () async {
       final runner = MutationRunner();
       await expectLater(
@@ -242,6 +566,11 @@ void main() {
       );
       await expectLater(
         MutationRunner(timeout: Duration.zero)
+            .run(sourcePath: 'a.dart', testPath: 'b.dart'),
+        throwsArgumentError,
+      );
+      await expectLater(
+        MutationRunner(pubGetTimeout: Duration.zero)
             .run(sourcePath: 'a.dart', testPath: 'b.dart'),
         throwsArgumentError,
       );
@@ -260,6 +589,17 @@ void main() {
       final dart = MutationRunner.defaultTestCommand(usesFlutterTest: false);
       expect(dart, hasLength(2));
       expect(dart.last, 'test');
+    });
+
+    test('defaultPubGetCommand switches on flutter', () {
+      expect(MutationRunner.defaultPubGetCommand(usesFlutter: true), [
+        'flutter',
+        'pub',
+        'get',
+      ]);
+      final dart = MutationRunner.defaultPubGetCommand(usesFlutter: false);
+      expect(dart, hasLength(3));
+      expect(dart.sublist(1), ['pub', 'get']);
     });
 
     test('usesFlutterTest is AST-sited (strings/comments never match)', () {
