@@ -24,3 +24,9 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) => const Text('order');
 }
+
+// Top-level helpers count too: no file gate (SYS-CAL-003 R2-1).
+Future<void> submitOrder(BuildContext context) async {
+  await _service.process();
+  Navigator.of(context).pop();
+}

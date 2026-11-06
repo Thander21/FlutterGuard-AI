@@ -320,6 +320,19 @@ SYS-TELE-001 first (canon rule §4).
   MET set unchanged (same 2 TPs); `bin/`/`tool/` 0 pairs;
   skip set unchanged; corpus still 118 files. CRAP
   re-measured: 3/0/0, same methods.
+- Re-ratifications: 2026-11-05 — SYS-CAL-003 R2-1
+  (ASYNC-002 scope + closure threading): new pair
+  `AsyncContextGuard`~=`ListKeyGuard` @0.847 (whole-class
+  units, async:47-197 ~= listkey:77-221), judged FP,
+  guard-idiom class (3rd of class — same deliberate
+  per-rule visitor skeleton as the pinned arch~controller
+  pair and the eliminated metric~widget pair; different
+  rules and domains, extraction across node/violation
+  types forced, not actionable). 4 pairs pinned, 0
+  actionable, HOLD reaffirmed. MET set unchanged (same 2
+  TPs); `bin/`/`tool/` 0 pairs; skip set unchanged;
+  corpus at 120 files. CRAP re-measured: 3/0/0, same
+  methods.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

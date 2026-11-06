@@ -46,13 +46,18 @@ List<AsyncContextViolation> analyzeAsyncFile(String path) {
 
 /// Flags post-await `context` reads and `setState` calls.
 ///
-/// Scope (v0): every `async` block body (methods, functions, closures)
-/// is scanned independently with its own armed state. `await` arms the
-/// gate; `!mounted`/`!context.mounted` early returns disarm it;
-/// `if (mounted)` blocks are scanned fresh. The armed state threads
-/// through `if`/`for`/`while`/`try`/`switch` children, so gaps inside
-/// branches are caught. Sinks descend into nested closures (a closure
-/// carrying its own inner guard may false-positive); awaits never do.
+/// Scope (R2-1): every `async` block body (methods, functions,
+/// closures) is scanned independently with its own armed state.
+/// `await` arms the gate; `!mounted`/`!context.mounted` early
+/// returns disarm it; `if (mounted)` blocks are scanned fresh. The
+/// armed state threads through `if`/`for`/`while`/`try`/`switch`
+/// children, so gaps inside branches are caught. Nested closure
+/// bodies inherit the enclosing armed state, so an inner mounted
+/// guard disarms only the closure; awaits never cross bodies.
+/// Only unshadowed `context` reads count: a nearer local,
+/// loop/catch-variable, or non-`BuildContext` parameter binding
+/// passes, as do foreign `x.context` properties (`this`/`super`
+/// receivers still count).
 class AsyncContextGuard extends RecursiveAstVisitor<void> {
   AsyncContextGuard(this._lineInfo);
 
@@ -92,15 +97,8 @@ class AsyncContextGuard extends RecursiveAstVisitor<void> {
       if (_containsAwait(statement)) {
         armed = true;
       }
-      for (final sink in _contextSinks(statement)) {
-        if (preArmed) {
-          violations.add(
-            AsyncContextViolation(
-              line: _lineInfo.getLocation(sink.offset).lineNumber,
-              message: sink.message,
-            ),
-          );
-        }
+      if (preArmed) {
+        _flagSinks(statement);
       }
       armed = _scanChildren(statement, armed);
     }
@@ -117,8 +115,43 @@ class AsyncContextGuard extends RecursiveAstVisitor<void> {
     }
   }
 
+  /// Flags every context sink inside [node].
+  void _flagSinks(AstNode node) {
+    for (final sink in _contextSinks(node)) {
+      violations.add(
+        AsyncContextViolation(
+          line: _lineInfo.getLocation(sink.offset).lineNumber,
+          message: sink.message,
+        ),
+      );
+    }
+  }
+
+  /// Scans one closure body with the enclosing armed state: an inner
+  /// mounted guard disarms the closure, unguarded deferred uses flag.
+  void _scanClosureBody(FunctionBody body, bool armed) {
+    if (body is BlockFunctionBody) {
+      _scanStatements(body.block.statements, armed);
+      return;
+    }
+    if (body is ExpressionFunctionBody) {
+      if (armed) {
+        _flagSinks(body.expression);
+      }
+      final nestedArmed = armed || _containsAwait(body.expression);
+      for (final nested in _closureBodies(body.expression)) {
+        _scanClosureBody(nested, nestedArmed);
+      }
+    }
+  }
+
   /// Threads the armed state through a compound statement's children.
   bool _scanChildren(Statement statement, bool armed) {
+    // Deferred bodies inherit the enclosing armed state, so an inner
+    // mounted guard disarms only the closure (SYS-CAL-003 R2-1).
+    for (final body in _closureBodies(statement)) {
+      _scanClosureBody(body, armed);
+    }
     if (statement is IfStatement) {
       armed = _scanStatements(
         _branchStatements(statement.thenStatement),
@@ -245,7 +278,9 @@ class _SinkCollector extends RecursiveAstVisitor<void> {
     if (node.name == 'context' &&
         !_isDeclaration(node) &&
         !_isMethodName(node) &&
-        !_isMountedReceiver(node)) {
+        !_isMountedReceiver(node) &&
+        !_isForeignProperty(node) &&
+        !_isShadowed(node)) {
       sinks.add(
         _Sink(
           node.offset,
@@ -254,6 +289,12 @@ class _SinkCollector extends RecursiveAstVisitor<void> {
       );
     }
     super.visitSimpleIdentifier(node);
+  }
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {
+    // Deferred bodies inherit the armed state via _scanChildren,
+    // never collected flat (SYS-CAL-003 R2-1).
   }
 
   @override
@@ -300,4 +341,114 @@ bool _isMountedReceiver(SimpleIdentifier node) {
     return parent.target == node && parent.propertyName.name == 'mounted';
   }
   return false;
+}
+
+/// True when [node] is the property (not the receiver) of a foreign
+/// `x.context` read: any receiver except `this`/`super`.
+bool _isForeignProperty(SimpleIdentifier node) {
+  final parent = node.parent;
+  if (parent is PrefixedIdentifier) {
+    return parent.identifier == node;
+  }
+  if (parent is PropertyAccess) {
+    return parent.propertyName == node &&
+        parent.target is! ThisExpression &&
+        parent.target is! SuperExpression;
+  }
+  return false;
+}
+
+/// True when a nearer binding shadows the widget's `context` for
+/// [node]: any enclosing declaration of `context` other than a
+/// `BuildContext`-typed formal parameter. Each enclosing scope is
+/// queried (siblings declare; ancestors only delimit), so locals,
+/// loop/catch variables, and parameters all shadow.
+/// Name-based, parse-only.
+bool _isShadowed(SimpleIdentifier node) {
+  AstNode? scope = node.parent;
+  while (scope != null) {
+    if (scope is CatchClause &&
+        (scope.exceptionParameter?.name.lexeme == 'context' ||
+            scope.stackTraceParameter?.name.lexeme == 'context')) {
+      return true;
+    }
+    if (scope is ForStatement && _loopDeclares(scope.forLoopParts)) {
+      return true;
+    }
+    if (scope is ForElement && _loopDeclares(scope.forLoopParts)) {
+      return true;
+    }
+    if (scope is Block && _statementsDeclare(scope.statements)) {
+      return true;
+    }
+    final parameters = _declaredParameters(scope);
+    if (parameters != null) {
+      for (final parameter in parameters) {
+        if (parameter.name?.lexeme == 'context') {
+          return !_isBuildContextType(parameter.type);
+        }
+      }
+    }
+    scope = scope.parent;
+  }
+  return false;
+}
+
+/// True when any direct statement of [statements] declares `context`.
+bool _statementsDeclare(List<Statement> statements) {
+  for (final statement in statements) {
+    if (statement is VariableDeclarationStatement) {
+      for (final variable in statement.variables.variables) {
+        if (variable.name.lexeme == 'context') return true;
+      }
+    }
+  }
+  return false;
+}
+
+/// True when the loop parts of [parts] declare `context`.
+bool _loopDeclares(ForLoopParts parts) {
+  if (parts is ForEachPartsWithDeclaration) {
+    return parts.loopVariable.name.lexeme == 'context';
+  }
+  if (parts is ForPartsWithDeclarations) {
+    return parts.variables.variables.any(
+      (variable) => variable.name.lexeme == 'context',
+    );
+  }
+  return false;
+}
+
+/// The parameter list of a function-like [node], or null.
+List<FormalParameter>? _declaredParameters(AstNode node) {
+  if (node is MethodDeclaration) return node.parameters?.parameters;
+  if (node is ConstructorDeclaration) return node.parameters.parameters;
+  if (node is FunctionDeclaration) {
+    return node.functionExpression.parameters?.parameters;
+  }
+  if (node is FunctionExpression) return node.parameters?.parameters;
+  return null;
+}
+
+/// True when [type] names `BuildContext` (parse-only, name-based).
+bool _isBuildContextType(TypeAnnotation? type) {
+  return type is NamedType && type.name.lexeme == 'BuildContext';
+}
+
+/// Top-level closure bodies inside [node] (nested closures inherit
+/// from their own body scan instead).
+List<FunctionBody> _closureBodies(AstNode node) {
+  final collector = _TopClosureCollector();
+  node.accept(collector);
+  return collector.bodies;
+}
+
+class _TopClosureCollector extends RecursiveAstVisitor<void> {
+  final List<FunctionBody> bodies = [];
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {
+    bodies.add(node.body);
+    // Do not descend: nested closures are scanned from their own body.
+  }
 }

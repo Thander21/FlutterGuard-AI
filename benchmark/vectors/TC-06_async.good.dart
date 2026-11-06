@@ -37,6 +37,41 @@ class _OrderScreenState extends State<OrderScreen> {
     _log.record(context: 'user session');
   }
 
+  // A redeclared `context` is not the BuildContext (SYS-CAL-003 R2-1).
+  Future<void> fiscal() async {
+    final context = await _fiscalContextService.getContext('sale');
+    await _service.ping();
+    _log.record(context.traceId);
+  }
+
+  // A foreign `x.context` property is not the BuildContext (R2-1).
+  Future<void> secure() async {
+    await _service.ping();
+    _log.record(tlsContext.context.sessionId);
+  }
+
+  // A mounted block inside try is honored (printer_page:70 shape).
+  Future<void> save() async {
+    try {
+      await _service.save();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      _log('save failed');
+    }
+  }
+
+  // A mounted block inside a closure is honored (open_pdv_page:115 shape).
+  Future<void> open() async {
+    await _service.open();
+    schedule(() {
+      if (context.mounted) {
+        setState(() {});
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) => const Text('order');
 }
