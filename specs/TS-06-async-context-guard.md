@@ -12,9 +12,11 @@ ast_nodes:
   - "MethodInvocation[name='setState']"
   - "FunctionExpression"
   - "FormalParameter"
-invariant: "Every read of an unshadowed 'context' (no nearer binding unless typed 'BuildContext'; 'x.context' only for 'this'/'super' receivers) and every 'setState' call that follows an 'await' in the same async body MUST sit behind a 'mounted'/'context.mounted' guard (early return or guarded block, honored inside closures and 'try' bodies)."
+invariant: "Every read of an unshadowed 'context' (no nearer binding unless typed 'BuildContext'; 'x.context' only for 'this'/'super' receivers) and every 'setState' call that follows an 'await' in the same async body MUST sit behind a 'mounted'/'context.mounted' guard (early return taken when unmounted, including '||' chains, or a block whose condition requires mounted, including '&&' chains; honored inside closures and nested 'if'/'try'/loop bodies)."
 fp_limits:
-  - "context used before any await, or in the same statement as the await"
+  - "context used before any await, or in the same statement as the await (arguments and builder closures of the awaited call)"
+  - "uses behind an inner guard of a compound statement's body (only headers are scanned flat)"
+  - "'&&'-chained mounted checks and '||'-chained mounted early returns"
   - "'mounted'/'context.mounted' guard reads themselves"
   - "awaits nested in closures (never arm the outer body)"
   - "named-argument and statement labels (tokens, never reads)"
@@ -84,12 +86,42 @@ awaits; branch bodies are scanned by threading the armed state through
 - `if (mounted) { … }` / `if (context.mounted) { … }`: the block is
   scanned fresh (disarmed start), so `await` inside re-arms.
   [eval: TC-06.good]
+- `&&`-chained guards (`if (x != null && context.mounted) { … }`,
+  `if (cond && mounted) { … }`): any mounted conjunct makes the block
+  a guarded block. [eval: TC-06.good]
+- `||`-chained early returns (`if (ok != true || !context.mounted)
+  return;`): any negated mounted disjunct disarms the rest.
+  [eval: TC-06.good]
+- `if (!quiet || mounted) { use }` does not require mounted: the use
+  MUST be flagged. [eval: unit fixture]
+- Compound statements (`if`/`for`/`while`/`switch`/`try`/blocks) flag
+  only their header expressions flat; bodies are scanned statement
+  by statement, so a guard inside a nested `try`/`if` body clears
+  the rest of that body. [eval: TC-06.good]
+- `context` / `setState` before the first `await`, including inside
+  a `try` body that awaits later: MUST NOT be flagged.
+  [eval: TC-06.good]
+- A nested `try` body that awaits again and then uses context with
+  no inner guard: MUST be flagged. [eval: TC-06.bad]
 - A later `await` after a guard re-arms the body. [eval: unit fixture]
 - Top-level and helper functions are scanned, not just `State` methods.
   [eval: unit fixture]
 - `await` and use in one statement (`await showDialog(context: …)`):
   the context is consumed before the gap, MUST NOT be flagged.
   [eval: unit fixture]
+- Closures in the awaited statement itself (`builder: (ctx) =>
+  Text(S.of(context)!.x)`) inherit the state the statement was
+  entered with: they run while the dialog builds, MUST NOT be
+  flagged. [eval: TC-06.good]
+- A use in a later statement after that awaited dialog, with no
+  guard: MUST be flagged. [eval: TC-06.bad]
+- An `if` branch that awaits and always exits (trailing `return`,
+  `throw` or `rethrow`) does not arm the code after the `if`: a later
+  use MUST NOT be flagged; the same branch without the exit MUST
+  arm it. [eval: unit fixture]
+- A closure in the awaited statement that runs after the gap
+  (`await Future.delayed(d, () => Navigator.of(context))`): NOT
+  flagged (accepted false negative). [unevaluated]
 - Post-await named-argument labels (`log(context: '...')`):
   MUST NOT be flagged (no identifier exists for a label).
   [eval: TC-06.good]
@@ -119,8 +151,11 @@ awaits; branch bodies are scanned by threading the armed state through
 - Multi-statement guard blocks (`if (!mounted) { log(); return; }`):
   leading statements run unmounted and are scanned armed.
   [unevaluated]
-- Branches that may suspend arm the code after them (fail-closed).
-  [unevaluated]
+- Branches that may suspend arm the code after them (fail-closed):
+  after an `if`, the state is armed when either branch leaves it
+  armed. [unevaluated]
+- A loop body that awaits is scanned armed from its first statement
+  (the next iteration runs after the gap). [unevaluated]
 - `.then(…)` chains after an `await`: NOT traced. [unevaluated]
 - A closure inside an armed statement inherits the armed state:
   an inner `if (mounted)` / `if (context.mounted)` guard
@@ -135,7 +170,8 @@ awaits; branch bodies are scanned by threading the armed state through
   flagged (foreign property). [eval: TC-06.good]
 - `this.context` after a gap: MUST be flagged.
   [eval: unit fixture]
-- Ternary or `&&`-chained guards: out of scope for v0. [unevaluated]
+- Ternary guards, `mounted == false`, and guards stored in locals:
+  out of scope for v0 (still flag, fail-closed). [unevaluated]
 
 `insert_before_invocation` injects `if (!context.mounted) return;` above
 the violation line: a single-line guard insert, fast-path mechanical per

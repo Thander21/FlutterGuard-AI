@@ -9,7 +9,7 @@ void main() {
       final violations = analyzeAsyncFile(
         'benchmark/vectors/TC-06_async.bad.dart',
       );
-      expect(violations.map((v) => v.line), [16, 21, 31]);
+      expect(violations.map((v) => v.line), [16, 21, 31, 40, 53]);
       expect(violations.first.message, contains('BuildContext'));
       expect(violations.first.message, contains('mounted'));
       expect(violations[1].message, contains('setState'));
@@ -262,5 +262,184 @@ Future<void> sync(BuildContext context) async {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('spares context and setState before the first await (K1)', () {
+      expect(
+        _violationLines('''
+Future<void> load() async {
+  try {
+    setState(() => _loading = true);
+    final repo = Provider.of<Repo>(context);
+    final list = await repo.list();
+    if (mounted) {
+      setState(() => _items = list);
+    }
+  } catch (_) {
+    _log('load failed');
+  }
+}
+'''),
+        isEmpty,
+      );
+    });
+
+    test('mounted early returns clear the gap inside nested blocks (K2)', () {
+      expect(
+        _violationLines('''
+Future<void> remove(BuildContext context) async {
+  final ok = await confirmDelete(context: context);
+  if (ok != true || !context.mounted) return;
+  try {
+    await _repo.delete();
+    if (!context.mounted) return;
+    _notify(context, S.of(context)!.deleted);
+  } catch (_) {
+    if (!mounted) {
+      return;
+    }
+    _notify(context, S.of(context)!.failed);
+  }
+}
+'''),
+        isEmpty,
+      );
+    });
+
+    test('flags the same nested uses without the guard (K2)', () {
+      expect(
+        _violationLines('''
+Future<void> remove(BuildContext context) async {
+  final ok = await confirmDelete(context: context);
+  if (ok != true) return;
+  try {
+    await _repo.delete();
+    _notify(context, S.of(context)!.deleted);
+  } catch (_) {
+    _notify(context, S.of(context)!.failed);
+  }
+}
+'''),
+        [6, 8],
+      );
+    });
+
+    test('spares mounted checks chained with && and nested blocks (K3)', () {
+      expect(
+        _violationLines('''
+Future<void> check(BuildContext? context, bool quiet) async {
+  final info = await fetch();
+  if (info == null) {
+    if (!quiet && context != null && context.mounted) {
+      _show(context, 'offline');
+    }
+    return;
+  }
+  if (info.ready && mounted) {
+    setState(() => _info = info);
+  }
+  if (info.name != null) {
+    _controller.text = info.name;
+    if (mounted) {
+      setState(() => _named = true);
+    }
+  }
+}
+'''),
+        isEmpty,
+      );
+    });
+
+    test('flags a use after an || chain without a mounted check (K3)', () {
+      expect(
+        _violationLines('''
+Future<void> check(BuildContext context, bool quiet) async {
+  final info = await fetch();
+  if (!quiet || mounted) {
+    _show(context, 'offline');
+  }
+}
+'''),
+        [4],
+      );
+    });
+
+    test('spares context inside the awaited call and its builder (K4)', () {
+      expect(
+        _violationLines('''
+Future<void> pick(BuildContext context, bool remote) async {
+  final id = await _service.installationId();
+  if (!mounted) return;
+  if (remote) {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Text(S.of(context)!.terminalInUse),
+    );
+    if (ok != true) return;
+  }
+  _log(id);
+}
+'''),
+        isEmpty,
+      );
+    });
+
+    test('flags a use after the awaited dialog statement (K4)', () {
+      expect(
+        _violationLines('''
+Future<void> remove(BuildContext context) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => Text(S.of(context)!.removeContact),
+  );
+  if (ok == true) {
+    Navigator.of(context).pop();
+  }
+}
+'''),
+        [7],
+      );
+    });
+
+    test('a branch that awaits and always exits does not arm the rest', () {
+      expect(
+        _violationLines('''
+Future<void> open(BuildContext context, bool empty) async {
+  if (empty) {
+    if (!context.mounted) return;
+    await showDialog<void>(context: context, builder: (c) => const Text(''));
+    return;
+  }
+  await Navigator.push<bool>(context, _route());
+}
+'''),
+        isEmpty,
+      );
+    });
+
+    test('a branch that awaits without exiting still arms the rest', () {
+      expect(
+        _violationLines('''
+Future<void> open(BuildContext context, bool empty) async {
+  if (empty) {
+    await _service.refresh();
+  }
+  await Navigator.push<bool>(context, _route());
+}
+'''),
+        [5],
+      );
+    });
   });
+}
+
+/// Writes [source] to a temp file and returns the flagged line numbers.
+List<int> _violationLines(String source) {
+  final root = Directory.systemTemp.createTempSync('async_test.');
+  try {
+    final path = '${root.path}/fixture.dart';
+    File(path).writeAsStringSync(source);
+    return analyzeAsyncFile(path).map((v) => v.line).toList();
+  } finally {
+    root.deleteSync(recursive: true);
+  }
 }

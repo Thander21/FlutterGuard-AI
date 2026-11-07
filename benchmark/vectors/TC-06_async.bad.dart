@@ -21,6 +21,28 @@ class _OrderScreenState extends State<OrderScreen> {
     setState(() {});
   }
 
+  // A use after the awaited dialog statement is past the gap (K4).
+  Future<void> remove() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => const Text('remove'),
+    );
+    if (ok == true) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  // A nested block without its own guard is still past the gap (K2).
+  Future<void> delete() async {
+    await _service.confirm();
+    try {
+      await _service.delete();
+      Navigator.of(context).pop();
+    } catch (_) {
+      _log('delete failed');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => const Text('order');
 }

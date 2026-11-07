@@ -72,6 +72,62 @@ class _OrderScreenState extends State<OrderScreen> {
     });
   }
 
+  // Uses before the first await are not past a gap (K1).
+  Future<void> load() async {
+    try {
+      setState(() {});
+      final navigator = Navigator.of(context);
+      await _service.load();
+      if (mounted) {
+        navigator.pop();
+      }
+    } catch (_) {
+      _log('load failed');
+    }
+  }
+
+  // Early returns clear the gap inside nested blocks (K2).
+  Future<void> delete() async {
+    final ok = await _service.confirm();
+    if (ok != true || !context.mounted) return;
+    try {
+      await _service.delete();
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {});
+    }
+  }
+
+  // Mounted checks chained with && guard their block (K3).
+  Future<void> check(bool quiet) async {
+    final ready = await _service.ping();
+    if (!quiet && ready && context.mounted) {
+      Navigator.of(context).pop();
+    }
+    if (ready) {
+      _log('ready');
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  // The awaited call's own arguments and builder run before the gap (K4).
+  Future<void> pick(bool remote) async {
+    await _service.ping();
+    if (!mounted) return;
+    if (remote) {
+      await showDialog<bool>(
+        context: context,
+        builder: (ctx) => Text(Theme.of(context).toString()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) => const Text('order');
 }
