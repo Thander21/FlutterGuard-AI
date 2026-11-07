@@ -809,9 +809,23 @@ the three real-signal classes are fixed out of band.
   rules). Remaining: isolate parallelism
   (deferred follow-up) + R2-6 (needs ERP
   access) + §5 field bar (owner re-run).
-- R2-6 OPEN: specified (mutation wedge, needs ERP
-  access per Q8).
-- Recommended next: R2-6 (needs ERP access) or the isolate-parallelism follow-up.
+- R2-6 EXECUTED 2026-11-06 (field probe r26-fiscal-03,
+  owner-run per Q8): first end-to-end mutation run on an
+  ERP fiscal rule (`nfce_contingency_limit_guard.dart` +
+  `flutter_test` suite, `package:` imports, Windows) — 14
+  mutants, 9 killed, 5 survived, 181 s, green 10-test
+  baseline (33.6 s, 5 min timeout). Shadow staging, the
+  compile canary, and snapshot-based Flutter spawning all
+  held; the 9 kills confirm the mutant loads. All 5
+  survivors are real test gaps (both block tests skip
+  `hasSoftLimitWarning`; warning covered only at exactly
+  count 30; the 24 h branch untested) — ERP-side test-only
+  backlog, out of this repo. Operator gaps filed as
+  FOLLOWUP-01 F-008 (`<=`, `false -> true` unmutated).
+  The §5 "R2-6 executed" bar is MET; the pilot-3 `check`
+  re-run bar still stands.
+- Recommended next: the isolate-parallelism follow-up or
+  the §5 pilot-3 re-run (owner-run).
 - Scope broadened 2026-11-05 (§7 + Broadening notes): ERP is
   corpus #1, not the mold. Ratified 2026-11-05 (Q9).
 
