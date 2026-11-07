@@ -3,11 +3,14 @@
 // A Latin-1-saved (or mis-decoded) file compiles fine and
 // corrupts silently: accented words render with Latin-1 ghosts
 // where the real letters should be. Strict UTF-8 decode must
-// succeed, and the decoded text must contain none of the
-// mojibake markers (U+FFFD, U+00C3, U+00C2). Legitimate
-// accented text (U+00E3, U+00F5, U+00E7) never trips it: the
-// markers are ghosts of multi-byte sequences, not the letters
-// themselves. Byte-level, universal, no config.
+// succeed, and the decoded text must contain no mojibake
+// sequence: U+FFFD, or a lead ghost (U+00C3, U+00C2) followed
+// by a continuation-byte ghost (U+0080-U+00BF, or the CP1252
+// letters of bytes 0x80-0x9F), or the 3-byte smart-punctuation
+// ghost U+00E2 U+20AC followed by a continuation-byte ghost.
+// A lone U+00C3/U+00C2 is a real letter (uppercase PT-BR/FR
+// words, character tables) and never trips it. Byte-level,
+// universal, no config.
 //
 // NOTE: this file spells every marker as a codepoint escape — a
 // literal marker here would flag this very file (dogfood L0).
@@ -16,9 +19,26 @@ import 'dart:io';
 
 import 'rule_violation.dart';
 
-/// Mojibake markers, spelled as escapes (see NOTE above).
+/// CP1252 renderings of bytes 0x80-0x9F (0x81/0x8D/0x8F/0x90/0x9D
+/// are undefined there and survive as C1 controls, which the
+/// U+0080-U+009F range already covers).
+const _cp1252Ghosts =
+    r'\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030'
+    r'\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022'
+    r'\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178';
+
+/// One continuation-byte ghost (regex class source).
+const _ghost =
+    r'[\u0080-\u00BF'
+    '$_cp1252Ghosts]';
+
+/// Mojibake sequences, spelled as escapes (see NOTE above).
 final _markerPattern = RegExp(
-  '[${String.fromCharCodes([0xFFFD, 0xC3, 0xC2])}]',
+  r'\uFFFD|[\u00C3\u00C2]'
+  '$_ghost'
+  r'|\u00E2\u20AC'
+  '$_ghost',
+  unicode: true,
 );
 
 /// A single FG-ENC-022 violation.
@@ -59,21 +79,19 @@ List<EncViolation> analyzeEncFile(String path) {
   final flagged = <int, String>{};
   for (final match in matches) {
     final line = _lineAt(starts, match.start);
-    flagged.putIfAbsent(line, () => text[match.start]);
+    flagged.putIfAbsent(line, () => match[0]!);
   }
   final violations = <EncViolation>[];
   for (final entry in flagged.entries) {
     final marker = entry.value;
-    final code = marker
-        .codeUnitAt(0)
-        .toRadixString(16)
-        .toUpperCase()
-        .padLeft(4, '0');
+    final codes = marker.runes
+        .map((r) => 'U+${r.toRadixString(16).toUpperCase().padLeft(4, '0')}')
+        .join(' ');
     violations.add(
       EncViolation(
         line: entry.key,
         message:
-            "mojibake marker '$marker' (U+$code) — text may be "
+            "mojibake sequence '$marker' ($codes) — text may be "
             'mis-decoded; save the file as UTF-8',
       ),
     );
