@@ -21,37 +21,55 @@ String? get _evidencePath => _evidence.isEmpty ? null : _evidence;
 void main() {
   for (final c in tier1Matrix) {
     testWidgets('bad layout breaks: ${c.name}', (tester) async {
-      final errors = await runTier1Case(tester,
-          app: () => const BadLayout(), c: c, fixture: 'bad_layout');
+      final errors = await runTier1Case(
+        tester,
+        app: () => const BadLayout(),
+        c: c,
+        fixture: 'bad_layout',
+      );
       appendTier1Evidence(
-          fixture: 'bad_layout',
-          c: c,
-          errors: errors,
-          evidencePath: _evidencePath);
-      expect(errors, isNotEmpty,
-          reason: 'bad_layout must overflow ${c.name} (red)');
+        fixture: 'bad_layout',
+        c: c,
+        errors: errors,
+        evidencePath: _evidencePath,
+      );
       expect(
-          File('build/test_snapshots/bad_layout_${c.name}.png').existsSync(),
-          isTrue,
-          reason: 'Tier-2 feed PNG is contractual');
+        errors,
+        isNotEmpty,
+        reason: 'bad_layout must overflow ${c.name} (red)',
+      );
+      expect(
+        File('build/test_snapshots/bad_layout_${c.name}.png').existsSync(),
+        isTrue,
+        reason: 'Tier-2 feed PNG is contractual',
+      );
     }, timeout: const Timeout(Duration(seconds: 8)));
   }
 
   for (final c in tier1Matrix) {
     testWidgets('good layout clean: ${c.name}', (tester) async {
-      final errors = await runTier1Case(tester,
-          app: () => const GoodLayout(), c: c, fixture: 'good_layout');
+      final errors = await runTier1Case(
+        tester,
+        app: () => const GoodLayout(),
+        c: c,
+        fixture: 'good_layout',
+      );
       appendTier1Evidence(
-          fixture: 'good_layout',
-          c: c,
-          errors: errors,
-          evidencePath: _evidencePath);
-      expect(errors, isEmpty,
-          reason: 'good_layout must stay clean on ${c.name} (green)');
+        fixture: 'good_layout',
+        c: c,
+        errors: errors,
+        evidencePath: _evidencePath,
+      );
       expect(
-          File('build/test_snapshots/good_layout_${c.name}.png').existsSync(),
-          isTrue,
-          reason: 'Tier-2 feed PNG is contractual');
+        errors,
+        isEmpty,
+        reason: 'good_layout must stay clean on ${c.name} (green)',
+      );
+      expect(
+        File('build/test_snapshots/good_layout_${c.name}.png').existsSync(),
+        isTrue,
+        reason: 'Tier-2 feed PNG is contractual',
+      );
     }, timeout: const Timeout(Duration(seconds: 8)));
   }
 
@@ -60,15 +78,17 @@ void main() {
     addTearDown(() => dir.deleteSync(recursive: true));
     final path = '${dir.path}/evidence.jsonl';
     appendTier1Evidence(
-        fixture: 'good_layout',
-        c: tier1Matrix.first,
-        errors: const [],
-        evidencePath: path);
+      fixture: 'good_layout',
+      c: tier1Matrix.first,
+      errors: const [],
+      evidencePath: path,
+    );
     appendTier1Evidence(
-        fixture: 'bad_layout',
-        c: tier1Matrix.first,
-        errors: const ['A RenderFlex overflowed by 1680 pixels.'],
-        evidencePath: path);
+      fixture: 'bad_layout',
+      c: tier1Matrix.first,
+      errors: const ['A RenderFlex overflowed by 1680 pixels.'],
+      evidencePath: path,
+    );
     final lines = File(path).readAsLinesSync();
     expect(lines, hasLength(2));
     final clean = jsonDecode(lines[0]) as Map<String, dynamic>;
@@ -99,9 +119,10 @@ void main() {
 
   test('null evidence path is pure (no writes)', () {
     appendTier1Evidence(
-        fixture: 'good_layout',
-        c: tier1Matrix.first,
-        errors: const [],
-        evidencePath: null);
+      fixture: 'good_layout',
+      c: tier1Matrix.first,
+      errors: const [],
+      evidencePath: null,
+    );
   });
 }
