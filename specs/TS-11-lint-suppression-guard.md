@@ -8,9 +8,9 @@ analysis: "parse-only"
 ast_nodes:
   - "Token.precedingComments[type='//']"
   - "CatchClause[body empty]"
-invariant: "No single-line comment MUST contain a bare 'ignore:' or 'ignore_for_file:' (a suppression without trailing or preceding-line rationale); no catch clause MUST have an empty body. Fully-empty catches and bare suppressions are errors; comment-only catches are warnings."
+invariant: "No single-line comment MUST contain a bare 'ignore:' or 'ignore_for_file:' (a suppression without same-line or preceding-line rationale); no catch clause MUST have an empty body. Fully-empty catches and bare suppressions are errors; comment-only catches are warnings."
 fp_limits:
-  - "justified suppressions (directive + trailing or preceding-line // rationale)"
+  - "justified suppressions (directive + same-line rationale — //, spaced dash, marker word, or non-code comma item — or preceding-line // rationale)"
   - "doc (///) and block (/* */) comments mentioning ignore"
   - "comments mentioning ignore without the colon"
   - "non-empty catch blocks (handle or rethrow)"
@@ -31,7 +31,8 @@ lint and never throws. This rule enforces Root Cause Only: fix the
 finding, handle the error, or `rethrow` — never suppress, never swallow.
 A suppression that carries its rationale on the same line
 (`// ignore: x // why`) is a reviewed decision, not a silencing:
-the gate spares it (SYS-CAL-002 P1-5). A rationale on the
+the gate spares it (SYS-CAL-002 P1-5), as do the other
+same-line shapes real projects write (§3). A rationale on the
 immediately preceding own-line `//` comment justifies too
 (SYS-CAL-003 R2-3); and a catch holding only a comment warns
 where a fully-empty catch errors.
@@ -57,8 +58,21 @@ finding fixed at its root cause.)
 
 Comments are walked from the token stream (`precedingComments`), not
 the AST: any `//` line comment containing the directive text without
-trailing rationale is flagged, anywhere in the file. Rationale is a
-second `//` after the directive with non-blank text. A catch body
+same-line or preceding-line rationale is flagged, anywhere in the
+file. Same-line rationale, after the directive, is any of:
+
+- a second `//` followed by non-blank text;
+- a spaced dash separator (` - `, ` – `, ` — `) followed by
+  non-blank text;
+- a marker word `justificativa:`, `rationale:`, `reason:`, or
+  `motivo:` (case-insensitive) followed by non-blank text;
+- a comma-separated item (after the first) that is not a
+  diagnostic code. Codes are lower_snake identifiers, optionally
+  `key=value` (`type=lint`); a lone marker word is empty
+  rationale. `// ignore: a, b` therefore stays bare, while
+  `// ignore: a, justificativa: why` does not.
+
+A catch body
 counts as empty when every statement is an `EmptyStatement` (bare
 `;` still swallows).
 
@@ -89,6 +103,15 @@ counts as empty when every statement is an `EmptyStatement` (bare
   [eval: TC-11.good]
 - `// ignore: x //` (empty rationale): MUST be flagged (bare).
   [eval: unit fixture]
+- `// ignore: x, justificativa: why`, `// ignore: x - why`,
+  `// ignore: x — why`, `// ignore: x, y, free text`,
+  `// ignore: x Reason: why`, `// ignore: x // Justificativa:
+  why`, `// ignore_for_file: x // Justificativa: why`: MUST
+  NOT be flagged (same-line rationale). [eval: unit fixture]
+- `// ignore: a, b` (code list), `// ignore: x -` (empty
+  dash), `// ignore: x, justificativa:` (empty marker),
+  `// ignore: a, b,`, `// ignore_for_file: type=lint`: MUST
+  be flagged (bare). [eval: unit fixture]
 - Preceding-line rationale (reason on the immediately
   preceding own-line `//`, non-doc, non-ignore, non-blank,
   no blank gap): MUST NOT be flagged. [eval: TC-11.good]

@@ -26,3 +26,13 @@ void audit() {
 void retry() {
   fetch();
 }
+
+// Same-line rationale shapes (flutterguardai4, RF5).
+// ignore: unnecessary_lambdas, justificativa: the closure must stay stable.
+void share() {}
+
+// ignore: prefer_const_constructors - the widget needs fresh state.
+void rebuild() {}
+
+// ignore: avoid_print // Justificativa: CLI output is the operator channel.
+void report() {}

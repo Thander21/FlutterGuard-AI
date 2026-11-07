@@ -106,5 +106,72 @@ Object build() {
         root.deleteSync(recursive: true);
       }
     });
+    test('default except spares theme files without a yaml (K1)', () {
+      final root = Directory.systemTemp.createTempSync('tok_test.');
+      try {
+        const body = '''
+Object build() {
+  return Tile(color: Color(0xFF0000));
+}
+''';
+        final spared = [
+          'lib/themes/color_schemes.dart',
+          'lib/theme/x.dart',
+          'lib/ui/app_theme.dart',
+          'lib/ui/brand_colors.dart',
+          'lib/ui/color_scheme_dark.dart',
+        ];
+        for (final rel in [...spared, 'lib/widgets/x.dart']) {
+          File('${root.path}/$rel')
+            ..createSync(recursive: true)
+            ..writeAsStringSync(body);
+        }
+        for (final rel in spared) {
+          expect(
+            analyzeTokFile('${root.path}/$rel'),
+            isEmpty,
+            reason: '$rel is a theme file under the default except',
+          );
+        }
+        expect(
+          analyzeTokFile('${root.path}/lib/widgets/x.dart').map((v) => v.line),
+          [2],
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('a configured except replaces the default (K2)', () {
+      final root = Directory.systemTemp.createTempSync('tok_test.');
+      try {
+        File('${root.path}/flutterguard.yaml').writeAsStringSync('''
+theme_tokens:
+  except: ["lib/brand/**"]
+''');
+        const body = '''
+Object build() {
+  return Tile(color: Color(0xFF0000));
+}
+''';
+        for (final rel in [
+          'lib/themes/color_schemes.dart',
+          'lib/brand/a.dart',
+        ]) {
+          File('${root.path}/$rel')
+            ..createSync(recursive: true)
+            ..writeAsStringSync(body);
+        }
+        expect(
+          analyzeTokFile('${root.path}/lib/themes/color_schemes.dart')
+              .map((v) => v.line),
+          [2],
+          reason: 'the configured except drops the default theme globs',
+        );
+        expect(analyzeTokFile('${root.path}/lib/brand/a.dart'), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

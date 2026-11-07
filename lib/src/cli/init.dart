@@ -34,7 +34,7 @@ gates:
 #   symbols: [tattle]
 #   except: ["lib/src/log/**"]
 #   message: "use AppLogger"
-# Design tokens (FG-TOK-020; Color default always on):
+# Design tokens (FG-TOK-020; on; theme dirs/files spared; except replaces that):
 # theme_tokens:
 #   except: ["lib/src/theme/**"]
 #   extra_ctors: ["BorderRadius.circular"]

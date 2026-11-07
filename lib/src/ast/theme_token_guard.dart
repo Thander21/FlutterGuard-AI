@@ -4,7 +4,9 @@
 // mode, branding, and contrast fixes all live in the color
 // scheme. Unnamed Color(...) (any argument, fail-closed) and
 // the channel ctors fromARGB/fromRGBO flag everywhere outside
-// the theme_tokens except files; projects add radius/spacing
+// the theme_tokens except files (default: theme/themes dirs under
+// lib/ and *_theme/*_colors/color_scheme* files, replaced by a
+// configured except); projects add radius/spacing
 // entries under extra_ctors. Unlike FG-BAN-018/FG-LOG-019 the
 // rule defaults ON — a Color construction is never valid
 // outside a theme file. Parsing only (no type resolution).
@@ -17,6 +19,18 @@ import 'package:analyzer/source/line_info.dart';
 
 import '../rule_params.dart';
 import 'rule_violation.dart';
+
+/// Default `except` globs (the project's own theme files), used
+/// only when the yaml sets no `theme_tokens.except`; a configured
+/// `except` (even an empty list) replaces them. Keys may be
+/// config-relative or absolute, hence the leading `**`.
+const _defaultThemeExcept = <String>[
+  '**/lib/**/theme/**',
+  '**/lib/**/themes/**',
+  '**/*_theme.dart',
+  '**/*_colors.dart',
+  '**/color_scheme*.dart',
+];
 
 /// Channel ctors banned alongside the unnamed Color(...).
 const _channelCtors = <String>{'fromARGB', 'fromRGBO'};
@@ -66,17 +80,38 @@ class TokViolation implements RuleViolation {
 
 /// Analyzes [path] and returns every FG-TOK-020 violation found.
 ///
-/// [config] injects a section (tests); without it the nearest
-/// `flutterguard.yaml` is discovered and loaded.
+/// [config] injects a section (tests) and is used verbatim; without
+/// it the nearest `flutterguard.yaml` is discovered and loaded, and
+/// the default theme-file globs apply unless the section sets `except`.
 List<TokViolation> analyzeTokFile(String path, {FlatRuleConfig? config}) {
   return runFlatRule(
     path,
-    config: config,
+    config: config ?? _loadTokConfig(path),
     section: 'theme_tokens',
     namesKey: 'extra_ctors',
     defaults: const {},
     defaultOn: true,
     scan: (names, message) => _scanTokFile(path, names, message),
+  );
+}
+
+/// Self-loads the `theme_tokens` section, falling back to
+/// [_defaultThemeExcept] when the section has no `except` key.
+FlatRuleConfig _loadTokConfig(String path) {
+  final loaded = FlatRuleConfig.load(
+    path,
+    'theme_tokens',
+    'extra_ctors',
+    defaultOn: true,
+  );
+  if (loaded.except.isNotEmpty) return loaded;
+  final raw = RuleSection.load(path, 'theme_tokens').value;
+  if (raw is Map && raw.containsKey('except')) return loaded;
+  return FlatRuleConfig(
+    names: loaded.names,
+    except: _defaultThemeExcept,
+    message: loaded.message,
+    baseDir: loaded.baseDir,
   );
 }
 

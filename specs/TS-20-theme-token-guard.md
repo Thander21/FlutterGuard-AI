@@ -8,13 +8,14 @@ analysis: "parse-only"
 ast_nodes:
   - "InstanceCreationExpression"
   - "MethodInvocation[constructor-shaped]"
-invariant: "Every `Color` construction — unnamed or channel ctors by default, plus configured extra_ctors — MUST NOT appear outside the `theme_tokens` `except` files."
+invariant: "Every `Color` construction — unnamed or channel ctors by default, plus configured extra_ctors — MUST NOT appear outside the `theme_tokens` `except` files (default: the project's theme files; a configured `except` replaces the default)."
 fp_limits:
   - "theme tokens (properties, scheme lookups — never constructions)"
   - "Colors.* swatches (property access)"
   - "non-channel named ctors (Color.lerp, ...)"
   - "geometry literals by default (BorderRadius/EdgeInsets — extras-only)"
   - "uses inside except files"
+  - "uses inside default theme files when no except is configured"
 golden_vectors:
   failing: "benchmark/vectors/TC-20_tok.bad.dart"
   passing: "benchmark/vectors/TC-20_tok.good.dart"
@@ -40,7 +41,17 @@ ctors `fromARGB`/`fromRGBO` flag; anything else named
 (`EdgeInsets.all(8)` is idiomatic enough to sit in settled
 goldens): projects add `Type` or `Type.ctor` entries under
 `extra_ctors`, and hang their theme location on `except`.
-Discovery, merging (nearest wins), and lenient degrade follow
+
+Without a configured `except`, a default list spares the
+project's own theme files (otherwise the default-on rule flags
+the color scheme itself): `**/lib/**/theme/**`,
+`**/lib/**/themes/**`, `**/*_theme.dart`, `**/*_colors.dart`,
+and `**/color_scheme*.dart`. The default applies only when the
+`theme_tokens` section has no `except` key; any configured
+`except` — even an empty list — REPLACES it (it is not merged),
+so a project that keeps a default location must list it again.
+An injected config (tests) is used verbatim, without the
+default. Discovery, merging (nearest wins), and lenient degrade follow
 SYS-CLI-001a §2.
 
 # 2. Canonical Auto-Heal Recipe (Before / After)
@@ -83,6 +94,15 @@ only — prefixed calls carry no ctor name).
 - `'Color(0xFF0000)'` string / comment: MUST NOT be
   flagged (AST, not text). [eval: unit fixture]
 - File matching `except`: MUST NOT be flagged. [eval: unit
+  fixture (temp project)]
+- No yaml: `Color(...)` in `lib/themes/color_schemes.dart`,
+  `lib/theme/x.dart`, `lib/ui/app_theme.dart`,
+  `*_colors.dart`, `color_scheme*.dart` MUST NOT be flagged;
+  in `lib/widgets/x.dart` MUST be flagged. [eval: unit
+  fixture (temp project)]
+- `except: ["lib/brand/**"]` configured: `lib/brand/a.dart`
+  MUST NOT be flagged and `lib/themes/color_schemes.dart`
+  MUST be flagged (the default is replaced). [eval: unit
   fixture (temp project)]
 - `extra_ctors: [BorderRadius.circular]`: MUST flag
   `BorderRadius.circular(8)` but NOT `BorderRadius.only`.

@@ -72,7 +72,9 @@ void _scanComments(
 /// Scope (R2-3): any `//` line comment containing a bare `ignore:` or
 /// `ignore_for_file:` (case-sensitive, anywhere in the file), and any
 /// catch clause whose body holds no real statement. Justified
-/// suppressions (trailing or preceding-line `//` rationale), doc
+/// suppressions (same-line rationale — `//`, a spaced dash, a
+/// marker word, or a non-code comma item — or a preceding-line
+/// `//` rationale), doc
 /// (`///`), and block (`/* */`) comments are never suppressions and
 /// stay clean. Comment-only catches warn; fully-empty catches error.
 class LintSuppressionGuard extends RecursiveAstVisitor<void> {
@@ -86,8 +88,8 @@ class LintSuppressionGuard extends RecursiveAstVisitor<void> {
 
   /// Flags [lexeme] when it is a bare `//` suppression comment.
   ///
-  /// A suppression carrying trailing rationale (a second `//`
-  /// after the directive with non-blank text) is a reviewed
+  /// A suppression carrying same-line rationale (see
+  /// [_isJustified]) is a reviewed
   /// decision and stays clean (SYS-CAL-002 P1-5), as is one with
   /// rationale on the immediately preceding own-line `//`
   /// comment (SYS-CAL-003 R2-3).
@@ -157,11 +159,51 @@ bool _isLineComment(String lexeme) {
   return lexeme.length > 3 && lexeme[3] == '/';
 }
 
+/// Rationale marker words (case-insensitive) that justify a
+/// suppression when non-blank text follows them.
+final _markerPattern = RegExp(
+  r'\b(?:justificativa|rationale|reason|motivo):\s*\S',
+  caseSensitive: false,
+);
+
+/// A bare marker word with nothing after it (`justificativa:`):
+/// an empty rationale, never a justification.
+final _bareMarker = RegExp(
+  r'^(?:justificativa|rationale|reason|motivo):$',
+  caseSensitive: false,
+);
+
+/// A spaced dash separator (`-`, en dash, em dash) followed by
+/// non-blank text.
+final _dashPattern = RegExp(r'\s[-\u2013\u2014]\s+\S');
+
+/// One diagnostic code in an ignore list: a lower_snake
+/// identifier, optionally `key=value` (`type=lint`).
+final _codePattern = RegExp(r'^[a-z_][a-z0-9_]*(?:=[a-z0-9_]+)?$');
+
 /// True when [lexeme] carries rationale after [directive]: a `//`
-/// separator past the directive with non-blank text following it.
+/// separator, a spaced dash, or a marker word (`justificativa:`,
+/// `rationale:`, `reason:`, `motivo:`) followed by non-blank text,
+/// or a comma-separated item that is not a diagnostic code
+/// (`// ignore: a, b` stays bare; `// ignore: a, why` does not).
 bool _isJustified(String lexeme, String directive) {
-  final start = lexeme.indexOf(directive) + directive.length;
-  final separator = lexeme.indexOf('//', start);
-  if (separator == -1) return false;
-  return lexeme.substring(separator + 2).trim().isNotEmpty;
+  final rest = lexeme.substring(lexeme.indexOf(directive) + directive.length);
+  final separator = rest.indexOf('//');
+  if (separator != -1 && rest.substring(separator + 2).trim().isNotEmpty) {
+    return true;
+  }
+  if (_markerPattern.hasMatch(rest) || _dashPattern.hasMatch(rest)) {
+    return true;
+  }
+  final codes = separator == -1 ? rest : rest.substring(0, separator);
+  return codes
+      .split(',')
+      .skip(1)
+      .map((item) => item.trim())
+      .any(
+        (item) =>
+            item.isNotEmpty &&
+            !_codePattern.hasMatch(item) &&
+            !_bareMarker.hasMatch(item),
+      );
 }

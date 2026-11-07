@@ -24,3 +24,12 @@ void save() {
     // TODO: surface save errors in the UI
   }
 }
+
+// ignore: unused_element //
+void first() {}
+
+// ignore: unused_element, unused_local_variable
+void second() {}
+
+// ignore: unused_element -
+void third() {}

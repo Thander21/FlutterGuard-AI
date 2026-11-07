@@ -9,12 +9,16 @@ void main() {
       final violations = analyzeLintSuppressionFile(
         'benchmark/vectors/TC-11_lint.bad.dart',
       );
-      expect(violations.map((v) => v.line), [6, 12, 15, 23]);
+      expect(violations.map((v) => v.line), [6, 12, 15, 23, 28, 31, 34]);
       expect(violations.first.message, contains('ignore:'));
       expect(violations.first.message, contains('root cause'));
       expect(violations[1].message, contains('empty catch'));
       expect(violations[2].message, contains('ignore_for_file:'));
-      expect(violations.last.message, contains('catch block'));
+      expect(violations[3].message, contains('catch block'));
+      expect(
+        violations.skip(4).map((v) => v.message),
+        everyElement(contains('ignore:')),
+      );
     });
 
     test('spares handled errors (zero false positives)', () {
@@ -186,6 +190,58 @@ void f() {
       };
       expect(byLine[12], 'error');
       expect(byLine[23], 'warning');
+    });
+    test('spares same-line rationale shapes (K3)', () {
+      final root = Directory.systemTemp.createTempSync('lint_test.');
+      try {
+        final path = '${root.path}/shapes.dart';
+        File(path).writeAsStringSync('''
+// ignore_for_file: avoid_print // Justificativa: x
+void f() {
+  // ignore: specify_nonobvious_property_types, justificativa: A tipagem varia.
+  a();
+  // ignore: i18n - nome técnico da escala tipográfica.
+  b();
+  // ignore: avoid_print // Justificativa: CLI.
+  c();
+  // ignore: x — kept for the legacy driver
+  d();
+  // ignore: x, y, needed until the upstream fix lands
+  e();
+  // ignore: x Rationale: generated shim
+  g();
+  // ignore: x reason: upstream bug
+  h();
+  // ignore: x MOTIVO: legado
+  i();
+}
+''');
+        expect(analyzeLintSuppressionFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('bare code lists and empty separators stay flagged (K4)', () {
+      final root = Directory.systemTemp.createTempSync('lint_test.');
+      try {
+        final path = '${root.path}/bare.dart';
+        File(path).writeAsStringSync('''
+void f() {
+  a(); // ignore: x
+  b(); // ignore: x //
+  c(); // ignore: a, b
+  d(); // ignore: x -
+  e(); // ignore: x, justificativa:
+  g(); // ignore: a, b,
+  h(); // ignore_for_file: type=lint
+}
+''');
+        final violations = analyzeLintSuppressionFile(path);
+        expect(violations.map((v) => v.line), [2, 3, 4, 5, 6, 7, 8]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
     });
   });
 }
