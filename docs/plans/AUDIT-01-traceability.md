@@ -49,7 +49,7 @@ only, not spec material) · PROCESS (adopted way of working).
 - 5 provers → SYS-FORMAL-001 table: async-gap/disposal CORE covered
   (ASYNC-002, BLOC-001, LIFE-001, LAY-004, ST-001); BUILD-014 built;
   MEM-011 absorbed+dropped; WASTE-015/RACE-013/FSM-012 dropped;
-  interval engine dropped; Row/GridV → TS-07 v2 backlog.
+  interval engine dropped; Row/GridV → BUILT (TS-07 v2, FORMAL-001 records no backlogs remaining).
 - Gate ladder light/full → BUILT (CLI-001a mapping).
 - 40ms claim → measured baselines in CLI-001a (tracked, not
   blocking; startup dominates).

@@ -2,7 +2,7 @@
 spec_version: "openspec-1.0"
 id: "SYS-CAL-003"
 title: "Field calibration round 2: re-pilot findings and remediation"
-status: "draft"
+status: "approved"
 kind: "system"
 ---
 
@@ -556,6 +556,23 @@ on ERP `lib/`):
 Until then: ERP stays off-gate on the §1 selective yaml;
 the three real-signal classes are fixed out of band.
 
+## Adjudication 2026-11-07 (MVP external evaluation, FOLLOWUP-01 F-011)
+
+Pilot-3-equivalent data arrived via the generic-prompt MVP run
+(FG `bc46a7b`, ERP `lib/` at `a6e17772`, read-only): 697/697
+parse-clean, 0 duplicates, `--jobs 4` finding-identical, baseline
+update→green, `--diff` scoped + exit-2-with-cause off-git.
+Per-bar verdicts: parse MET; duplicates MET; MET-noise-per-Q3
+MET (warn + counts + baseline in place); baseline/diff MET;
+real signals MET (same Drift widgets, support-modal leak,
+13 empty catches as errors, comment-only as warnings);
+generality MET (suite + grade green, no ERP-only hardcode);
+R2-6 MET. NOT MET: ASYNC-002 precision (0/12, mechanisms
+M1/M2/M3 → F-013) and no-new-FP-class (LIFE helper, RIV
+nesting, LINT third format → F-014/F-017). Overall: bar NOT
+met — residual program graduates to SYS-CAL-004; ERP stays
+off-gate on the selective yaml.
+
 # 6. Implementation Status (2026-11-05)
 
 - R2-1 IMPLEMENTED 2026-11-05 (TS-06 amended per ratified
@@ -824,8 +841,12 @@ the three real-signal classes are fixed out of band.
   FOLLOWUP-01 F-008 (`<=`, `false -> true` unmutated).
   The §5 "R2-6 executed" bar is MET; the pilot-3 `check`
   re-run bar still stands.
-- Recommended next: the isolate-parallelism follow-up or
-  the §5 pilot-3 re-run (owner-run).
+- §5 ADJUDICATED 2026-11-07 (MVP run F-011): 6 bars MET
+  (parse, duplicates/MET-mechanism, baseline/diff, signals,
+  generality, R2-6), 2 NOT MET (ASYNC precision, no-new-class).
+  Isolate parallelism LANDED (`3f2bf85` `--jobs`, equivalence
+  proven in the field). ROUND CLOSED: residual program
+  graduates to SYS-CAL-004 (F-012–F-017).
 - Scope broadened 2026-11-05 (§7 + Broadening notes): ERP is
   corpus #1, not the mold. Ratified 2026-11-05 (Q9).
 
@@ -836,7 +857,7 @@ calibration corpus #1, not the mold. No R2 item may hardcode
 an ERP-only idiom without either generalizing it or hanging
 it on config.
 
-Covered project types (R2 boundary, pending Q9):
+Covered project types (R2 boundary, per ratified Q9):
 
 | Type | Example shape | Coverage |
 |---|---|---|

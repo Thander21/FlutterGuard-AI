@@ -2,7 +2,7 @@
 spec_version: "openspec-1.0"
 id: "SYS-CAL-002"
 title: "Field calibration: ERP pilot findings and remediation"
-status: "draft"
+status: "approved"
 kind: "system"
 ---
 
@@ -487,3 +487,6 @@ out of band.
   catches among 13 flagged); FP bar NOT met (residual +
   new FP classes). Round-2 program chartered as
   SYS-CAL-003.
+- ROUND CLOSED 2026-11-07: program complete, §5 measured
+  (parse/FMT/TP met, FP graduated to CAL-003 per the named-
+  amendment path); live tracker moves CAL-003 → SYS-CAL-004.
