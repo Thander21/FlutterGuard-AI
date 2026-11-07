@@ -317,6 +317,102 @@ void main() {
       expect(summary['warnings'], greaterThan(0));
     });
   });
+
+  group('parallel scan (--jobs)', () {
+    List<String> vectorFiles() => collectScannableFiles(
+      'benchmark/vectors',
+      extensions: registeredExtensions,
+      namePrefixes: registeredPrefixes,
+      names: registeredNames,
+    );
+
+    List<Map<String, Object?>> findingMaps(CheckResult result) => [
+      for (final finding in result.findings) finding.toJson(),
+    ];
+
+    List<Map<String, Object?>> errorMaps(CheckResult result) => [
+      for (final error in result.errors) error.toJson(),
+    ];
+
+    test('parallel scan is finding-identical to sequential', () async {
+      final files = vectorFiles();
+      final sequential = checkFiles(files, 'benchmark/vectors');
+      var fallbacks = 0;
+      final parallel = await checkFilesParallel(
+        files,
+        'benchmark/vectors',
+        jobs: 4,
+        onFallback: () => fallbacks++,
+      );
+      expect(
+        fallbacks,
+        isZero,
+        reason: 'happy path must run in workers, never fall back',
+      );
+      expect(findingMaps(parallel), equals(findingMaps(sequential)));
+      expect(errorMaps(parallel), equals(errorMaps(sequential)));
+      expect(parallel.msByRule.keys.toSet(), sequential.msByRule.keys.toSet());
+    });
+
+    test('jobs 1 runs the sequential loop with no isolates', () async {
+      final files = vectorFiles();
+      final sequential = checkFiles(files, 'benchmark/vectors');
+      var fallbacks = 0;
+      final parallel = await checkFilesParallel(
+        files,
+        'benchmark/vectors',
+        jobs: 1,
+        onFallback: () => fallbacks++,
+      );
+      expect(fallbacks, isZero);
+      expect(findingMaps(parallel), equals(findingMaps(sequential)));
+    });
+
+    test(
+      'dead worker falls back to sequential with identical output',
+      () async {
+        final files = vectorFiles();
+        final sequential = checkFiles(files, 'benchmark/vectors');
+        var fallbacks = 0;
+        final parallel = await checkFilesParallel(
+          files,
+          'benchmark/vectors',
+          jobs: 4,
+          runShard: (_) => throw StateError('dead worker'),
+          onFallback: () => fallbacks++,
+        );
+        expect(fallbacks, greaterThan(0));
+        expect(findingMaps(parallel), equals(findingMaps(sequential)));
+        expect(errorMaps(parallel), equals(errorMaps(sequential)));
+      },
+    );
+
+    test('analyzeShard resolves the registry by id, ignoring unknown ids', () {
+      final result = analyzeShard({
+        'files': ['benchmark/vectors/TC-01_bloc.bad.dart'],
+        'rules': ['FG-BLOC-001', 'FG-NOPE-999'],
+      });
+      final findings = result['findings'] as List;
+      expect(findings, isNotEmpty);
+      expect(
+        findings.every((raw) => (raw as Map)['rule_id'] == 'FG-BLOC-001'),
+        isTrue,
+      );
+      expect((result['ms'] as Map).keys, ['FG-BLOC-001']);
+    });
+
+    test('shardFiles splits contiguously without empty shards', () {
+      expect(shardFiles([], 4), isEmpty);
+      expect(shardFiles(['a', 'b', 'c', 'd', 'e'], 2), [
+        ['a', 'b', 'c'],
+        ['d', 'e'],
+      ]);
+      expect(shardFiles(['a', 'b'], 8), [
+        ['a'],
+        ['b'],
+      ]);
+    });
+  });
 }
 
 /// Probe violation for the extension-scope test.

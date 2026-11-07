@@ -99,12 +99,16 @@ void main() {
   });
 
   group('check --evidence', () {
-    test('records per-gate lines for the run', () {
+    test('records per-gate lines for the run', () async {
       final root = Directory.systemTemp.createTempSync('ledger_test.');
       try {
         final ledger = '${root.path}/ledger.jsonl';
         expect(
-          check(['--evidence', ledger, 'benchmark/vectors/TC-07_lay.bad.dart']),
+          await check([
+            '--evidence',
+            ledger,
+            'benchmark/vectors/TC-07_lay.bad.dart',
+          ]),
           1,
         );
         final lines = File(ledger).readAsLinesSync();
@@ -123,11 +127,11 @@ void main() {
       }
     });
 
-    test('writes nothing without the flag', () {
+    test('writes nothing without the flag', () async {
       final root = Directory.systemTemp.createTempSync('ledger_test.');
       try {
         File('${root.path}/a.dart').writeAsStringSync('void main() {}\n');
-        expect(check([root.path]), isZero);
+        expect(await check([root.path]), isZero);
         expect(
           Directory(root.path).listSync().map((e) {
             return e.path.replaceAll(r'\', '/').split('/').last;
@@ -139,12 +143,12 @@ void main() {
       }
     });
 
-    test('unwritable ledger path exits 2', () {
+    test('unwritable ledger path exits 2', () async {
       final root = Directory.systemTemp.createTempSync('ledger_test.');
       try {
         File('${root.path}/blocker').writeAsStringSync('x');
         expect(
-          check([
+          await check([
             '--evidence',
             '${root.path}/blocker/ledger.jsonl',
             'benchmark/vectors/TC-07_lay.bad.dart',
@@ -176,13 +180,13 @@ void main() {
       }
     });
 
-    test('update-baseline runs also record', () {
+    test('update-baseline runs also record', () async {
       final root = Directory.systemTemp.createTempSync('ledger_test.');
       try {
         final ledger = '${root.path}/ledger.jsonl';
         final baseline = '${root.path}/baseline.json';
         expect(
-          check([
+          await check([
             '--evidence',
             ledger,
             '--baseline',

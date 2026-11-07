@@ -215,12 +215,12 @@ void main() {
   });
 
   group('check --license-audit', () {
-    test('missing deny list exits 2', () {
+    test('missing deny list exits 2', () async {
       final root = Directory.systemTemp.createTempSync('licenses_test.');
       try {
         Directory('${root.path}/pkg').createSync();
         File('${root.path}/pkg/pubspec.yaml').writeAsStringSync('name: pkg\n');
-        expect(check(['--license-audit', '${root.path}/pkg']), 2);
+        expect(await check(['--license-audit', '${root.path}/pkg']), 2);
       } finally {
         root.deleteSync(recursive: true);
       }

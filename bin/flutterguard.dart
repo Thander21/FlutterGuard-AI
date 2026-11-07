@@ -27,11 +27,11 @@ import 'package:flutterguard_ai/flutterguard_ai.dart';
 /// Explicit [exit] (instead of returning the code from `main`) so the
 /// process exit code propagates through `dart` batch-file launchers that
 /// swallow a returned code.
-void main(List<String> args) {
-  exit(_run(args));
+Future<void> main(List<String> args) async {
+  exit(await _run(args));
 }
 
-int _run(List<String> args) {
+Future<int> _run(List<String> args) async {
   if (args.length == 1 && args.first == 'grade') {
     return grade();
   }

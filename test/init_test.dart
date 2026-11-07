@@ -198,31 +198,31 @@ void main() {
       root.deleteSync(recursive: true);
     });
 
-    test('load, check, reset cycle', () {
-      expect(cli.sandbox(['load'], root: root.path), isZero);
+    test('load, check, reset cycle', () async {
+      expect(await cli.sandbox(['load'], root: root.path), isZero);
       final box = Directory('${root.path}/fixtures/sandbox');
       expect(box.listSync().map((e) => e.path), hasLength(1));
       expect(
-        cli.sandbox(['check'], root: root.path),
+        await cli.sandbox(['check'], root: root.path),
         1,
         reason: 'violations are the expected state right after load',
       );
-      expect(cli.sandbox(['reset'], root: root.path), isZero);
+      expect(await cli.sandbox(['reset'], root: root.path), isZero);
       expect(box.listSync(), isEmpty);
     });
 
-    test('load fails without a vectors source', () {
+    test('load fails without a vectors source', () async {
       final empty = Directory.systemTemp.createTempSync('sandbox_empty.');
       try {
-        expect(cli.sandbox(['load'], root: empty.path), 1);
+        expect(await cli.sandbox(['load'], root: empty.path), 1);
       } finally {
         empty.deleteSync(recursive: true);
       }
     });
 
-    test('usage errors', () {
-      expect(cli.sandbox([], root: root.path), 2);
-      expect(cli.sandbox(['bogus'], root: root.path), 2);
+    test('usage errors', () async {
+      expect(await cli.sandbox([], root: root.path), 2);
+      expect(await cli.sandbox(['bogus'], root: root.path), 2);
     });
   });
 

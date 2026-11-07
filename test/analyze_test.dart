@@ -101,20 +101,20 @@ void main() {
   });
 
   group('check --analyze', () {
-    test('clean target exits 0, dirty target exits 1', () {
+    test('clean target exits 0, dirty target exits 1', () async {
       final clean = _package('void main() {}\n');
       final dirty = _package('void f() { nope(); }\n');
       try {
-        expect(check(['--analyze', clean.path]), isZero);
-        expect(check(['--analyze', dirty.path]), 1);
+        expect(await check(['--analyze', clean.path]), isZero);
+        expect(await check(['--analyze', dirty.path]), 1);
       } finally {
         clean.deleteSync(recursive: true);
         dirty.deleteSync(recursive: true);
       }
     });
 
-    test('requires exactly one target', () {
-      expect(check(['--analyze']), 2);
+    test('requires exactly one target', () async {
+      expect(await check(['--analyze']), 2);
     });
 
     test('dirty JSON carries analyzer errors (subprocess)', () {
@@ -144,7 +144,7 @@ void main() {
       }
     });
 
-    test('analyzes the whole target under --diff', () {
+    test('analyzes the whole target under --diff', () async {
       final root = Directory.systemTemp.createTempSync('analyze_test.');
       try {
         Process.runSync('git', [
@@ -180,7 +180,13 @@ void main() {
         // Nothing changed: visitors see an empty diff, but the
         // analyzer still runs over the whole target and fails.
         expect(
-          check(['--analyze', '--diff', '--diff-base', 'main', root.path]),
+          await check([
+            '--analyze',
+            '--diff',
+            '--diff-base',
+            'main',
+            root.path,
+          ]),
           1,
         );
       } finally {

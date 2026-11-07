@@ -206,10 +206,23 @@ enabled rule (`gate PASS|WARN|FAIL <RULE> (<e> errors, <w>
 warnings, <ms> ms)`, registry order; JSON gains a `gates`
 array) computed from reported findings plus measured scan
 times. Default output is byte-identical without the flag.
-Execution stays sequential in v0 (isolate parallelism
-deferred — registry entries close over lambdas that don't
-cross isolate boundaries); the report surface is the stable
-half.
+
+Execution is sequential by default; `--jobs <n>` (n ≥ 2)
+fans the per-file loop out to file shards over worker
+isolates (`Isolate.run` one-shot per shard; at most
+min(<n>, cores, files) workers). Workers receive plain
+data only (enabled rule ids + file paths) and re-resolve
+the registry by id inside the isolate, so the FG-LINT-009
+`severityFor` closure never crosses a boundary and the
+registry stays untouched. Findings, per-file errors, and
+per-rule timings merge back into the same deterministic
+tail (sort + dedup), so `--jobs` output is finding-identical
+to sequential (only `ms` values differ). The FG-FMT-016
+batch still runs in the main isolate. A dead worker fails
+closed: its shard re-runs sequentially in the main
+isolate. The library core (`checkPath`/`checkFiles`/
+`analyzeFilesWithRules`) stays synchronous; only the thin
+`check()` CLI wrapper is async.
 
 Per-run ledger: `--evidence <path>` appends one canon-shaped
 line per enabled rule (SYS-TELE-001, zero new keys:
@@ -308,14 +321,17 @@ only the explicitly named baseline path, never the target tree.
 
 - `bin/flutterguard.dart` `check()` (thin CLI: parse, render, exit codes).
 - `lib/src/cli/check.dart` (`checkPath`: pure core, per-file errors
-  collected, sorted output).
+  collected, sorted output; plus the `--jobs` parallel scan:
+  `checkFilesParallel`, the worker entry, and the sequential
+  fallback — co-located so no import cycle forms).
 - `lib/src/cli/rules.dart` (registry both `grade` and `check` run).
 - `lib/src/cli/baseline.dart` (R2-2 adoption scope: baseline
   load/write/ratchet filter + diff file-set resolution; the git and
   baseline reads run at the `check()` edge so `checkPath` stays
   stdio-free). Re-exported from `lib/flutterguard_ai.dart`.
-- Tests: `test/check_test.dart` (audit behavior), `test/check_cli_test.dart`
-  (arg parsing, exit codes), `test/baseline_test.dart` (ratchet math,
+- Tests: `test/check_test.dart` (audit behavior, parallel
+  equivalence), `test/check_cli_test.dart`
+  (arg parsing, exit codes, `--jobs` matrix), `test/baseline_test.dart` (ratchet math,
   key stability, diff scope, flag matrix), `test/select_test.dart`
   (selection mapping, CLI lines and exits), `test/analyze_test.dart`
   (machine-output parsing, real-SDK runs, `--analyze` exits),
@@ -344,6 +360,8 @@ only the explicitly named baseline path, never the target tree.
 - `lib/src/ast/format_guard.dart` (FG-FMT-016 batch core:
   bounded `dart format` spawns per `checkPath` call, 50 files
   each (TS-16); called by `checkPath`, not the per-file loop).
+- `checkFilesParallel` is called at the `check()` edge when
+  `--jobs` ≥ 2, never in `checkPath`.
 
 # 4. Evidence Wiring
 
@@ -409,6 +427,12 @@ consume; no key is claimed identical.
   exit 0 with zero findings.
 - Baseline entries for disabled rules or vanished files are
   ignored on read and pruned on update (never an error).
+- `--jobs` with a non-integer or < 1 value: usage error →
+  exit 2 naming the cause. `--jobs 1` is explicit
+  sequential. `--jobs` changes no exits (finding-identical).
+- Dead worker isolate: the shard re-runs sequentially in
+  the main isolate (fail-closed fallback); no `errors`
+  entry, no exit change — output stays finding-identical.
 
 # 6. Contradictions Resolved
 
@@ -425,3 +449,9 @@ consume; no key is claimed identical.
   in-process `dart_style` pins a second formatting
   implementation that can skew from the ambient SDK; temp
   copies lose package context and flip the language version).
+- Isolate parallelism (2026-11-07): the v0 sequential bar is
+  lifted for an opt-in shard-by-file path — per-rule
+  sharding rejected (breaks per-file error-once), async
+  `checkPath` rejected (breaks the sync library core),
+  sending analyzer tear-offs rejected (workers resolve the
+  registry by id from plain data, so no closure crosses).

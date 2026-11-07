@@ -6,6 +6,7 @@
 // behavior is unit-testable; only the `check()` wrapper touches stdio.
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:args/args.dart';
 
@@ -199,32 +200,10 @@ CheckResult checkFiles(List<String> files, String target) {
   );
   final all = [...findings];
   for (final rule in batched) {
-    final batchWatch = Stopwatch()..start();
-    try {
-      final verdicts = analyzeFormatBatch([
-        for (final file in files)
-          if (rule.scopes(file)) file,
-      ]);
-      for (final entry in verdicts.entries) {
-        for (final violation in entry.value) {
-          all.add(
-            CheckFinding(
-              ruleId: rule.id,
-              spec: rule.spec,
-              file: entry.key,
-              line: violation.line,
-              message: violation.message,
-              severity: rule.severityFor?.call(violation) ?? rule.severity,
-            ),
-          );
-        }
-      }
-    } catch (error) {
-      errors.add(CheckError(file: target, error: '$error'));
-    }
-    batchWatch.stop();
-    msByRule[rule.id] =
-        (msByRule[rule.id] ?? 0) + batchWatch.elapsedMilliseconds;
+    final batch = analyzeBatchRule(files, target, rule);
+    all.addAll(batch.findings);
+    errors.addAll(batch.errors);
+    msByRule[rule.id] = (msByRule[rule.id] ?? 0) + batch.ms;
   }
   all.sort(_byFileRuleLine);
   return CheckResult(
@@ -232,6 +211,41 @@ CheckResult checkFiles(List<String> files, String target) {
     errors: errors,
     msByRule: msByRule,
   );
+}
+
+/// Runs the subprocess-batch rule over its scoped [files]
+/// (FG-FMT-016: bounded `dart format` spawns, not per file).
+/// Shared by the sequential and parallel scans so batch
+/// verdicts never drift.
+({List<CheckFinding> findings, List<CheckError> errors, int ms})
+analyzeBatchRule(List<String> files, String target, RuleAnalyzer rule) {
+  final findings = <CheckFinding>[];
+  final errors = <CheckError>[];
+  final watch = Stopwatch()..start();
+  try {
+    final verdicts = analyzeFormatBatch([
+      for (final file in files)
+        if (rule.scopes(file)) file,
+    ]);
+    for (final entry in verdicts.entries) {
+      for (final violation in entry.value) {
+        findings.add(
+          CheckFinding(
+            ruleId: rule.id,
+            spec: rule.spec,
+            file: entry.key,
+            line: violation.line,
+            message: violation.message,
+            severity: rule.severityFor?.call(violation) ?? rule.severity,
+          ),
+        );
+      }
+    }
+  } catch (error) {
+    errors.add(CheckError(file: target, error: '$error'));
+  }
+  watch.stop();
+  return (findings: findings, errors: errors, ms: watch.elapsedMilliseconds);
 }
 
 /// Deterministic finding order: file, rule id, line, then message
@@ -322,15 +336,162 @@ analyzeFilesWithRules(List<String> files, List<RuleAnalyzer> analyzers) {
   return (findings: findings, errors: errors, msByRule: msByRule);
 }
 
+/// Runs the per-file × per-rule loop over one shard [request]
+/// (keys `files` and `rules`: plain data only — no function
+/// crosses the boundary; the worker re-resolves the registry
+/// by id from its own copy, so the FG-LINT-009 `severityFor`
+/// closure stays in-isolate). Top-level: the [Isolate.run]
+/// computation shape. Returns plain-data maps (`findings`,
+/// `errors`, `ms`) for [checkFilesParallel] to rehydrate.
+/// Unknown rule ids are ignored (fail-open on ids: a typo
+/// scans less, never verdicts).
+Map<String, Object?> analyzeShard(Map<String, Object?> request) {
+  final files = (request['files'] as List).cast<String>();
+  final ids = Set<String>.from(request['rules'] as List);
+  final analyzers = [
+    for (final rule in ruleAnalyzers)
+      if (ids.contains(rule.id)) rule,
+  ];
+  final (:findings, :errors, :msByRule) = analyzeFilesWithRules(
+    files,
+    analyzers,
+  );
+  return {
+    'findings': [for (final finding in findings) finding.toJson()],
+    'errors': [for (final error in errors) error.toJson()],
+    'ms': msByRule,
+  };
+}
+
+/// Splits [files] into at most [jobs] contiguous shards (empty
+/// input yields no shards; [jobs] clamps to the file count so
+/// no worker idles on an empty shard).
+List<List<String>> shardFiles(List<String> files, int jobs) {
+  if (files.isEmpty) return const [];
+  final workers = jobs.clamp(1, files.length);
+  final shards = <List<String>>[];
+  var start = 0;
+  for (var i = 0; i < workers; i++) {
+    final size = ((files.length - start) / (workers - i)).ceil();
+    shards.add(files.sublist(start, start + size));
+    start += size;
+  }
+  return shards;
+}
+
+/// Runs one [request] in a worker isolate; on worker death the
+/// shard re-runs sequentially in this isolate (fail-closed
+/// fallback — output stays finding-identical, only slower).
+/// [runShard] injects the spawn for tests; [onFallback] fires
+/// once per fallen-back shard (tests pin the happy path at
+/// zero).
+Future<Map<String, Object?>> _runShard(
+  Map<String, Object?> request, {
+  Future<Map<String, Object?>> Function(Map<String, Object?> request)? runShard,
+  void Function()? onFallback,
+}) async {
+  try {
+    if (runShard != null) return await runShard(request);
+    return await Isolate.run(() => analyzeShard(request));
+  } catch (_) {
+    onFallback?.call();
+    return analyzeShard(request);
+  }
+}
+
+/// Parallel scan: the same contract as [checkFiles], fanning
+/// the per-file loop over [jobs] worker isolates (file shards;
+/// the FG-FMT-016 batch still runs in this isolate). Merges
+/// through the same deterministic tail, so results are
+/// finding-identical to [checkFiles] (only `ms` values
+/// differ). [jobs] ≤ 1 runs the sequential loop with no
+/// isolate overhead; above the core count clamps to it.
+/// [runShard] and [onFallback] are test seams (see [_runShard]).
+Future<CheckResult> checkFilesParallel(
+  List<String> files,
+  String target, {
+  required int jobs,
+  Future<Map<String, Object?>> Function(Map<String, Object?> request)? runShard,
+  void Function()? onFallback,
+}) async {
+  final enabled = enabledAnalyzers(target, ruleAnalyzers);
+  final batched = enabled.where((r) => r.id == batchRuleId).toList();
+  final immediate = enabled.where((r) => r.id != batchRuleId).toList();
+  final ruleIds = [for (final rule in immediate) rule.id];
+  var workers = jobs.clamp(1, Platform.numberOfProcessors);
+  if (files.isNotEmpty) workers = workers.clamp(1, files.length);
+  final findings = <CheckFinding>[];
+  final errors = <CheckError>[];
+  final msByRule = <String, int>{};
+  if (workers <= 1) {
+    final sync = analyzeFilesWithRules(files, immediate);
+    findings.addAll(sync.findings);
+    errors.addAll(sync.errors);
+    msByRule.addAll(sync.msByRule);
+  } else {
+    final shards = shardFiles(files, workers);
+    final results = await Future.wait([
+      for (final shard in shards)
+        _runShard(
+          {'files': shard, 'rules': ruleIds},
+          runShard: runShard,
+          onFallback: onFallback,
+        ),
+    ]);
+    for (final shard in results) {
+      for (final raw in shard['findings'] as List) {
+        final map = (raw as Map).cast<String, Object?>();
+        findings.add(
+          CheckFinding(
+            ruleId: map['rule_id'] as String,
+            spec: map['spec'] as String,
+            file: map['file'] as String,
+            line: map['line'] as int,
+            message: map['message'] as String,
+            severity: map['severity'] as String,
+          ),
+        );
+      }
+      for (final raw in shard['errors'] as List) {
+        final map = (raw as Map).cast<String, Object?>();
+        errors.add(
+          CheckError(
+            file: map['file'] as String,
+            error: map['error'] as String,
+          ),
+        );
+      }
+      for (final entry in (shard['ms'] as Map).entries) {
+        final id = entry.key as String;
+        msByRule[id] = (msByRule[id] ?? 0) + (entry.value as int);
+      }
+    }
+  }
+  final all = [...findings];
+  for (final rule in batched) {
+    final batch = analyzeBatchRule(files, target, rule);
+    all.addAll(batch.findings);
+    errors.addAll(batch.errors);
+    msByRule[rule.id] = (msByRule[rule.id] ?? 0) + batch.ms;
+  }
+  all.sort(_byFileRuleLine);
+  return CheckResult(
+    findings: deduplicateFindings(all),
+    errors: errors,
+    msByRule: msByRule,
+  );
+}
+
 /// CLI usage for `check` (SYS-CLI-001a).
 const _checkUsage =
-    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--include-generated] [--baseline=<path>] [--update-baseline] [--diff] [--diff-base=<ref>] [--analyze] [--dep-audit] [--license-audit] [--by-gate] [--evidence=<path>] [--help]';
+    'Usage: dart run bin/flutterguard.dart check <path> [--json] [--include-generated] [--baseline=<path>] [--update-baseline] [--diff] [--diff-base=<ref>] [--analyze] [--dep-audit] [--license-audit] [--by-gate] [--evidence=<path>] [--jobs=<n>] [--help]';
 
 /// Audits one target with every registered visitor. Returns 1 when any
 /// error-severity violation is found, 0 when clean or warnings-only,
 /// 2 on bad arguments. R2-2: `--baseline`/`--update-baseline` ratchet
 /// plus `--diff` scope, with error/warning counts in the output.
-int check(List<String> args) {
+/// The scan fans out to worker isolates when `--jobs` ≥ 2.
+Future<int> check(List<String> args) async {
   final parser = ArgParser()
     ..addFlag('json', negatable: false, help: 'Report findings as JSON.')
     ..addFlag(
@@ -377,6 +538,11 @@ int check(List<String> args) {
       help: 'Report per-gate verdicts with timings.',
     )
     ..addOption('evidence', help: 'Append per-gate ledger lines to this path.')
+    ..addOption(
+      'jobs',
+      defaultsTo: '1',
+      help: 'Fan the scan out to N worker isolates (1 = sequential).',
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.');
   late final ArgResults parsed;
   try {
@@ -413,6 +579,13 @@ int check(List<String> args) {
     stderr.writeln(_checkUsage);
     return 2;
   }
+  final jobsRaw = parsed['jobs'] as String?;
+  final jobs = int.tryParse(jobsRaw ?? '');
+  if (jobs == null || jobs < 1) {
+    stderr.writeln('--jobs must be a positive integer (got "$jobsRaw").');
+    stderr.writeln(_checkUsage);
+    return 2;
+  }
   final target = targets.single;
   late final CheckResult result;
   try {
@@ -430,7 +603,9 @@ int check(List<String> args) {
           if (changed.contains(absoluteNormalized(file))) file,
       ];
     }
-    result = checkFiles(files, target);
+    result = jobs <= 1
+        ? checkFiles(files, target)
+        : await checkFilesParallel(files, target, jobs: jobs);
   } on ArgumentError catch (error) {
     stderr.writeln(error.message);
     return 2;

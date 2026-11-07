@@ -65,11 +65,11 @@ void main() {
   });
 
   group('check --dep-audit', () {
-    test('clean package exits 0, missing target exits 2', () {
+    test('clean package exits 0, missing target exits 2', () async {
       final root = _emptyPackage();
       try {
-        expect(check(['--dep-audit', root.path]), isZero);
-        expect(check(['--dep-audit']), 2);
+        expect(await check(['--dep-audit', root.path]), isZero);
+        expect(await check(['--dep-audit']), 2);
       } finally {
         root.deleteSync(recursive: true);
       }

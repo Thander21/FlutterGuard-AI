@@ -16,7 +16,7 @@ Usage: dart run bin/flutterguard.dart sandbox <load|reset|check>
 /// success, 1 when the vectors source is missing, 2 on bad arguments.
 /// `check` follows check() exit codes (1 = violations present, the
 /// expected state right after load).
-int sandbox(List<String> args, {String root = '.'}) {
+Future<int> sandbox(List<String> args, {String root = '.'}) async {
   if (args.length != 1 ||
       !const {'load', 'reset', 'check'}.contains(args.first)) {
     stderr.writeln(_sandboxUsage);
