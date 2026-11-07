@@ -724,6 +724,21 @@ SYS-TELE-001 first (canon rule §4).
   unchanged; corpus still 191 files. CRAP: detector trio
   UNMEASURED this pass (8s coverage timeout under load),
   metric/mcp trios 0 over budget (tripwire-excluded).
+- Re-ratifications: 2026-11-07 — SYS-CAL-004 R3 units 1–5
+  (flutterguardai series, merged): the AsyncContextGuard
+  statement scanner briefly re-surfaced the async~listkey
+  guard-idiom FP plus an internal 109~150 twin; `_scanFlat`
+  healed the twin and the exiting-branch rule dissolved
+  the idiom pair (neither ever pinned). Re-key: enc `39`
+  → `59`, tok `98` → `133`, baseline `169` → `236`
+  (same pairs, same FP judgments — rule growth shifted
+  keys). 14 pairs pinned (13 lib + 1 viewport),
+  0 actionable, HOLD reaffirmed. MET set unchanged (2 TPs
+  + the pinned config-ctor FP); `bin/`/`tool/` 0 pairs;
+  skip set unchanged; corpus at 192 files (+1:
+  doc_counts test — R3 added no `.dart` files). CRAP:
+  UNMEASURED this pass (8s coverage timeout under load —
+  same F-018 flake class as the 2026-11-06 pass).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

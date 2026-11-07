@@ -93,6 +93,12 @@ const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 /// dissolved (2nd check-family elimination); new _git~=
 /// runDepAudit runner-pipeline FP + new heal~=init
 /// procedural-flow-twin FP; 14 pinned.
+/// SYS-CAL-004 (flutterguardai1-5): the AsyncContextGuard statement
+/// scanner briefly re-surfaced the async~listkey guard-idiom FP and
+/// an internal 109~150 twin; `_scanFlat` healed the twin and the
+/// exiting-branch rule dissolved the idiom pair; ENC/TOK/baseline
+/// growth re-keyed enc 39 -> 59, tok 98 -> 133 and baseline
+/// 169 -> 236; 14 pinned.
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
   'lib/src/ast/asset_guard.dart:30~lib/src/ast/env_guard.dart:30',
@@ -102,9 +108,9 @@ const _ratifiedLibPairs = {
   'lib/src/ast/banned_symbol_guard.dart:97~lib/src/ast/pii_guard.dart:182',
   'lib/src/ast/context_scope_guard.dart:43~lib/src/ast/provider_naming_guard.dart:60',
   'lib/src/ast/context_scope_guard.dart:91~lib/src/ast/list_key_guard.dart:306',
-  'lib/src/ast/encoding_guard.dart:39~lib/src/ast/env_guard.dart:30',
-  'lib/src/ast/i18n_guard.dart:67~lib/src/ast/theme_token_guard.dart:98',
-  'lib/src/cli/baseline.dart:169~lib/src/cli/deps.dart:87',
+  'lib/src/ast/encoding_guard.dart:59~lib/src/ast/env_guard.dart:30',
+  'lib/src/ast/i18n_guard.dart:67~lib/src/ast/theme_token_guard.dart:133',
+  'lib/src/cli/baseline.dart:236~lib/src/cli/deps.dart:87',
   'lib/src/cli/heal.dart:76~lib/src/cli/init.dart:113',
   'lib/src/mcp/tools.dart:197~lib/src/mcp/tools.dart:219',
 };
