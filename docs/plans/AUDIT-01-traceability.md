@@ -19,8 +19,9 @@ only, not spec material) · PROCESS (adopted way of working).
 
 - §2.1 SDD engine → PROCESS (specs/TS + EDD loop live).
 - §2.2 AST governance → BUILT (14 TS rules + `check`/`grade`).
-- §2.3 mutation 3 ops (`>`, `==`, `true`) → BUILT (SYS-MUT-001,
-  exact operators).
+- §2.3 mutation ops (`>`, `>=`, `<=`, `==`, `true`, `false`) →
+  BUILT (SYS-MUT-001, exact operators; `<=`+`false` mirrors
+  added by F-008).
 - §2.4 two-tier visual → BUILT Tier-1 (SYS-VIEW-001) + DEFER
   Tier-2 (SYS-VIEW-002).
 - §2.5 resilience/heal/rollback → BUILT (SYS-HEAL-001 dispatcher;
@@ -110,7 +111,8 @@ only, not spec material) · PROCESS (adopted way of working).
 
 - Rebuild budget (pillar, Part 2 item, Part 3 §4) → DROP generic
   gate (SPIKE SYS-PROF-001; mechanism verified).
-- Mutation 3 ops → BUILT (MUT-001).
+- Mutation ops → BUILT (MUT-001; `<=`+`false` mirrors added
+  by F-008).
 - Matrix viewport 4 cases → BUILT (VIEW-001, unioned with PDV
   sizes).
 - Missing keys → BUILT rescoped (KEY-001r; dataflow dropped).
@@ -251,3 +253,8 @@ approved, 1 deferred, 2 dropped spikes) plus table-recorded drops
   unit tests extended; SYS-FORMAL-001 table flipped
   BACKLOG→COVERED. Re-audit triggers remaining: VIEW-002,
   PROF-002, `*Sync` candidate.
+- 2026-11-07 — FOLLOWUP-01 F-008 closed: SYS-MUT-001 §2/§6
+  amended (`<=`→`>=` and `false`→`true` mirrors),
+  `_MutantCollector` extended, `<=`/`false` ignore-pins
+  flipped to positive cases in `mutation_runner_test.dart`;
+  §1.1/§1.10 rows updated (no audit row closes).

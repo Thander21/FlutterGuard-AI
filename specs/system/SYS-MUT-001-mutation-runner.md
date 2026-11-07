@@ -28,12 +28,12 @@ No CLI command in v1; the MCP `run_mutation_check(test_file)` tool
 class Mutant {
   final int offset;      // 0-based offset of the site in the source
   final int line;        // 1-based line number of the site
-  final String operator; // e.g. '>', '>=', '==', 'true'
+  final String operator; // e.g. '>', '>=', '<=', '==', 'true', 'false'
   final String original;
   final String replacement;
 }
 
-/// AST-sited rewrite: every site of the 3 operators, ordered by offset.
+/// AST-sited rewrite: every site of the operator set, ordered by offset.
 List<Mutant> findMutants(String source, {String? path});
 /// [source] with [mutant] applied (single-site replacement).
 String applyMutant(String source, Mutant mutant);
@@ -90,15 +90,18 @@ List<String> flutterToolCommand(String flutterRoot, List<String> args);
 List<String> resolveFlutterCommand(List<String> command, {String? pathEnv});
 ```
 
-The 3 operators (Architecture §2.3), AST-sited so strings, comments,
-and generic type arguments are never touched:
+The operator set (Architecture §2.3, extended by field F-008),
+AST-sited so strings, comments, and generic type arguments are
+never touched:
 
 | # | original | replacement | AST node |
 |---|----------|-------------|----------|
 | 1 | `>` | `<` | `BinaryExpression` |
 | 1 | `>=` | `<=` | `BinaryExpression` |
+| 1 | `<=` | `>=` | `BinaryExpression` |
 | 2 | `==` | `!=` | `BinaryExpression` |
-| 3 | `true` | `false` | `BooleanLiteral` (value `true` only) |
+| 3 | `true` | `false` | `BooleanLiteral` |
+| 3 | `false` | `true` | `BooleanLiteral` |
 
 One mutant per site; mutants run independently (never combined).
 Test invocation is deterministic: the resolved command over
@@ -275,3 +278,9 @@ emission (canon rule §4).
   bundled dart plus `flutter_tools.snapshot` directly (exactly
   the `.bat`'s final command), so the breaker kills one real
   process and no shell is ever spawned.
+- Operator set (field F-008): Architecture §2.3's v1 set is
+  extended with the `<=`→`>=` sense-flip mirror (boundary
+  kept) and the `false`→`true` literal mirror — same
+  AST-sited single-site discipline, one mutant per site.
+  The `<`→`>` and `!=`→`==` mirrors stay unmutated: no
+  field probe has demanded them yet.

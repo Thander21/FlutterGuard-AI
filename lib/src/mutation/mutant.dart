@@ -35,7 +35,7 @@ class Mutant {
   String toString() => 'line $line: $original -> $replacement';
 }
 
-/// Finds every mutation site of the 3 chaos operators in [source],
+/// Finds every mutation site of the chaos operators in [source],
 /// ordered by offset (Architecture §2.3).
 ///
 /// Unparseable regions yield a partial AST; valid sites are still
@@ -89,6 +89,7 @@ class _MutantCollector extends RecursiveAstVisitor<void> {
     final replacement = switch (node.operator.type) {
       TokenType.GT => '<',
       TokenType.GT_EQ => '<=',
+      TokenType.LT_EQ => '>=',
       TokenType.EQ_EQ => '!=',
       _ => null,
     };
@@ -98,7 +99,7 @@ class _MutantCollector extends RecursiveAstVisitor<void> {
 
   @override
   void visitBooleanLiteral(BooleanLiteral node) {
-    if (node.value) _add(node.literal, 'false');
+    _add(node.literal, node.value ? 'false' : 'true');
     super.visitBooleanLiteral(node);
   }
 }

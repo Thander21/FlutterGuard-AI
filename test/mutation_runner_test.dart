@@ -15,33 +15,50 @@ import 'package:test/test.dart';
 
 void main() {
   group('findMutants', () {
-    test('finds the 3 operators with replacements, ordered by offset', () {
+    test('finds every operator with replacements, ordered by offset', () {
       const source = '''
 bool gt(int a, int b) => a > b;
 bool eq(int a, int b) => a == b;
 bool ge(int a) => a >= 10;
+bool le(int a) => a <= 10;
 bool yes() => true;
+bool no() => false;
 ''';
       final mutants = findMutants(source);
-      expect(mutants.map((m) => m.original), ['>', '==', '>=', 'true']);
-      expect(mutants.map((m) => m.replacement), ['<', '!=', '<=', 'false']);
-      expect(mutants.map((m) => m.line), [1, 2, 3, 4]);
+      expect(mutants.map((m) => m.original), [
+        '>',
+        '==',
+        '>=',
+        '<=',
+        'true',
+        'false',
+      ]);
+      expect(mutants.map((m) => m.replacement), [
+        '<',
+        '!=',
+        '<=',
+        '>=',
+        'false',
+        'true',
+      ]);
+      expect(mutants.map((m) => m.line), [1, 2, 3, 4, 5, 6]);
       final offsets = mutants.map((m) => m.offset).toList();
       expect(offsets, orderedEquals([...offsets]..sort()));
     });
 
-    test('ignores strings, comments, generics, false, and inverse ops', () {
-      const source = '''
-// a > b == c >= d
+    test(
+      'ignores strings, comments, generics, and the `<`/`!=` inverse ops',
+      () {
+        const source = '''
+// a > b == c >= d <= e
 String s = 'x > y == z';
 List<int> xs = [];
 bool lt(int a, int b) => a < b;
 bool ne(int a, int b) => a != b;
-bool le(int a, int b) => a <= b;
-bool no() => false;
 ''';
-      expect(findMutants(source), isEmpty);
-    });
+        expect(findMutants(source), isEmpty);
+      },
+    );
   });
 
   group('applyMutant', () {
