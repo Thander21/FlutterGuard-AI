@@ -122,3 +122,85 @@ class FiscalSyncWorker {
 
   void _onEvent(dynamic event) {}
 }
+
+// Fields assigned from a closure parameter are borrowed, not owned
+// (K1: cbenef_search_widget.dart:40 shape).
+class _SearchState extends State<SearchWidget> {
+  TextEditingController? _fieldController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        _fieldController = controller;
+        return TextField(controller: controller);
+      },
+    );
+  }
+}
+
+// Releases in helpers reached from a release entry point count (K2):
+// dispose() -> stopScanning(), one more level, and a local alias.
+class LanScanner {
+  StreamSubscription? _subscription;
+  Timer? _cleanupTimer;
+
+  void startScanning() {
+    _subscription = socket.listen(_onEvent);
+    _cleanupTimer = Timer.periodic(Duration(seconds: 5), (_) {});
+  }
+
+  Future<void> stopScanning() async {
+    _cleanupTimer?.cancel();
+    await _closeSocket();
+  }
+
+  Future<void> _closeSocket() async {
+    final sub = _subscription;
+    await sub?.cancel();
+  }
+
+  Future<void> dispose() async {
+    await stopScanning();
+  }
+
+  void _onEvent(dynamic event) {}
+}
+
+// ref.onDispose closures reach same-class helpers (K2:
+// printer_health_monitor.dart:37 shape).
+class _HealthMonitor extends Notifier<Object> {
+  Timer? _timer;
+
+  @override
+  Object build() {
+    ref.onDispose(() {
+      stop();
+    });
+    return Object();
+  }
+
+  void start() {
+    _timer = Timer.periodic(Duration(seconds: 30), (_) {});
+  }
+
+  void stop() {
+    _timer?.cancel();
+  }
+}
+
+// destroy() is a release entry point outside State/Notifier (K2:
+// hybrid_log_sink.dart:179 shape).
+class _BufferedSink extends LogOutput {
+  Timer? _timer;
+
+  void startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 2), (_) {});
+  }
+
+  @override
+  Future<void> destroy() async {
+    _timer?.cancel();
+    await super.destroy();
+  }
+}

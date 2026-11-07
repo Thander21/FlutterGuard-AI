@@ -11,7 +11,7 @@ ast_nodes:
   - "MethodInvocation[name='cancel'|'dispose'|'close'|'addListener'|'removeListener'|'onDispose']"
   - "CascadeExpression"
   - "ConstructorDeclaration"
-invariant: "Every self-instantiated class field holding a releasable resource (subscription, timer, controller, focus node, or listener registration) MUST have its matching release call in a release method of the same class. A 'ref.onDispose(...)' registration counts as a release: closures run with dispose semantics, and 'resource.dispose'/'.cancel'/'.close' tear-offs release the receiver. Constructor-received fields are borrowed, never checked. Release methods are 'dispose' always, plus 'close'/'stop'/'cancel' outside 'State'/'Notifier' subclasses."
+invariant: "Every self-instantiated class field holding a releasable resource (subscription, timer, controller, focus node, or listener registration) MUST have its matching release call in a release method of the same class. A 'ref.onDispose(...)' registration counts as a release: closures run with dispose semantics, and 'resource.dispose'/'.cancel'/'.close' tear-offs release the receiver. Constructor-received fields, and fields assigned only from an enclosing function or closure parameter, are borrowed, never checked. Release entry points are 'dispose' always, plus 'close'/'stop'/'cancel'/'destroy' outside 'State'/'Notifier' subclasses; a same-class method called from an entry point or from a 'ref.onDispose' closure (directly, or one more level indirectly) is a release method too."
 fp_limits:
   - "Riverpod onDispose-registered cleanup (counts as released)"
   - "resources released only in deactivate() (dispose-only rule)"
@@ -20,7 +20,11 @@ fp_limits:
   - "addListener/removeListener pairing is name-based; anonymous closures unevaluated"
   - "constructor-received fields (borrowed, never self-instantiated)"
   - "`close()` releases (joins cancel/dispose everywhere)"
-  - "releases in close()/stop()/cancel() of non-State/Notifier classes"
+  - "releases in close()/stop()/cancel()/destroy() of non-State/Notifier classes"
+  - "releases in same-class helpers reached from a release entry point or onDispose closure (2 levels)"
+  - "fields assigned only from a function/closure parameter (borrowed)"
+  - "releases through a local alias of the field (`final sub = _sub; sub.cancel()`)"
+  - "addListener calls inside static methods (no instance lifecycle)"
 golden_vectors:
   failing: "benchmark/vectors/TC-04_life.bad.dart"
   passing: "benchmark/vectors/TC-04_life.good.dart"
@@ -115,6 +119,26 @@ A `f.close()` call counts as a release for every row
   [eval: TC-04.good]
 - `State` subclasses keep the dispose-only rule: releases
   only in `close()` still flag. [eval: unit fixture]
+- Fields assigned only from an enclosing function or closure
+  parameter (`fieldViewBuilder: (ctx, controller, …) {
+  _field = controller; }`) are borrowed: MUST NOT be flagged;
+  an initializer or `initState` construction still owns
+  (K1). [eval: TC-04.good, TC-04.bad]
+- Release helpers: a same-class method called (`m()`,
+  `this.m()`, awaited or not) from a release entry point —
+  `dispose`, the extended set incl. `destroy`, or a
+  `ref.onDispose` closure/tear-off — is a release method,
+  and so is a method it calls (one more level). Deeper chains
+  and helpers no entry point calls (`stopPeriodicCheck()`
+  never invoked in-class) still flag (K2). [eval: TC-04.good,
+  TC-04.bad, unit fixture]
+- A local alias of a field (`final sub = _sub; sub?.cancel()`)
+  releases the field; null-asserted receivers (`_sub!.cancel()`)
+  count too (K2). [eval: TC-04.good, unit fixture]
+- `addListener` inside a static method (a forwarder such as
+  `static void addListener(l) => windowManager.addListener(l)`)
+  is NOT tracked: a static method owns no instance lifecycle.
+  [eval: unit fixture]
 - Indirect `State`/`Notifier` subclasses get the extended
   set (direct-superclass names only — parse-only ceiling).
   [unevaluated]

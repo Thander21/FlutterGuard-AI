@@ -43,3 +43,46 @@ class CounterButton extends ConsumerWidget {
     );
   }
 }
+
+// AsyncValue.when branches run inside the build (K3:
+// pdv_terminal_page_smartform.dart:140 shape).
+class TerminalHeader extends ConsumerWidget {
+  const TerminalHeader({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref
+        .watch(machineIdProvider)
+        .when(
+          data: (id) => GestureDetector(
+            onTap: () => ref.read(counterProvider.notifier).state++,
+            child: Text(ref.watch(counterProvider) > 0 ? 'Mine' : 'All'),
+          ),
+          loading: () => const Text('...'),
+          error: (_, _) => const Text('!'),
+        );
+  }
+}
+
+// A closure that re-binds `ref` shadows the outer handler scope (K3:
+// printer_health_badge.dart:32 shape).
+class HealthBadge extends ConsumerWidget {
+  const HealthBadge({super.key});
+
+  void _showDetails(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) => Text('${ref.watch(counterProvider)}'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () => _showDetails(context),
+      child: const Text('health'),
+    );
+  }
+}

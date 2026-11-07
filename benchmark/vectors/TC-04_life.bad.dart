@@ -42,3 +42,34 @@ class _BadState extends State<BadWidget> {
   @override
   Widget build(BuildContext context) => Container();
 }
+
+// Construction makes ownership: a field initialized with a controller
+// and never disposed still flags next to a borrowed one (K1).
+class _OwnedSearchState extends State<SearchWidget> {
+  TextEditingController? _fieldController;
+  final TextEditingController _query = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        _fieldController = controller;
+        return TextField(controller: _query);
+      },
+    );
+  }
+}
+
+// A release helper no entry point calls is not a release (K2:
+// update_service.dart:51 shape).
+class UpdateChecker {
+  Timer? _periodicTimer;
+
+  void startPeriodicCheck() {
+    _periodicTimer = Timer.periodic(Duration(hours: 1), (_) {});
+  }
+
+  void stopPeriodicCheck() {
+    _periodicTimer?.cancel();
+  }
+}

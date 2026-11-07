@@ -36,3 +36,22 @@ class MuteButton extends ConsumerWidget {
     );
   }
 }
+
+// A dialog builder inside an event handler still runs in the handler
+// scope: the outer `ref` is not re-bound (K3).
+class DialogButton extends ConsumerWidget {
+  const DialogButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () {
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => Text('${ref.watch(counterProvider)}'),
+        );
+      },
+      child: const Text('open'),
+    );
+  }
+}

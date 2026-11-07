@@ -9,12 +9,25 @@ void main() {
       final violations = analyzeLifecycleFile(
         'benchmark/vectors/TC-04_life.bad.dart',
       );
-      expect(violations.map((v) => v.line), [4, 5, 6, 7, 10, 11, 18, 19]);
+      expect(violations.map((v) => v.line), [
+        4,
+        5,
+        6,
+        7,
+        10,
+        11,
+        18,
+        19,
+        50,
+        66,
+      ]);
       expect(violations.first.message, contains('StreamSubscription'));
       expect(violations.first.message, contains('dispose'));
       expect(violations[5].message, contains('StreamSubscription'));
       expect(violations[5].message, contains('_lateSub'));
-      expect(violations.last.message, contains('removeListener'));
+      expect(violations[7].message, contains('removeListener'));
+      expect(violations[8].message, contains('_query'));
+      expect(violations.last.message, contains('_periodicTimer'));
     });
 
     test('spares fully released resources (zero false positives)', () {
@@ -159,5 +172,175 @@ class Field {
         }
       },
     );
+
+    test('borrows fields assigned from closure parameters (K1)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        final path = '${root.path}/search.dart';
+        File(path).writeAsStringSync('''
+class _SearchState extends ConsumerState<Search> {
+  TextEditingController? _fieldController;
+  final TextEditingController _query = TextEditingController();
+  TextEditingController? _owned;
+
+  @override
+  void initState() {
+    super.initState();
+    _owned = TextEditingController();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+      fieldViewBuilder: (context, controller, focusNode, submit) {
+        _fieldController = controller;
+        return TextField(controller: controller);
+      },
+    );
+  }
+}
+''');
+        final violations = analyzeLifecycleFile(path);
+        expect(violations.map((v) => v.line), [3, 4]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('follows self-calls from release entry points (K2)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        final path = '${root.path}/entries.dart';
+        File(path).writeAsStringSync('''
+class Scanner implements IScanner {
+  StreamSubscription? _subscription;
+  Timer? _cleanupTimer;
+  void start() {
+    _subscription = socket.listen(_onEvent);
+    _cleanupTimer = Timer.periodic(period, (_) {});
+  }
+  Future<void> stopScanning() async {
+    _cleanupTimer?.cancel();
+    await _subscription!.cancel();
+  }
+  Future<void> dispose() async {
+    await stopScanning();
+  }
+}
+
+class Hub {
+  StreamSubscription? _ws;
+  void connect() {
+    _ws = channel.stream.listen(_onEvent);
+  }
+  void disconnect() {
+    final sub = _ws;
+    if (sub != null) unawaited(sub.cancel());
+    _ws = null;
+  }
+  void dispose() {
+    this.disconnect();
+  }
+}
+
+class Repo {
+  Timer? _syncTimer;
+  void _start() {
+    _syncTimer = Timer.periodic(period, (_) {});
+  }
+  void _inner() {
+    _syncTimer?.cancel();
+  }
+  void _stopSync() {
+    _inner();
+  }
+  void dispose() {
+    _stopSync();
+  }
+}
+
+class Monitor extends Notifier<int> {
+  Timer? _timer;
+  @override
+  int build() {
+    ref.onDispose(() {
+      stop();
+    });
+    return 0;
+  }
+  void start() {
+    _timer = Timer.periodic(period, (_) {});
+  }
+  void stop() {
+    _timer?.cancel();
+  }
+}
+
+class Tables extends Notifier<int> {
+  StreamSubscription? _eventsSub;
+  @override
+  int build() {
+    ref.onDispose(() {
+      final sub = _eventsSub;
+      if (sub != null) unawaited(sub.cancel());
+    });
+    _eventsSub = hub.events.listen(_onEvent);
+    return 0;
+  }
+}
+
+class Sink extends LogOutput {
+  Timer? _timer;
+  void _startTimer() {
+    _timer = Timer.periodic(period, (_) {});
+  }
+  @override
+  Future<void> destroy() async {
+    _timer?.cancel();
+    await super.destroy();
+  }
+}
+
+class Updater {
+  Timer? _periodic;
+  void startPeriodicCheck() {
+    _periodic = Timer.periodic(period, (_) {});
+  }
+  void stopPeriodicCheck() {
+    _periodic?.cancel();
+  }
+}
+
+class Deep {
+  Timer? _t;
+  void init() {
+    _t = Timer(period, () {});
+  }
+  void _c() {
+    _t?.cancel();
+  }
+  void _b() {
+    _c();
+  }
+  void _a() {
+    _b();
+  }
+  void dispose() {
+    _a();
+  }
+}
+
+class WindowHelper {
+  static void addListener(WindowListener listener) {
+    windowManager.addListener(listener);
+  }
+}
+''');
+        final violations = analyzeLifecycleFile(path);
+        expect(violations.map((v) => v.line), [91, 101]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

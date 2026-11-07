@@ -9,7 +9,7 @@ void main() {
       final violations = analyzeRiverpodFile(
         'benchmark/vectors/TC-02_riverpod.bad.dart',
       );
-      expect(violations.map((v) => v.line), [16, 32]);
+      expect(violations.map((v) => v.line), [16, 32, 51]);
       expect(
         violations.map((v) => v.message),
         everyElement(contains('ref.read')),
@@ -110,6 +110,60 @@ final b = foo.family((ref, id) => ref.watch(x));
 ''');
         final violations = analyzeRiverpodFile(path);
         expect(violations.map((v) => v.line), [1, 2]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('spares build-time builders and ref-rebinding closures (K3)', () {
+      final root = Directory.systemTemp.createTempSync('riv_test.');
+      try {
+        final path = '${root.path}/k3.dart';
+        File(path).writeAsStringSync('''
+class Page extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(idProvider).when(
+      data: (id) => TextButton(
+        onPressed: () => ref.read(allProvider.notifier).toggle(),
+        child: Text(ref.watch(allProvider) ? 'Mine' : 'All'),
+      ),
+      loading: () => Text(ref.watch(labelProvider)),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+Widget list(WidgetRef ref) => ListView.builder(
+  itemBuilder: (context, i) => Text(ref.watch(rowProvider(i))),
+);
+
+class Badge extends ConsumerWidget {
+  void _showDetails(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final state = ref.watch(healthProvider);
+            return Text('\$state');
+          },
+        );
+      },
+    );
+  }
+}
+
+Widget button(WidgetRef ref) => TextButton(
+  onPressed: () {
+    ref.watch(allProvider);
+    showDialog<void>(builder: (ctx) => Text(ref.watch(allProvider)));
+  },
+  child: const Text('x'),
+);
+''');
+        final violations = analyzeRiverpodFile(path);
+        expect(violations.map((v) => v.line), [37, 38]);
       } finally {
         root.deleteSync(recursive: true);
       }

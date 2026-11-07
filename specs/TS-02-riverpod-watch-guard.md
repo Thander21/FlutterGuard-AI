@@ -9,12 +9,14 @@ ast_nodes:
   - "MethodInvocation[target='ref',name='watch']"
   - "FunctionExpression"
   - "NamedArgument"
-invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead. A function expression that is the builder argument of a Riverpod provider factory is a build, not a callback. A 'builder:' argument of 'Consumer'/'BlocBuilder' is a build, not a callback."
+invariant: "Every 'ref.watch' call MUST appear outside an argument callback; inside a function expression passed directly as an argument the code MUST use 'ref.read' instead. A function expression that is the builder argument of a Riverpod provider factory is a build, not a callback. A builder-like named argument ('builder', 'itemBuilder', any '*Builder' except 'optionsBuilder') and an AsyncValue 'when'/'maybeWhen'/'whenOrNull'/'map'/'maybeMap' branch ('data'/'loading'/'error'/'orElse') are builds, not callbacks. A closure declaring its own 'ref' parameter shadows the outer one: enclosing callbacks stop counting inside it."
 fp_limits:
   - "ref.watch directly in build()"
   - "ref.read anywhere, including callbacks"
   - "ref.watch inside provider builders (Provider, Factory(.autoDispose|.family)*, overrideWith)"
-  - "ref.watch inside `builder:` closures of Consumer/BlocBuilder"
+  - "ref.watch inside builder-like closures (`builder`, `itemBuilder`, `*Builder`)"
+  - "ref.watch inside AsyncValue when/map branches"
+  - "ref.watch on a closure's own `ref` parameter (Consumer builder inside a handler)"
 golden_vectors:
   failing: "benchmark/vectors/TC-02_riverpod.bad.dart"
   passing: "benchmark/vectors/TC-02_riverpod.good.dart"
@@ -77,9 +79,26 @@ callback.
   [eval: TC-02.good]
 - `HookConsumerWidget.build()` bodies: MUST NOT be flagged.
   [eval: unit fixture]
-- `BlocConsumer`/`BlocSelector` `builder:` closures: same
-  doctrine, unwired — follow-up, still flag today.
-  [unevaluated]
+- Builder-like named arguments of any callee (`builder`,
+  `itemBuilder`, any `*Builder`) are builds: MUST NOT be
+  flagged at build level (K3; covers `BlocConsumer`/
+  `BlocSelector` `builder:`). [eval: unit fixture]
+- `optionsBuilder` (Autocomplete, runs on input) stays a
+  callback. [unevaluated]
+- A builder-like closure does not reset an enclosing
+  callback: `onTap: () { showDialog(builder: (_) =>
+  ref.watch(x)); }` MUST be flagged. [eval: TC-02.bad]
+- AsyncValue branches (`x.when(data: …, loading: …, error:
+  …)`, also `maybeWhen`/`whenOrNull`/`map`/`maybeMap`,
+  `orElse`) run inside the build: MUST NOT be flagged
+  (K3: `child:` of a button inside `when(data:)`).
+  [eval: TC-02.good, unit fixture]
+- A closure declaring its own `ref` parameter (`Consumer(
+  builder: (context, ref, _) {…})`) shadows the outer `ref`:
+  enclosing callbacks (e.g. a handler method's `showDialog`)
+  stop counting inside it; the closure itself still counts
+  when it is an argument callback (`foo.family((ref, id) =>
+  …)`). [eval: TC-02.good, unit fixture]
 - `overrideWithValue` takes a value, not a builder: no exclusion
   applies (a closure there carries no `ref` in valid Riverpod).
   [unevaluated]

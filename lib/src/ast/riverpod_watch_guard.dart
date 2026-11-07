@@ -50,17 +50,33 @@ const _providerFactories = <String>{
   'ChangeNotifierProvider',
 };
 
-/// Widget callees whose `builder:` argument runs at build time, not
-/// as an event callback (TS-02 §3; SYS-CAL-003 R2-3).
-const _buildWidgets = <String>{'Consumer', 'BlocBuilder'};
+/// `*Builder:` argument names that run on input, not at build time:
+/// they stay callbacks (Autocomplete `optionsBuilder`).
+const _callbackBuilders = <String>{'optionsBuilder'};
+
+/// AsyncValue pattern methods whose branch closures run synchronously
+/// inside the caller's build (K3).
+const _asyncValueMatchers = <String>{
+  'when',
+  'maybeWhen',
+  'whenOrNull',
+  'map',
+  'maybeMap',
+};
+
+/// Branch argument names of [_asyncValueMatchers].
+const _asyncValueBranches = <String>{'data', 'loading', 'error', 'orElse'};
 
 /// Flags `ref.watch` calls enclosed in an argument callback.
 ///
-/// Scope (R2-3): a callback is any function expression passed directly
-/// as a positional or named argument (`onTap: () {...}`), except
-/// provider builders (any `Factory(.autoDispose|.family)*` chain or
-/// `overrideWith`) and widget `builder:` arguments (`Consumer`,
-/// `BlocBuilder`). Torn-off named functions and callbacks stored in
+/// Scope (R2-3, K3): a callback is any function expression passed
+/// directly as a positional or named argument (`onTap: () {...}`),
+/// except provider builders (any `Factory(.autoDispose|.family)*`
+/// chain or `overrideWith`), builder-like named arguments (`builder`,
+/// `itemBuilder`, any `*Builder` but `optionsBuilder`), and AsyncValue
+/// `when`/`map` branches. A closure that declares its own `ref`
+/// parameter shadows the outer one: enclosing callbacks stop counting
+/// inside it. Torn-off named functions and callbacks stored in
 /// variables are not tracked.
 class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
   RiverpodWatchGuard(this._lineInfo);
@@ -74,9 +90,11 @@ class RiverpodWatchGuard extends RecursiveAstVisitor<void> {
     final parent = node.parent;
     final isArgCallback = parent is ArgumentList || parent is NamedArgument;
     final isCallback = isArgCallback && !_isBuilderScope(node);
+    final saved = _callbackDepth;
+    if (_rebindsRef(node)) _callbackDepth = 0;
     if (isCallback) _callbackDepth++;
     super.visitFunctionExpression(node);
-    if (isCallback) _callbackDepth--;
+    _callbackDepth = saved;
   }
 
   @override
@@ -101,10 +119,17 @@ bool _isRefWatch(MethodInvocation node) {
   return target is SimpleIdentifier && target.name == 'ref';
 }
 
+/// True when [node] declares its own `ref` parameter
+/// (`(context, ref, child) {...}`), shadowing any outer `ref`.
+bool _rebindsRef(FunctionExpression node) {
+  final parameters = node.parameters?.parameters ?? const <FormalParameter>[];
+  return parameters.any((p) => p.name?.lexeme == 'ref');
+}
+
 /// True when [node] is a build, not an event callback: a provider
 /// factory argument (any `Factory(.autoDispose|.family)*` chain or
-/// `overrideWith`), or a `builder:` argument of a build-running
-/// widget (`Consumer`, `BlocBuilder`).
+/// `overrideWith`), a builder-like named argument, or an AsyncValue
+/// `when`/`map` branch.
 bool _isBuilderScope(FunctionExpression node) {
   final parent = node.parent;
   if (parent is ArgumentList) return _isFactoryCall(parent.parent);
@@ -112,20 +137,20 @@ bool _isBuilderScope(FunctionExpression node) {
   return false;
 }
 
-/// True for a `builder:` closure of [_buildWidgets] (bare, prefixed,
-/// or explicit `new`/`const` spellings).
+/// True for a build-time named argument: `builder`, `itemBuilder`, or
+/// any `*Builder` outside [_callbackBuilders] (any callee), or a
+/// branch of an AsyncValue `when`/`map` call.
 bool _isBuilderArgument(NamedArgument node) {
-  if (node.name.lexeme != 'builder') return false;
-  final args = node.parent;
-  if (args is! ArgumentList) return false;
-  final call = args.parent;
-  if (call is MethodInvocation) {
-    return _buildWidgets.contains(call.methodName.name);
+  final name = node.name.lexeme;
+  if (name == 'builder' ||
+      (name.endsWith('Builder') && !_callbackBuilders.contains(name))) {
+    return true;
   }
-  if (call is InstanceCreationExpression) {
-    return _buildWidgets.contains(call.constructorName.type.name.lexeme);
-  }
-  return false;
+  if (!_asyncValueBranches.contains(name)) return false;
+  final call = node.parent?.parent;
+  return call is MethodInvocation &&
+      call.target != null &&
+      _asyncValueMatchers.contains(call.methodName.name);
 }
 
 /// True for a provider-factory invocation whose function argument is a

@@ -4,7 +4,9 @@
 // type wins, initializer/assignment shapes infer the rest. A releasable
 // field with no matching release call in a release method is flagged at
 // its declaration; addListener without a paired removeListener is flagged
-// at the call. Vectors need no dependencies.
+// at the call. Release methods include same-class helpers called from a
+// release entry point (`dispose`, `destroy`, an `onDispose` closure)
+// directly or one level further (K2). Vectors need no dependencies.
 
 import 'dart:io';
 
@@ -117,6 +119,7 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
     final extended =
         !_isStateLike(node.extendsClause?.superclass) &&
         !_isNotifierLike(node.extendsClause?.superclass);
+    final releaseMethods = _releaseMethods(node, extended);
     final releases = <String>{};
     final adds = <_AddListener>[];
     for (final member in node.body.members) {
@@ -125,7 +128,8 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
           _MemberScanner(
             fields: fields,
             ctorParams: ctorParams,
-            isReleaseMethod: _isReleaseMethod(member.name.lexeme, extended),
+            isReleaseMethod:
+                !member.isStatic && releaseMethods.contains(member.name.lexeme),
             releases: releases,
             adds: adds,
             source: _source,
@@ -228,6 +232,20 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
   final String source;
   final LineInfo lineInfo;
 
+  /// Locals aliasing a field (`final sub = _sub;`), so releases on
+  /// the alias count for the field.
+  final Map<String, String> _aliases = {};
+
+  @override
+  void visitVariableDeclaration(VariableDeclaration node) {
+    final initializer = node.initializer;
+    final aliased = initializer == null ? null : _receiverName(initializer);
+    if (aliased != null && fields.containsKey(aliased)) {
+      _aliases[node.name.lexeme] = aliased;
+    }
+    super.visitVariableDeclaration(node);
+  }
+
   @override
   void visitAssignmentExpression(AssignmentExpression node) {
     final target = _assignedField(node.leftHandSide);
@@ -238,7 +256,9 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
         final inferred = _inferType(rhs);
         field.type ??= inferred;
         if (inferred != null) field.constructed = true;
-        if (rhs is SimpleIdentifier && ctorParams.contains(rhs.name)) {
+        if (rhs is SimpleIdentifier &&
+            (ctorParams.contains(rhs.name) ||
+                _isEnclosingParameter(node, rhs.name))) {
           field.borrowed = true;
         }
       }
@@ -258,12 +278,14 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
         lineInfo: lineInfo,
       );
     }
-    final receiver = _receiverName(node.target);
+    final named = _receiverName(node.target);
+    final receiver = named == null ? null : _aliases[named] ?? named;
     if (receiver != null) {
       final name = node.methodName.name;
       if (isReleaseMethod && _isReleaseName(name)) {
         releases.add(receiver);
       } else if (name == 'addListener' &&
+          !_inStaticMethod(node) &&
           node.argumentList.arguments.isNotEmpty) {
         final arg = node.argumentList.arguments.first;
         if (arg is SimpleIdentifier || arg is PrefixedIdentifier) {
@@ -289,8 +311,12 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
   String _argSource(AstNode arg) => source.substring(arg.offset, arg.end);
 }
 
-/// Unwraps a release/listener receiver: `field` or `this.field`.
+/// Unwraps a release/listener receiver: `field`, `this.field`, or
+/// either with a null assertion (`field!`).
 String? _receiverName(Expression? target) {
+  if (target is PostfixExpression && target.operator.lexeme == '!') {
+    return _receiverName(target.operand);
+  }
   if (target is SimpleIdentifier) return target.name;
   if (target is PropertyAccess && target.target is ThisExpression) {
     return target.propertyName.name;
@@ -390,11 +416,97 @@ bool _isNotifierLike(NamedType? superclass) {
   return names.contains(superclass.name.lexeme);
 }
 
-/// True for a method name in which releases count: `dispose`
-/// always, plus `close`/`stop`/`cancel` outside State/Notifier.
+/// True for a release entry point: `dispose` always, plus
+/// `close`/`stop`/`cancel`/`destroy` outside State/Notifier.
 bool _isReleaseMethod(String name, bool extended) {
   if (name == 'dispose') return true;
-  return extended && (name == 'close' || name == 'stop' || name == 'cancel');
+  const extendedNames = {'close', 'stop', 'cancel', 'destroy'};
+  return extended && extendedNames.contains(name);
+}
+
+/// Instance methods of [node] in which releases count: the release
+/// entry points ([_isReleaseMethod]), the same-class methods they
+/// call (and those an `onDispose` closure or tear-off reaches), plus
+/// one more level of self-calls (K2). Deeper chains stay unseen
+/// (fail-closed).
+Set<String> _releaseMethods(ClassDeclaration node, bool extended) {
+  final methods = <String, MethodDeclaration>{
+    for (final member in node.body.members)
+      if (member is MethodDeclaration && !member.isStatic)
+        member.name.lexeme: member,
+  };
+  final names = methods.keys.toSet();
+  final entries = names.where((n) => _isReleaseMethod(n, extended)).toSet();
+  final direct = <String>{};
+  for (final method in methods.values) {
+    method.body.accept(_SelfCallCollector(names, direct, onDisposeOnly: true));
+  }
+  for (final entry in entries) {
+    methods[entry]!.body.accept(_SelfCallCollector(names, direct));
+  }
+  final indirect = <String>{};
+  for (final name in direct) {
+    methods[name]!.body.accept(_SelfCallCollector(names, indirect));
+  }
+  return {...entries, ...direct, ...indirect};
+}
+
+/// Collects same-class method calls (`m()`, `this.m()`) into [found].
+/// With [onDisposeOnly], collects only the calls inside `ref.onDispose`
+/// closures plus bare method tear-offs passed to `ref.onDispose`.
+class _SelfCallCollector extends RecursiveAstVisitor<void> {
+  _SelfCallCollector(this.names, this.found, {this.onDisposeOnly = false});
+
+  final Set<String> names;
+  final Set<String> found;
+  final bool onDisposeOnly;
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    if (!onDisposeOnly) {
+      final target = node.target;
+      final name = node.methodName.name;
+      if ((target == null || target is ThisExpression) &&
+          names.contains(name)) {
+        found.add(name);
+      }
+    } else if (_isRefOnDispose(node) &&
+        node.argumentList.arguments.isNotEmpty) {
+      final arg = node.argumentList.arguments.first;
+      if (arg is FunctionExpression) {
+        arg.body.accept(_SelfCallCollector(names, found));
+      } else if (arg is SimpleIdentifier && names.contains(arg.name)) {
+        found.add(arg.name);
+      }
+    }
+    super.visitMethodInvocation(node);
+  }
+}
+
+/// True when [node] sits in a static method: a static forwarder owns
+/// no instance lifecycle to pair a listener with.
+bool _inStaticMethod(AstNode node) {
+  final method = node.thisOrAncestorOfType<MethodDeclaration>();
+  return method != null && method.isStatic;
+}
+
+/// True when [name] is a parameter of a function or method enclosing
+/// [node]: the value is received, not self-instantiated (K1).
+bool _isEnclosingParameter(AstNode node, String name) {
+  for (AstNode? current = node; current != null; current = current.parent) {
+    if (current is ClassDeclaration) return false;
+    final FormalParameterList? parameters;
+    if (current is FunctionExpression) {
+      parameters = current.parameters;
+    } else if (current is MethodDeclaration) {
+      parameters = current.parameters;
+    } else {
+      continue;
+    }
+    final declared = parameters?.parameters ?? const <FormalParameter>[];
+    if (declared.any((p) => p.name?.lexeme == name)) return true;
+  }
+  return false;
 }
 
 /// Names bound by [node]'s constructors as plain value parameters
