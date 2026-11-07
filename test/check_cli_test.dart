@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
@@ -115,6 +116,96 @@ void main() {
         }
       },
     );
+
+    test(
+      '--update-baseline writes project-relative keys (flutterguardai3 K1)',
+      () async {
+        final root = Directory.systemTemp.createTempSync('check_cli_test.');
+        final out = Directory.systemTemp.createTempSync('check_cli_test.');
+        try {
+          _projectFixture(root);
+          final baseline = '${out.path}/baseline.json';
+          expect(
+            await cli.check([
+              '${root.path}/lib',
+              '--baseline',
+              baseline,
+              '--update-baseline',
+            ]),
+            isZero,
+          );
+          final keys = (jsonDecode(File(baseline).readAsStringSync()) as Map)
+              .keys
+              .cast<String>();
+          expect(keys, ['lib/src/bloc.dart']);
+          for (final key in keys) {
+            expect(key, isNot(matches(RegExp(r'^([A-Za-z]:|/)'))));
+            expect(key.contains(r'\'), isFalse);
+          }
+        } finally {
+          root.deleteSync(recursive: true);
+          out.deleteSync(recursive: true);
+        }
+      },
+    );
+
+    test(
+      'a baseline from folder A applies to a copy in folder B (K2)',
+      () async {
+        final a = Directory.systemTemp.createTempSync('check_cli_test.');
+        final b = Directory.systemTemp.createTempSync('check_cli_test.');
+        final out = Directory.systemTemp.createTempSync('check_cli_test.');
+        try {
+          _projectFixture(a);
+          _projectFixture(b);
+          final baseline = '${out.path}/baseline.json';
+          expect(
+            await cli.check([
+              a.path,
+              '--baseline',
+              baseline,
+              '--update-baseline',
+            ]),
+            isZero,
+          );
+          expect(await cli.check([b.path]), 1, reason: 'B has violations');
+          expect(await cli.check([b.path, '--baseline', baseline]), isZero);
+        } finally {
+          a.deleteSync(recursive: true);
+          b.deleteSync(recursive: true);
+          out.deleteSync(recursive: true);
+        }
+      },
+    );
+
+    test('legacy absolute-keyed baselines are still honored (K3)', () async {
+      final root = Directory.systemTemp.createTempSync('check_cli_test.');
+      final out = Directory.systemTemp.createTempSync('check_cli_test.');
+      try {
+        _projectFixture(root);
+        final file = cli.absoluteNormalized('${root.path}/lib/src/bloc.dart');
+        final baseline = '${out.path}/baseline.json';
+        File(baseline).writeAsStringSync(
+          jsonEncode({
+            file: {'FG-BLOC-001': 1},
+          }),
+        );
+        expect(await cli.check([root.path, '--baseline', baseline]), isZero);
+        File(baseline).writeAsStringSync(
+          jsonEncode({
+            '/elsewhere/lib/src/bloc.dart': {'FG-BLOC-001': 1},
+          }),
+        );
+        expect(
+          await cli.check([root.path, '--baseline', baseline]),
+          1,
+          reason: 'absolute keys from another location do not match',
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+        out.deleteSync(recursive: true);
+      }
+    });
 
     test('--diff checks only changed files (R2-2)', () async {
       final root = Directory.systemTemp.createTempSync('check_cli_test.');
@@ -266,4 +357,15 @@ void _gitInit(Directory root) {
   _git(root, ['config', 'user.email', 'check@test']);
   _git(root, ['config', 'user.name', 'check']);
   _git(root, ['config', 'commit.gpgsign', 'false']);
+}
+
+/// A minimal project: `pubspec.yaml` at [root] and one FG-BLOC-001
+/// violation under `lib/src/`.
+void _projectFixture(Directory root) {
+  File('${root.path}/pubspec.yaml').writeAsStringSync('name: fixture\n');
+  File('${root.path}/lib/src/bloc.dart')
+    ..createSync(recursive: true)
+    ..writeAsStringSync(
+      File('benchmark/vectors/TC-01_bloc.bad.dart').readAsStringSync(),
+    );
 }

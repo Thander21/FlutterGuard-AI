@@ -49,11 +49,11 @@ void main() {
           _finding('${root.path}/b.dart', 'FG-MET-007', 1, severity: 'warning'),
         ];
         final path = '${root.path}/baseline.json';
-        writeBaseline(path, findings);
+        writeBaseline(path, findings, root: root.path);
         final first = File(path).readAsStringSync();
         final loaded = loadBaseline(path);
-        expect(loaded.counts, baselineCounts(findings));
-        writeBaseline(path, findings);
+        expect(loaded.counts, baselineCounts(findings, root: root.path));
+        writeBaseline(path, findings, root: root.path);
         expect(File(path).readAsStringSync(), first);
       } finally {
         root.deleteSync(recursive: true);
@@ -106,39 +106,108 @@ void main() {
       final reported = applyBaseline(
         findings,
         FindingBaseline({
-          file: {'FG-BLOC-001': 1},
+          'lib/a.dart': {'FG-BLOC-001': 1},
         }),
+        root: Directory.current.path,
       );
       expect(reported.map((f) => f.line), [9, 1, 2]);
     });
 
     test('applyBaseline reports everything on empty baselines', () {
       final findings = [_finding('a.dart', 'R', 1)];
-      expect(applyBaseline(findings, const FindingBaseline({})), findings);
+      expect(
+        applyBaseline(
+          findings,
+          const FindingBaseline({}),
+          root: Directory.current.path,
+        ),
+        findings,
+      );
     });
 
-    test('baseline keys are absolute and spelling-stable', () {
+    test('baseline keys are root-relative and spelling-stable', () {
       // Resolution, not spelling, decides the key: a walked-relative
-      // path keys identically to its absolute form, so baselines stay
-      // stable however the target was spelled. Cross-CWD convergence
-      // inherits File.absolute (SDK) and is not mutated in-process:
-      // Directory.current is process-global and would race parallel
-      // suites.
+      // path and its absolute form key identically, relative to the
+      // project root, with forward slashes (flutterguardai3 K1).
+      // Directory.current is read, never mutated (process-global).
+      final cwd = Directory.current.path;
+      final counts = baselineCounts([
+        _finding('sub/a.dart', 'R', 1),
+        _finding('$cwd/sub/a.dart', 'R', 2),
+        _finding(
+          '$cwd${Platform.pathSeparator}sub${Platform.pathSeparator}'
+              'b.dart',
+          'R',
+          3,
+        ),
+      ], root: cwd);
+      expect(counts, {
+        'sub/a.dart': {'R': 2},
+        'sub/b.dart': {'R': 1},
+      });
       final root = Directory.systemTemp.createTempSync('baseline_test.');
       try {
-        Directory('${root.path}/sub').createSync();
-        final fromWalk = absoluteNormalized('${root.path}/sub/a.dart');
-        expect(File(fromWalk).isAbsolute, isTrue);
-        expect(fromWalk.contains(r'\'), isFalse);
-        final relative = absoluteNormalized('sub/a.dart');
-        final absolute = absoluteNormalized(
-          '${Directory.current.path}/sub/a.dart',
-        );
-        expect(relative, absolute);
-        final counts = baselineCounts([
+        final keys = baselineCounts([
           _finding('${root.path}/sub/a.dart', 'R', 1),
-        ]);
-        expect(counts.keys.single, fromWalk);
+        ], root: root.path).keys;
+        expect(keys, ['sub/a.dart']);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('baselineRoot is the nearest pubspec ancestor, else the target', () {
+      final root = Directory.systemTemp.createTempSync('baseline_test.');
+      try {
+        final plain = Directory('${root.path}/plain/lib')
+          ..createSync(recursive: true);
+        File('${plain.path}/a.dart').writeAsStringSync('void main() {}\n');
+        final project = Directory('${root.path}/app/lib/src')
+          ..createSync(recursive: true);
+        File('${root.path}/app/pubspec.yaml').writeAsStringSync('name: a\n');
+        File('${project.path}/a.dart').writeAsStringSync('void main() {}\n');
+        final app = absoluteNormalized('${root.path}/app');
+        expect(baselineRoot('${root.path}/app'), app);
+        expect(baselineRoot(project.path), app);
+        expect(baselineRoot('${project.path}/a.dart'), app);
+        expect(baselineRoot(plain.path), absoluteNormalized(plain.path));
+        expect(
+          baselineRoot('${plain.path}/a.dart'),
+          absoluteNormalized(plain.path),
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('applyBaseline honors legacy absolute keys (flutterguardai3 K3)', () {
+      final root = Directory.systemTemp.createTempSync('baseline_test.');
+      try {
+        final file = '${root.path}/lib/a.dart';
+        final findings = [
+          _finding(file, 'R', 1),
+          _finding(file, 'R', 2),
+          _finding(file, 'R', 3),
+        ];
+        final legacy = FindingBaseline({
+          absoluteNormalized(file): {'R': 2},
+        });
+        expect(
+          applyBaseline(findings, legacy, root: root.path).map((f) => f.line),
+          [3],
+        );
+        final mixed = FindingBaseline({
+          'lib/a.dart': {'R': 1},
+          absoluteNormalized(file): {'R': 1},
+        });
+        expect(
+          applyBaseline(findings, mixed, root: root.path).map((f) => f.line),
+          [3],
+        );
+        final elsewhere = FindingBaseline({
+          '/elsewhere/lib/a.dart': {'R': 3},
+        });
+        expect(applyBaseline(findings, elsewhere, root: root.path), findings);
       } finally {
         root.deleteSync(recursive: true);
       }

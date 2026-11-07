@@ -135,14 +135,24 @@ per-rule finding counts, campodeforca-shaped). `--baseline
 <path>` reads it and reports only findings ABOVE the stored
 count per (file, rule), in deterministic finding order; files
 or rules absent from the baseline fail on any finding
-(fail-closed for new code). Keys match on absolute-normalized
-paths (findings still display as-walked), so the baseline is
-stable across working directories. Disabled rules are never
+(fail-closed for new code). Keys are project-relative
+(findings still display as-walked): the root is the nearest
+ancestor of the target (the target itself when it is a
+directory) holding a `pubspec.yaml`, else the target directory
+(a file target's parent); no git lookup. Keys use `/`, carry no
+drive letter and no leading slash (`lib/apps/desktop/main.dart`),
+with `.`/`..` collapsed, so one baseline is stable across working
+directories, checkout folders, machines, and CI, and can be
+committed. Legacy baselines keyed by absolute-normalized paths
+still match: a finding tries its relative key, then its absolute
+key; absolute keys written at another location simply match
+nothing (rewrite with `--update-baseline` to migrate). Disabled rules are never
 counted and baseline entries for them are ignored silently.
 `--update-baseline` rewrites `<path>` from the current
 unfiltered run (never from the suppressed set), pruning stale
 entries, and exits 0 with a delta note; it never reads the old
-file. No walk-up discovery in v1 (explicit flag only);
+file. No walk-up discovery of the baseline file in v1 (explicit
+flag only);
 `.flutterguard/baseline.json` is the suggested conventional
 path. Counts cover errors and warnings alike (the legacy
 noise is mostly warnings).

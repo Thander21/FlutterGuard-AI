@@ -6,8 +6,10 @@ import 'dart:io';
 
 import 'check.dart';
 
-/// A finding baseline: absolute-normalized file path → rule id →
-/// finding count. Counts cover errors and warnings alike.
+/// A finding baseline: project-relative file path (see
+/// [baselineRoot]) → rule id → finding count. Legacy baselines keyed
+/// by absolute-normalized paths still load and match. Counts cover
+/// errors and warnings alike.
 class FindingBaseline {
   const FindingBaseline(this.counts);
 
@@ -60,11 +62,15 @@ FindingBaseline loadBaseline(String path) {
 }
 
 /// Rewrites the baseline at [path] from [findings] (counts per
-/// absolute-normalized file and rule id), pruning stale entries.
+/// [root]-relative file and rule id), pruning stale entries.
 /// Files and rules serialize sorted, so repeated writes are
 /// byte-stable. Throws [ArgumentError] when [path] cannot be written.
-void writeBaseline(String path, List<CheckFinding> findings) {
-  final counts = baselineCounts(findings);
+void writeBaseline(
+  String path,
+  List<CheckFinding> findings, {
+  required String root,
+}) {
+  final counts = baselineCounts(findings, root: root);
   final sorted = {
     for (final file in counts.keys.toList()..sort())
       file: {
@@ -79,12 +85,17 @@ void writeBaseline(String path, List<CheckFinding> findings) {
   }
 }
 
-/// Counts [findings] per absolute-normalized file and rule id.
-Map<String, Map<String, int>> baselineCounts(List<CheckFinding> findings) {
+/// Counts [findings] per [root]-relative file (see [baselineKey])
+/// and rule id.
+Map<String, Map<String, int>> baselineCounts(
+  List<CheckFinding> findings, {
+  required String root,
+}) {
+  final rootKey = _resolved(root);
   final counts = <String, Map<String, int>>{};
   for (final finding in findings) {
     final perFile = counts.putIfAbsent(
-      absoluteNormalized(finding.file),
+      _relativeKey(rootKey, _resolved(finding.file)),
       () => <String, int>{},
     );
     perFile[finding.ruleId] = (perFile[finding.ruleId] ?? 0) + 1;
@@ -94,25 +105,81 @@ Map<String, Map<String, int>> baselineCounts(List<CheckFinding> findings) {
 
 /// Reports only the findings ABOVE the stored per-(file, rule)
 /// count, in input order; files or rules absent from [baseline]
-/// report every finding (fail-closed for new code).
+/// report every finding (fail-closed for new code). A finding
+/// matches its [root]-relative key first, then its legacy
+/// absolute-normalized key (pre-relative baselines keep working
+/// at their original location).
 List<CheckFinding> applyBaseline(
   List<CheckFinding> findings,
-  FindingBaseline baseline,
-) {
+  FindingBaseline baseline, {
+  required String root,
+}) {
+  final rootKey = _resolved(root);
   final remaining = <String, Map<String, int>>{
     for (final entry in baseline.counts.entries) entry.key: Map.of(entry.value),
   };
   final reported = <CheckFinding>[];
   for (final finding in findings) {
-    final key = absoluteNormalized(finding.file);
-    final allowance = remaining[key]?[finding.ruleId] ?? 0;
-    if (allowance > 0) {
-      remaining[key]![finding.ruleId] = allowance - 1;
-    } else {
+    final absolute = _resolved(finding.file);
+    final key = [
+      _relativeKey(rootKey, absolute),
+      absoluteNormalized(finding.file),
+    ].where((k) => (remaining[k]?[finding.ruleId] ?? 0) > 0).firstOrNull;
+    if (key == null) {
       reported.add(finding);
+    } else {
+      remaining[key]![finding.ruleId] = remaining[key]![finding.ruleId]! - 1;
     }
   }
   return reported;
+}
+
+/// The directory baseline keys are relative to, for a `check`
+/// [target]: the nearest ancestor of the target (the target itself
+/// when it is a directory) holding a `pubspec.yaml`, else the target
+/// directory (a file target's parent). Absolute-normalized.
+String baselineRoot(String target) {
+  final start = _resolved(_scopeDir(target));
+  for (Directory? dir = Directory(start); dir != null; dir = _parentOf(dir)) {
+    if (File('${dir.path}/pubspec.yaml').existsSync()) return dir.path;
+  }
+  return start;
+}
+
+/// [dir]'s parent, or null at the filesystem root.
+Directory? _parentOf(Directory dir) {
+  final parent = dir.parent;
+  return parent.path == dir.path ? null : parent;
+}
+
+/// The baseline key of absolute-normalized [file] under
+/// absolute-normalized [root]: the `/`-separated relative path, or
+/// [file] itself when it lies outside [root]. Drive letters compare
+/// case-insensitively on Windows.
+String _relativeKey(String root, String file) {
+  final prefix = root.endsWith('/') ? root : '$root/';
+  final inside = Platform.isWindows
+      ? file.toLowerCase().startsWith(prefix.toLowerCase())
+      : file.startsWith(prefix);
+  return inside ? file.substring(prefix.length) : file;
+}
+
+/// [absoluteNormalized] with `.`/`..` segments collapsed, so
+/// differently spelled targets yield the same keys.
+String _resolved(String path) {
+  final segments = <String>[];
+  for (final segment in absoluteNormalized(path).split('/')) {
+    if (segment == '.') continue;
+    if (segment == '..' && segments.length > 1) {
+      segments.removeLast();
+      continue;
+    }
+    segments.add(segment);
+  }
+  final joined = segments.join('/');
+  return joined.length > 1 && joined.endsWith('/')
+      ? joined.substring(0, joined.length - 1)
+      : joined;
 }
 
 /// Absolute-normalized files changed in the worktree versus the

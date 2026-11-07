@@ -703,7 +703,11 @@ Future<int> check(List<String> args) async {
   var findings = result.findings;
   if (baselinePath != null && !updateBaseline) {
     try {
-      findings = applyBaseline(findings, loadBaseline(baselinePath));
+      findings = applyBaseline(
+        findings,
+        loadBaseline(baselinePath),
+        root: baselineRoot(target),
+      );
     } on ArgumentError catch (error) {
       stderr.writeln(error.message);
       return 2;
@@ -740,13 +744,14 @@ Future<int> check(List<String> args) async {
     }
   }
   if (updatePath != null) {
+    final root = baselineRoot(target);
     try {
-      writeBaseline(updatePath, result.findings);
+      writeBaseline(updatePath, result.findings, root: root);
     } on ArgumentError catch (error) {
       stderr.writeln(error.message);
       return 2;
     }
-    final files = baselineCounts(result.findings).length;
+    final files = baselineCounts(result.findings, root: root).length;
     if (asJson) {
       final payload = <String, Object?>{
         'baseline': updatePath,
