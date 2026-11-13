@@ -90,18 +90,12 @@ class V extends StatelessWidget {
 ''');
         final violations = analyzeAsyncBuildFile(path);
         expect(violations.map((v) => v.line), [6, 8]);
-        expect(
-          violations.first.message,
-          contains('or a FutureBuilder'),
-        );
+        expect(violations.first.message, contains('or a FutureBuilder'));
         expect(
           violations.last.message,
           contains('already inside a FutureBuilder'),
         );
-        expect(
-          violations.last.message,
-          isNot(contains('or a FutureBuilder')),
-        );
+        expect(violations.last.message, isNot(contains('or a FutureBuilder')));
       } finally {
         root.deleteSync(recursive: true);
       }

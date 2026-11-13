@@ -56,10 +56,10 @@ List<LifecycleViolation> analyzeLifecycleFile(
 }) {
   final source = File(path).readAsStringSync();
   final result = parseString(content: source, path: path);
-  final extra = (releasers ??
-          RuleListConfig.load(path, 'releasers', _parseReleaser))
-      .items
-      .toSet();
+  final extra =
+      (releasers ?? RuleListConfig.load(path, 'releasers', _parseReleaser))
+          .items
+          .toSet();
   final guard = LifecycleGuard(source, result.lineInfo, extra);
   result.unit.accept(guard);
   return guard.violations..sort((a, b) => a.line.compareTo(b.line));
@@ -458,8 +458,11 @@ bool _isNotifierLike(NamedType? superclass) {
 /// True for a release entry point: `dispose` always, plus
 /// `close`/`stop`/`cancel`/`destroy` and configured `releasers:`
 /// names outside State/Notifier.
-bool _isReleaseMethod(String name, bool extended,
-    [Set<String> extra = const {}]) {
+bool _isReleaseMethod(
+  String name,
+  bool extended, [
+  Set<String> extra = const {},
+]) {
   if (name == 'dispose') return true;
   const extendedNames = {'close', 'stop', 'cancel', 'destroy'};
   return extended && (extendedNames.contains(name) || extra.contains(name));
@@ -471,15 +474,19 @@ bool _isReleaseMethod(String name, bool extended,
 /// one more level of self-calls (K2). Deeper chains stay unseen
 /// (fail-closed).
 Set<String> _releaseMethods(
-    ClassDeclaration node, bool extended, Set<String> extra) {
+  ClassDeclaration node,
+  bool extended,
+  Set<String> extra,
+) {
   final methods = <String, MethodDeclaration>{
     for (final member in node.body.members)
       if (member is MethodDeclaration && !member.isStatic)
         member.name.lexeme: member,
   };
   final names = methods.keys.toSet();
-  final entries =
-      names.where((n) => _isReleaseMethod(n, extended, extra)).toSet();
+  final entries = names
+      .where((n) => _isReleaseMethod(n, extended, extra))
+      .toSet();
   final direct = <String>{};
   for (final method in methods.values) {
     method.body.accept(_SelfCallCollector(names, direct, onDisposeOnly: true));

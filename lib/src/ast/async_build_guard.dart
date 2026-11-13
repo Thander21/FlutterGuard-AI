@@ -178,10 +178,10 @@ class AsyncBuildGuard extends RecursiveAstVisitor<void> {
         line: _lineInfo.getLocation(node.offset).lineNumber,
         message: builder == null
             ? '$trigger in build() schedules work per frame; '
-                'hoist to initState, a handler, or a FutureBuilder'
+                  'hoist to initState, a handler, or a FutureBuilder'
             : '$trigger in build() schedules work per frame; '
-                'hoist to initState or a State field '
-                '(already inside a $builder)',
+                  'hoist to initState or a State field '
+                  '(already inside a $builder)',
       ),
     );
   }
