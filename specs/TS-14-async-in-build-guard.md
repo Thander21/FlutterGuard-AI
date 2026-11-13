@@ -78,6 +78,10 @@ closure/function-expression exempts): `Future.<anything>` except
   [eval: TC-14.bad]
 - `unawaited(api.load())` in `build()`: MUST be flagged.
   [eval: unit fixture]
+- Trigger inside a `FutureBuilder`/`StreamBuilder` subtree (e.g. the
+  `future:` argument): MUST be flagged with the enclosing-builder
+  message, never suggesting the builder already enclosing it
+  (F-017). [eval: unit fixture]
 - Async `onPressed` handler: MUST NOT be flagged (closure).
   [eval: TC-14.good]
 - `FutureBuilder` in `build()`: MUST NOT be flagged (declarative).

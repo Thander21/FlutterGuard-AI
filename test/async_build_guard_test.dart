@@ -70,6 +70,43 @@ void helper() {
       }
     });
 
+    test('names the enclosing builder instead of suggesting it (R3)', () {
+      final root = Directory.systemTemp.createTempSync('build_test.');
+      try {
+        final path = '${root.path}/builder.dart';
+        File(path).writeAsStringSync('''
+import 'package:flutter/widgets.dart';
+class V extends StatelessWidget {
+  const V({super.key});
+  @override
+  Widget build(BuildContext context) {
+    Future.delayed(const Duration(seconds: 1), _refresh);
+    return FutureBuilder(
+      future: Future.wait([a(), b()]),
+      builder: (context, snapshot) => const Text('done'),
+    );
+  }
+}
+''');
+        final violations = analyzeAsyncBuildFile(path);
+        expect(violations.map((v) => v.line), [6, 8]);
+        expect(
+          violations.first.message,
+          contains('or a FutureBuilder'),
+        );
+        expect(
+          violations.last.message,
+          contains('already inside a FutureBuilder'),
+        );
+        expect(
+          violations.last.message,
+          isNot(contains('or a FutureBuilder')),
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
     test('spares dynamic, typedef, and Future Widget builds (R2-3)', () {
       final root = Directory.systemTemp.createTempSync('build_test.');
       try {

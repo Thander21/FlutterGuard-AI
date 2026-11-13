@@ -172,13 +172,39 @@ class AsyncBuildGuard extends RecursiveAstVisitor<void> {
   }
 
   void _flag(AstNode node, String trigger) {
+    final builder = _enclosingBuilder(node);
     violations.add(
       AsyncBuildViolation(
         line: _lineInfo.getLocation(node.offset).lineNumber,
-        message:
-            '$trigger in build() schedules work per frame; '
-            'hoist to initState, a handler, or a FutureBuilder',
+        message: builder == null
+            ? '$trigger in build() schedules work per frame; '
+                'hoist to initState, a handler, or a FutureBuilder'
+            : '$trigger in build() schedules work per frame; '
+                'hoist to initState or a State field '
+                '(already inside a $builder)',
       ),
     );
   }
+}
+
+/// Innermost enclosing `FutureBuilder`/`StreamBuilder` name, or null.
+///
+/// Creations and unresolved constructor-shaped invocations both count
+/// (TS-34 doctrine): suggesting the builder already enclosing the
+/// trigger is the F-017 imprecision this replaces.
+String? _enclosingBuilder(AstNode node) {
+  AstNode? current = node.parent;
+  while (current != null) {
+    if (current is InstanceCreationExpression) {
+      final name = current.constructorName.type.name.lexeme;
+      if (name == 'FutureBuilder' || name == 'StreamBuilder') return name;
+    } else if (current is MethodInvocation &&
+        current.target == null &&
+        (current.methodName.name == 'FutureBuilder' ||
+            current.methodName.name == 'StreamBuilder')) {
+      return current.methodName.name;
+    }
+    current = current.parent;
+  }
+  return null;
 }
