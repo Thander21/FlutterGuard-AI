@@ -80,5 +80,236 @@ class BaseButton extends AppButtonWidget {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('carves show-listed exception-only imports (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/login_page.dart';
+        File(path).writeAsStringSync('''
+import 'package:dio/dio.dart' show DioException;
+import 'package:flutter/widgets.dart';
+
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('login');
+  Future<void> signIn() async {
+    try {
+      await api.login();
+    } on DioException catch (_) {
+      rethrow;
+    }
+  }
+}
+''');
+        expect(analyzeArchFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags show imports used beyond catch positions (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/search_page.dart';
+        File(path).writeAsStringSync('''
+import 'package:dio/dio.dart' show DioException, Dio;
+import 'package:flutter/widgets.dart';
+
+class SearchPage extends StatelessWidget {
+  const SearchPage({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('search');
+  Future<void> run() async {
+    final client = Dio();
+    try {
+      await client.get('/x');
+    } on DioException catch (_) {
+      rethrow;
+    }
+  }
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [1]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags shown-but-unused imports (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/idle_page.dart';
+        File(path).writeAsStringSync('''
+import 'package:dio/dio.dart' show DioException;
+import 'package:flutter/widgets.dart';
+
+class IdlePage extends StatelessWidget {
+  const IdlePage({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('idle');
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [1]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags shown names thrown outside type positions (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/retry_page.dart';
+        File(path).writeAsStringSync('''
+import 'package:dio/dio.dart' show DioException;
+import 'package:flutter/widgets.dart';
+
+class RetryPage extends StatelessWidget {
+  const RetryPage({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('retry');
+  Never fail() {
+    throw DioException(requestOptions: RequestOptions());
+  }
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [1]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('carves prefixed imports used only in on positions (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/login_view.dart';
+        File(path).writeAsStringSync('''
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:flutter/widgets.dart';
+
+class LoginView extends StatelessWidget {
+  const LoginView({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('login');
+  Future<void> signIn() async {
+    try {
+      await api.login();
+    } on sb.AuthException catch (_) {
+      rethrow;
+    }
+  }
+}
+''');
+        expect(analyzeArchFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags prefixed imports with value uses (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/user_form.dart';
+        File(path).writeAsStringSync('''
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:flutter/widgets.dart';
+
+class UserForm extends StatelessWidget {
+  const UserForm({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('form');
+  Future<void> load() async {
+    final client = sb.Supabase.instance.client;
+    await client.from('users').select();
+  }
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [1]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags unused prefixes (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/idle_view.dart';
+        File(path).writeAsStringSync('''
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:flutter/widgets.dart';
+
+class IdleView extends StatelessWidget {
+  const IdleView({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('idle');
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [1]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('bare exception-only imports still flag (known gap, R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/web_login.dart';
+        File(path).writeAsStringSync('''
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/widgets.dart';
+
+class WebLogin extends StatelessWidget {
+  const WebLogin({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('login');
+  Future<void> signIn() async {
+    try {
+      await api.login();
+    } on AuthException catch (_) {
+      rethrow;
+    }
+  }
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [1]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags hide-only and export shapes (R3)', () {
+      final root = Directory.systemTemp.createTempSync('arch_test.');
+      try {
+        final path = '${root.path}/hide_view.dart';
+        File(path).writeAsStringSync('''
+import 'package:flutter/widgets.dart';
+import 'package:dio/dio.dart' hide Dio;
+export 'package:dio/dio.dart' show DioException;
+
+class HideView extends StatelessWidget {
+  const HideView({super.key});
+  @override
+  Widget build(BuildContext context) => const Text('hide');
+  Future<void> run() async {
+    try {
+      await api.run();
+    } on DioException catch (_) {
+      rethrow;
+    }
+  }
+}
+''');
+        final violations = analyzeArchFile(path);
+        expect(violations.map((v) => v.line), [2, 3]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

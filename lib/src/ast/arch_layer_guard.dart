@@ -75,18 +75,38 @@ List<ArchLayerViolation> analyzeArchFile(String path) {
 ///
 /// Scope (v0): the file is UI when any class extends a known widget
 /// superclass (or any superclass ending in `Widget`); every denylisted
-/// `package:` import or export in such a file is flagged. Relative
-/// imports are never tracked, and files without a widget class are
-/// always clean.
+/// `package:` import or export in such a file is flagged, except an
+/// import whose `show`-listed or prefixed names are referenced only
+/// in catch `on` type positions (R3 carve-out). Relative imports are
+/// never tracked, and files without a widget class are always clean.
 class ArchLayerGuard extends RecursiveAstVisitor<void> {
   ArchLayerGuard(this._lineInfo);
 
   final LineInfo _lineInfo;
   final List<ArchLayerViolation> _pending = [];
+  final List<ImportDirective> _pendingImports = [];
   var _hasWidget = false;
 
-  /// Violations to report: pending directives only when UI was detected.
-  List<ArchLayerViolation> get violations => _hasWidget ? _pending : const [];
+  /// Violations to report: pending directives plus uncarved imports,
+  /// only when UI was detected.
+  List<ArchLayerViolation> get violations {
+    if (!_hasWidget) return const [];
+    final out = _pending.toList();
+    for (final node in _pendingImports) {
+      final package = _packageName(node.uri.stringValue);
+      if (package != null && !_carved(node)) {
+        out.add(
+          ArchLayerViolation(
+            line: _lineInfo.getLocation(node.offset).lineNumber,
+            message:
+                "UI file imports '$package'; "
+                'move data access to the data layer (repository/provider)',
+          ),
+        );
+      }
+    }
+    return out;
+  }
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
@@ -98,7 +118,10 @@ class ArchLayerGuard extends RecursiveAstVisitor<void> {
 
   @override
   void visitImportDirective(ImportDirective node) {
-    _checkDirective(node.uri.stringValue, node.offset);
+    final package = _packageName(node.uri.stringValue);
+    if (package != null && archLayerDenyList.contains(package)) {
+      _pendingImports.add(node);
+    }
     super.visitImportDirective(node);
   }
 
@@ -122,6 +145,127 @@ class ArchLayerGuard extends RecursiveAstVisitor<void> {
     }
   }
 }
+
+/// True when a denylisted [node] is referenced only in catch `on`
+/// type positions (R3 carve-out, CAL-004 Q6).
+///
+/// Only attributable shapes carve: `show`-listed names (minus `hide`)
+/// and `as` prefixes, each with at least one use and every use in an
+/// `on` head position. Bare imports stay flagged — their names are
+/// unattributable parse-only (known gap: the two field FPs). Unused
+/// names still flag (dead import, fail-closed). Exports never reach
+/// here (always flagged).
+bool _carved(ImportDirective node) {
+  final shown = <String>{};
+  final hidden = <String>{};
+  for (final combinator in node.combinators) {
+    if (combinator is ShowCombinator) {
+      shown.addAll(combinator.shownNames.map((n) => n.name));
+    } else if (combinator is HideCombinator) {
+      hidden.addAll(combinator.hiddenNames.map((n) => n.name));
+    }
+  }
+  shown.removeAll(hidden);
+  final prefix = node.prefix?.name;
+  if (shown.isEmpty && prefix == null) return false;
+  final root = node.root;
+  if (root is! CompilationUnit) return false;
+  final uses = _NameUseCollector();
+  root.accept(uses);
+  if (shown.isNotEmpty) {
+    for (final name in shown) {
+      final occ = uses.bare[name] ?? const <bool>[];
+      if (occ.isEmpty || occ.any((onHead) => !onHead)) return false;
+    }
+  }
+  if (prefix != null) {
+    final occ = <bool>[
+      ...uses.bare[prefix] ?? const <bool>[],
+      ...uses.prefixed[prefix] ?? const <bool>[],
+    ];
+    if (occ.isEmpty || occ.any((onHead) => !onHead)) return false;
+  }
+  return true;
+}
+
+/// Occurrence index of bare and prefixed names outside directives.
+///
+/// One walk per denylisted import (rare): every [SimpleIdentifier]
+/// records whether it sits in a catch `on` head position, and every
+/// [NamedType] records its head name the same way. Both are needed:
+/// analyzer 14 models declaration/type names as [Token]s (never
+/// visited as identifiers), so the `on` type itself only surfaces
+/// through [NamedType]. Dotted types additionally record their
+/// source prefix (the import-prefix reference is not visited
+/// uniformly, so the prefix is read off the type source instead —
+/// consistent with the identifier walk either way).
+class _NameUseCollector extends RecursiveAstVisitor<void> {
+  /// Bare-name occurrences: name to per-occurrence on-head flags.
+  final bare = <String, List<bool>>{};
+
+  /// Dotted-type prefixes: prefix to per-occurrence on-head flags.
+  final prefixed = <String, List<bool>>{};
+
+  @override
+  void visitImportDirective(ImportDirective node) {
+    // Combinators and prefixes declare, never use.
+  }
+
+  @override
+  void visitExportDirective(ExportDirective node) {
+    // Re-exports are not file-local references.
+  }
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier node) {
+    bare.putIfAbsent(node.name, () => []).add(_isOnHead(node));
+    super.visitSimpleIdentifier(node);
+  }
+
+  @override
+  void visitNamedType(NamedType node) {
+    final parent = node.parent;
+    final onHead = parent is CatchClause && parent.exceptionType == node;
+    final lexeme = node.name.lexeme;
+    bare.putIfAbsent(lexeme, () => []).add(onHead);
+    final dotName = lexeme.lastIndexOf('.');
+    if (dotName >= 0) {
+      // Qualified head (`p.E`): the unqualified name counts too, so
+      // `show E` + `as p` carves `on p.E` either way the token reads.
+      bare.putIfAbsent(lexeme.substring(dotName + 1), () => []).add(onHead);
+    }
+    final head = node.toSource().split('<').first.trim();
+    final dot = head.indexOf('.');
+    if (dot > 0) {
+      prefixed.putIfAbsent(head.substring(0, dot), () => []).add(onHead);
+    }
+    super.visitNamedType(node);
+  }
+}
+
+/// True when [id] is the head name of a catch `on` type.
+///
+/// Walks up through qualified/type wrappers only; reaching the
+/// [CatchClause] through its [exceptionType] is the only TRUE.
+/// Import prefixes count via [ImportPrefixReference] (present in
+/// `on p.E` regardless of visitation — the walk reads parents,
+/// not visits).
+bool _isOnHead(SimpleIdentifier id) {
+  AstNode child = id;
+  AstNode? current = id.parent;
+  while (current != null && _isTypeWrapper(current)) {
+    child = current;
+    current = current.parent;
+  }
+  return current is CatchClause && current.exceptionType == child;
+}
+
+/// True for the nodes that can wrap a catch `on` head name:
+/// qualified names, type annotations, and import prefixes.
+bool _isTypeWrapper(AstNode node) =>
+    node is PrefixedIdentifier ||
+    node is NamedType ||
+    node is ImportPrefixReference;
 
 /// True when [superclass] names a widget base class.
 bool _isWidgetSuperclass(NamedType? superclass) {

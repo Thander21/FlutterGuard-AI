@@ -9,8 +9,9 @@ ast_nodes:
   - "ClassDeclaration[superclass='*Widget']"
   - "ImportDirective[uri='package:…']"
   - "ExportDirective[uri='package:…']"
-invariant: "A file declaring a widget class (superclass in the Widget set or ending in 'Widget') MUST NOT import or export a persistence/network package from the v0 denylist; data access MUST live behind a repository or provider in the data layer."
+invariant: "A file declaring a widget class (superclass in the Widget set or ending in 'Widget') MUST NOT import or export a persistence/network package from the v0 denylist — except an import whose `show`-listed or prefixed names are referenced only in catch `on` type positions; data access MUST live behind a repository or provider in the data layer."
 fp_limits:
+  - "denylisted imports referenced only in catch `on` type positions (`show`/prefixed — bare still flags)"
   - "denylisted imports in files without a widget class (data layer)"
   - "framework imports (flutter, flutter_riverpod, bloc) in widget files"
   - "relative imports of data files (not tracked in v0)"
@@ -65,6 +66,23 @@ export in a widget file is flagged at the directive line):
   [partial: 2/8 packages in TC-05.bad]
 - `export` of a denylisted package in a widget file: MUST be flagged.
   [eval: unit fixture]
+- Import with `show` referenced only in `on` types: MUST NOT be
+  flagged (R3 carve-out, CAL-004 Q6). [eval: unit fixture]
+- `show` names used in value positions (construction, calls,
+  `throw`): MUST be flagged. [eval: unit fixture]
+- `show`-listed but never referenced: MUST be flagged (dead
+  import, fail-closed). [eval: unit fixture]
+- Prefixed import referenced only as `on p.E`: MUST NOT be
+  flagged. [eval: unit fixture]
+- Prefixed import with value uses (`p.Api...`): MUST be flagged.
+  [eval: unit fixture]
+- Unused prefix: MUST be flagged (dead import, fail-closed).
+  [eval: unit fixture]
+- Bare import referenced only in `on` types: MUST be flagged
+  (KNOWN GAP — names unattributable parse-only; the two field
+  FPs stay). [eval: unit fixture]
+- `hide`-only imports and denylisted exports (even with `show`):
+  MUST be flagged. [eval: unit fixture]
 - Superclass matched by suffix (`extends BaseWidget`): counts as a
   widget file. [eval: unit fixture]
 - Exact widget set: `StatelessWidget`, `StatefulWidget`, `ConsumerWidget`,
