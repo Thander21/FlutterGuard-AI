@@ -58,6 +58,8 @@ gates:
 #   message: "mask PII before logging"
 # Mirror tests (FG-TST-033; absent section = silent):
 # test_presence: {}
+# Custom releasers (FG-LIFE-001; absent section = dispose/cancel/close only):
+# releasers: [shutdown, teardown]
 # Dependency licenses (--license-audit; missing deny = exit 2):
 # licenses:
 #   deny: [GPL, AGPL]

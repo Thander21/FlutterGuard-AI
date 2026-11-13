@@ -107,6 +107,8 @@ const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 /// guard-idiom partner controller:54 -> banned:97 (same skeleton
 /// family; banned:97 hubs three identical idiom FPs); the
 /// displaced pair dissolved; 13 pinned.
+/// R3 residue LIFE (2026-11-13): init template example re-keyed
+/// heal~=init 113 -> 115 (same pair, same FP judgment); 13 pinned.
 const _ratifiedLibPairs = {
   'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/banned_symbol_guard.dart:97',
   'lib/src/ast/asset_guard.dart:30~lib/src/ast/env_guard.dart:30',
@@ -119,7 +121,7 @@ const _ratifiedLibPairs = {
   'lib/src/ast/encoding_guard.dart:59~lib/src/ast/env_guard.dart:30',
   'lib/src/ast/i18n_guard.dart:67~lib/src/ast/theme_token_guard.dart:133',
   'lib/src/cli/baseline.dart:236~lib/src/cli/deps.dart:87',
-  'lib/src/cli/heal.dart:76~lib/src/cli/init.dart:113',
+  'lib/src/cli/heal.dart:76~lib/src/cli/init.dart:115',
   'lib/src/mcp/tools.dart:197~lib/src/mcp/tools.dart:219',
 };
 

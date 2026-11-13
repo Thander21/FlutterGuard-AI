@@ -11,7 +11,7 @@ ast_nodes:
   - "MethodInvocation[name='cancel'|'dispose'|'close'|'addListener'|'removeListener'|'onDispose']"
   - "CascadeExpression"
   - "ConstructorDeclaration"
-invariant: "Every self-instantiated class field holding a releasable resource (subscription, timer, controller, focus node, or listener registration) MUST have its matching release call in a release method of the same class. A 'ref.onDispose(...)' registration counts as a release: closures run with dispose semantics, and 'resource.dispose'/'.cancel'/'.close' tear-offs release the receiver. Constructor-received fields, and fields assigned only from an enclosing function or closure parameter, are borrowed, never checked. Release entry points are 'dispose' always, plus 'close'/'stop'/'cancel'/'destroy' outside 'State'/'Notifier' subclasses; a same-class method called from an entry point or from a 'ref.onDispose' closure (directly, or one more level indirectly) is a release method too."
+invariant: "Every self-instantiated class field holding a releasable resource (subscription, timer, controller, focus node, or listener registration) MUST have its matching release call in a release method of the same class. A 'ref.onDispose(...)' registration counts as a release: closures run with dispose semantics, and 'resource.dispose'/'.cancel'/'.close' tear-offs release the receiver. Constructor-received fields, and fields assigned only from an enclosing function or closure parameter, are borrowed, never checked. Release entry points are 'dispose' always, plus 'close'/'stop'/'cancel'/'destroy' outside 'State'/'Notifier' subclasses; a same-class method called from an entry point or from a 'ref.onDispose' closure (directly, or one more level indirectly) is a release method too. Configured `releasers:` names act both as release verbs and, outside `State`/`Notifier` subclasses, as entry points."
 fp_limits:
   - "Riverpod onDispose-registered cleanup (counts as released)"
   - "resources released only in deactivate() (dispose-only rule)"
@@ -106,6 +106,20 @@ A `f.close()` call counts as a release for every row
   form (closures and tear-offs). [eval: TC-04.good]
 - `f.close()` in a release method counts as a release.
   [eval: TC-04.good]
+- Configured `releasers:` verbs (`f.shutdown()` with
+  `releasers: [shutdown]`): count as releases in release
+  methods and `onDispose` closures/tear-offs. [eval: unit
+  fixture]
+- Configured `releasers:` names as entry points
+  (`teardown()` in a non-State/Notifier class): releases
+  inside count without a `dispose()` call. [eval: unit
+  fixture]
+- Configured entries in `State`/`Notifier` subclasses: NOT
+  entries (dispose-only discipline stands). [eval: unit
+  fixture]
+- Missing section, non-list section, and non-string/empty
+  entries: ignored (defaults stand; config is never a file
+  verdict). [eval: unit fixture]
 - Constructor-received fields (`C(this.c)`, `C(c) : _c = c`,
   body `_c = param`): MUST NOT be flagged (borrowed).
   [eval: TC-04.good]

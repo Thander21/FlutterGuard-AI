@@ -15,6 +15,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/source/line_info.dart';
 
+import '../rule_params.dart';
 import 'rule_violation.dart';
 
 /// Field types released with `cancel()`.
@@ -46,13 +47,28 @@ class LifecycleViolation implements RuleViolation {
 }
 
 /// Analyzes [path] and returns every FG-LIFE-001 violation found.
-List<LifecycleViolation> analyzeLifecycleFile(String path) {
+///
+/// [releasers] injects the `releasers:` section (tests); when absent
+/// it loads from the nearest config (absent section = defaults).
+List<LifecycleViolation> analyzeLifecycleFile(
+  String path, {
+  RuleListConfig<String>? releasers,
+}) {
   final source = File(path).readAsStringSync();
   final result = parseString(content: source, path: path);
-  final guard = LifecycleGuard(source, result.lineInfo);
+  final extra = (releasers ??
+          RuleListConfig.load(path, 'releasers', _parseReleaser))
+      .items
+      .toSet();
+  final guard = LifecycleGuard(source, result.lineInfo, extra);
   result.unit.accept(guard);
   return guard.violations..sort((a, b) => a.line.compareTo(b.line));
 }
+
+/// Parses one `releasers:` entry: a non-empty method name, else null
+/// (malformed entries are skipped, never file verdicts).
+String? _parseReleaser(dynamic item) =>
+    item is String && item.isNotEmpty ? item : null;
 
 /// One tracked field: name, releasable type (or null when unknown), and
 /// 1-based declaration line.
@@ -79,12 +95,31 @@ class _AddListener {
   final int line;
 }
 
+/// Shared per-class scan state: the field map plus the release and
+/// listener collections the member scanners fill. Grouped so the
+/// scanner constructor stays inside the MET params budget.
+class _ClassScan {
+  _ClassScan({
+    required this.fields,
+    required this.releases,
+    required this.adds,
+  });
+
+  final Map<String, _Field> fields;
+  final Set<String> releases;
+  final List<_AddListener> adds;
+}
+
 /// Builds the per-class field map and emits symmetry violations.
 class LifecycleGuard extends RecursiveAstVisitor<void> {
-  LifecycleGuard(this._source, this._lineInfo);
+  LifecycleGuard(this._source, this._lineInfo, [this._extra = const {}]);
 
   final String _source;
   final LineInfo _lineInfo;
+
+  /// Configured releaser names (`releasers:` section): extra release
+  /// verbs and extended-class entry names.
+  final Set<String> _extra;
   final List<LifecycleViolation> violations = [];
 
   @override
@@ -119,38 +154,41 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
     final extended =
         !_isStateLike(node.extendsClause?.superclass) &&
         !_isNotifierLike(node.extendsClause?.superclass);
-    final releaseMethods = _releaseMethods(node, extended);
-    final releases = <String>{};
-    final adds = <_AddListener>[];
+    final releaseMethods = _releaseMethods(node, extended, _extra);
+    final scan = _ClassScan(
+      fields: fields,
+      releases: <String>{},
+      adds: <_AddListener>[],
+    );
     for (final member in node.body.members) {
       if (member is MethodDeclaration) {
         member.body.accept(
           _MemberScanner(
-            fields: fields,
+            scan: scan,
             ctorParams: ctorParams,
             isReleaseMethod:
                 !member.isStatic && releaseMethods.contains(member.name.lexeme),
-            releases: releases,
-            adds: adds,
             source: _source,
             lineInfo: _lineInfo,
+            extraReleasers: _extra,
           ),
         );
       } else if (member is ConstructorDeclaration) {
         _scanConstructor(member, fields, ctorParams);
         member.body.accept(
           _MemberScanner(
-            fields: fields,
+            scan: scan,
             ctorParams: ctorParams,
             isReleaseMethod: false,
-            releases: releases,
-            adds: adds,
             source: _source,
             lineInfo: _lineInfo,
+            extraReleasers: _extra,
           ),
         );
       }
     }
+    final releases = scan.releases;
+    final adds = scan.adds;
     for (final field in fields.values) {
       final type = field.type;
       final borrowed = field.borrowed && !field.constructed;
@@ -215,22 +253,20 @@ class LifecycleGuard extends RecursiveAstVisitor<void> {
 /// registrations.
 class _MemberScanner extends RecursiveAstVisitor<void> {
   _MemberScanner({
-    required this.fields,
+    required this.scan,
     required this.ctorParams,
     required this.isReleaseMethod,
-    required this.releases,
-    required this.adds,
     required this.source,
     required this.lineInfo,
+    required this.extraReleasers,
   });
 
-  final Map<String, _Field> fields;
+  final _ClassScan scan;
   final Set<String> ctorParams;
   final bool isReleaseMethod;
-  final Set<String> releases;
-  final List<_AddListener> adds;
   final String source;
   final LineInfo lineInfo;
+  final Set<String> extraReleasers;
 
   /// Locals aliasing a field (`final sub = _sub;`), so releases on
   /// the alias count for the field.
@@ -240,7 +276,7 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
   void visitVariableDeclaration(VariableDeclaration node) {
     final initializer = node.initializer;
     final aliased = initializer == null ? null : _receiverName(initializer);
-    if (aliased != null && fields.containsKey(aliased)) {
+    if (aliased != null && scan.fields.containsKey(aliased)) {
       _aliases[node.name.lexeme] = aliased;
     }
     super.visitVariableDeclaration(node);
@@ -250,7 +286,7 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
   void visitAssignmentExpression(AssignmentExpression node) {
     final target = _assignedField(node.leftHandSide);
     if (target != null) {
-      final field = fields[target];
+      final field = scan.fields[target];
       if (field != null) {
         final rhs = node.rightHandSide;
         final inferred = _inferType(rhs);
@@ -271,25 +307,24 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
     if (_isRefOnDispose(node) && node.argumentList.arguments.isNotEmpty) {
       _collectOnDisposeRelease(
         node.argumentList.arguments.first,
-        fields: fields,
-        releases: releases,
-        adds: adds,
+        scan: scan,
         source: source,
         lineInfo: lineInfo,
+        extraReleasers: extraReleasers,
       );
     }
     final named = _receiverName(node.target);
     final receiver = named == null ? null : _aliases[named] ?? named;
     if (receiver != null) {
       final name = node.methodName.name;
-      if (isReleaseMethod && _isReleaseName(name)) {
-        releases.add(receiver);
+      if (isReleaseMethod && _isReleaseName(name, extraReleasers)) {
+        scan.releases.add(receiver);
       } else if (name == 'addListener' &&
           !_inStaticMethod(node) &&
           node.argumentList.arguments.isNotEmpty) {
         final arg = node.argumentList.arguments.first;
         if (arg is SimpleIdentifier || arg is PrefixedIdentifier) {
-          adds.add(
+          scan.adds.add(
             _AddListener(
               receiver,
               _argSource(arg),
@@ -300,7 +335,7 @@ class _MemberScanner extends RecursiveAstVisitor<void> {
       } else if (isReleaseMethod &&
           name == 'removeListener' &&
           node.argumentList.arguments.isNotEmpty) {
-        releases.add(
+        scan.releases.add(
           '$receiver#${_argSource(node.argumentList.arguments.first)}',
         );
       }
@@ -366,39 +401,43 @@ bool _isRefOnDispose(MethodInvocation node) {
 /// `resource.dispose`/`.cancel` tear-offs release the receiver.
 void _collectOnDisposeRelease(
   Argument arg, {
-  required Map<String, _Field> fields,
-  required Set<String> releases,
-  required List<_AddListener> adds,
+  required _ClassScan scan,
   required String source,
   required LineInfo lineInfo,
+  required Set<String> extraReleasers,
 }) {
   if (arg is FunctionExpression) {
     arg.body.accept(
       _MemberScanner(
-        fields: fields,
+        scan: scan,
         ctorParams: const {},
         isReleaseMethod: true,
-        releases: releases,
-        adds: adds,
         source: source,
         lineInfo: lineInfo,
+        extraReleasers: extraReleasers,
       ),
     );
     return;
   }
-  if (arg is PrefixedIdentifier && _isReleaseName(arg.identifier.name)) {
-    releases.add(arg.prefix.name);
+  if (arg is PrefixedIdentifier &&
+      _isReleaseName(arg.identifier.name, extraReleasers)) {
+    scan.releases.add(arg.prefix.name);
     return;
   }
-  if (arg is PropertyAccess && _isReleaseName(arg.propertyName.name)) {
+  if (arg is PropertyAccess &&
+      _isReleaseName(arg.propertyName.name, extraReleasers)) {
     final receiver = _receiverName(arg.target);
-    if (receiver != null) releases.add(receiver);
+    if (receiver != null) scan.releases.add(receiver);
   }
 }
 
-/// True for a release method name (`dispose`/`cancel`/`close`).
-bool _isReleaseName(String name) =>
-    name == 'dispose' || name == 'cancel' || name == 'close';
+/// True for a release method name (`dispose`/`cancel`/`close` plus
+/// configured `releasers:` verbs).
+bool _isReleaseName(String name, [Set<String> extra = const {}]) =>
+    name == 'dispose' ||
+    name == 'cancel' ||
+    name == 'close' ||
+    extra.contains(name);
 
 /// True for `State`/`ConsumerState`/`StateNotifier` superclasses
 /// (dispose-only release discipline).
@@ -417,11 +456,13 @@ bool _isNotifierLike(NamedType? superclass) {
 }
 
 /// True for a release entry point: `dispose` always, plus
-/// `close`/`stop`/`cancel`/`destroy` outside State/Notifier.
-bool _isReleaseMethod(String name, bool extended) {
+/// `close`/`stop`/`cancel`/`destroy` and configured `releasers:`
+/// names outside State/Notifier.
+bool _isReleaseMethod(String name, bool extended,
+    [Set<String> extra = const {}]) {
   if (name == 'dispose') return true;
   const extendedNames = {'close', 'stop', 'cancel', 'destroy'};
-  return extended && extendedNames.contains(name);
+  return extended && (extendedNames.contains(name) || extra.contains(name));
 }
 
 /// Instance methods of [node] in which releases count: the release
@@ -429,14 +470,16 @@ bool _isReleaseMethod(String name, bool extended) {
 /// call (and those an `onDispose` closure or tear-off reaches), plus
 /// one more level of self-calls (K2). Deeper chains stay unseen
 /// (fail-closed).
-Set<String> _releaseMethods(ClassDeclaration node, bool extended) {
+Set<String> _releaseMethods(
+    ClassDeclaration node, bool extended, Set<String> extra) {
   final methods = <String, MethodDeclaration>{
     for (final member in node.body.members)
       if (member is MethodDeclaration && !member.isStatic)
         member.name.lexeme: member,
   };
   final names = methods.keys.toSet();
-  final entries = names.where((n) => _isReleaseMethod(n, extended)).toSet();
+  final entries =
+      names.where((n) => _isReleaseMethod(n, extended, extra)).toSet();
   final direct = <String>{};
   for (final method in methods.values) {
     method.body.accept(_SelfCallCollector(names, direct, onDisposeOnly: true));

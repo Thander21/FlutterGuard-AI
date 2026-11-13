@@ -342,5 +342,141 @@ class WindowHelper {
         root.deleteSync(recursive: true);
       }
     });
+
+    test('honors configured releaser verbs (R3)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        final path = '${root.path}/poller.dart';
+        File(path).writeAsStringSync('''
+class Poller {
+  late StreamSubscription _sub;
+  void start() {
+    _sub = sensor.stream.listen(_onData);
+  }
+  void dispose() {
+    _sub.shutdown();
+  }
+}
+''');
+        expect(
+          analyzeLifecycleFile(
+            path,
+            releasers: const RuleListConfig<String>(['shutdown']),
+          ),
+          isEmpty,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('loads releasers from yaml, skipping malformed entries (R3)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        File('${root.path}/flutterguard.yaml').writeAsStringSync('''
+releasers:
+  - shutdown
+  - 42
+  - {verb: teardown}
+  - ''
+  - teardown
+''');
+        final path = '${root.path}/poller.dart';
+        File(path).writeAsStringSync('''
+class Poller {
+  late StreamSubscription _sub;
+  void start() {
+    _sub = sensor.stream.listen(_onData);
+  }
+  void dispose() {
+    _sub.shutdown();
+  }
+}
+''');
+        expect(analyzeLifecycleFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('treats configured names as entries outside State (R3)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        final path = '${root.path}/worker.dart';
+        File(path).writeAsStringSync('''
+class Worker {
+  Timer? _timer;
+  void start() {
+    _timer = Timer.periodic(period, (_) {});
+  }
+  void teardown() {
+    _timer?.cancel();
+  }
+}
+''');
+        expect(
+          analyzeLifecycleFile(
+            path,
+            releasers: const RuleListConfig<String>(['teardown']),
+          ),
+          isEmpty,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('ignores configured entries in State subclasses (R3)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        final path = '${root.path}/clock.dart';
+        File(path).writeAsStringSync('''
+class _ClockState extends State<Clock> {
+  Timer? _timer;
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(period, (_) {});
+  }
+  void cleanup() {
+    _timer?.cancel();
+  }
+}
+''');
+        final violations = analyzeLifecycleFile(
+          path,
+          releasers: const RuleListConfig<String>(['cleanup']),
+        );
+        expect(violations.map((v) => v.line), [2]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('honors configured verbs in onDispose tear-offs (R3)', () {
+      final root = Directory.systemTemp.createTempSync('life_test.');
+      try {
+        final path = '${root.path}/poller_notifier.dart';
+        File(path).writeAsStringSync('''
+class PollerNotifier extends Notifier<void> {
+  late StreamSubscription _sub;
+  @override
+  void build() {
+    _sub = sensor.stream.listen(_onData);
+    ref.onDispose(_sub.shutdown);
+  }
+}
+''');
+        expect(
+          analyzeLifecycleFile(
+            path,
+            releasers: const RuleListConfig<String>(['shutdown']),
+          ),
+          isEmpty,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
   });
 }

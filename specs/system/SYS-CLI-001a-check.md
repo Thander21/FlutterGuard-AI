@@ -123,6 +123,14 @@ opts in, requiring a mirror `test/..._test.dart` for every
 `except`/`message` keys are reserved for v1 and ignored in
 v0 (the baseline already ratchets legacy trees).
 
+`releasers` (FG-LIFE-001): a list of method names — each acts
+both as a release verb (`field.<name>()` releases the field
+in a release method or `onDispose` registration) and,
+outside `State`/`Notifier` subclasses, as a release
+entry-point name. A missing or non-list section disables
+the extension (defaults stand); non-string and empty
+entries are skipped like `banned_symbols` entries.
+
 ## Adoption scope (SYS-CAL-003 R2-2)
 
 Dedup: `checkPath` collapses findings on (file, line, rule) after

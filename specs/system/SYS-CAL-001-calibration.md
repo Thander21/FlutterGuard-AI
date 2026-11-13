@@ -777,6 +777,14 @@ SYS-TELE-001 first (canon rule §4).
   viewport 1 unchanged; skip set unchanged; corpus at
   197 files (no new `.dart` files this turn). CRAP:
   unmeasured this pass (tripwire-excluded).
+- Re-ratifications: 2026-11-13 — R3 residue LIFE (this turn):
+  re-key `heal~=init` `113` → `115` (same pair, same FP
+  judgment — the init template `releasers:` example shifted
+  the unit). The `_ClassScan` grouping (MET-budget repair
+  for the `_MemberScanner` 8th param) paired with nothing
+  — twin-clean. 13 lib pairs pinned, 0 actionable, HOLD
+  reaffirmed. MET set unchanged (2 pins); skip set
+  unchanged.
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).
