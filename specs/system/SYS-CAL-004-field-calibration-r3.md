@@ -276,6 +276,11 @@ hold on golden vectors + dogfood as well as field corpora.
   arrived. The merged tree is strict throughout (Rows pass unbounded
   constraints) - the correct end state, §9. Future handoffs must verify
   patch-file-count == worktree-modified-count.
+- 2026-11-13 — residue complete (BUILD message, ARCH
+  carve-out, MET v4, LIFE `releasers:`) and re-pilot green
+  on ERP `2e19d2a` (FOLLOWUP-01 F-026: §5 met except the
+  external corpus). Charter stays draft until the external
+  corpus lands (Q8).
 
 ## 9. Execution Record (flutterguardai, merged 2026-11-07)
 
