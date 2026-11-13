@@ -37,3 +37,32 @@ class SmallForm extends StatelessWidget {
     );
   }
 }
+
+// v4: const all-named entity with a domain method (field shape).
+class ComplementGroup {
+  const new({
+    required this.id,
+    required this.tenancyId,
+    required this.nome,
+    this.limiteMinimo = 0,
+    this.limiteMaximo = 1,
+    this.obrigatorio = false,
+    this.permiteRepetirItem = false,
+    this.ordemExibicao = 0,
+    this.isActive = true,
+  });
+
+  final String id;
+  final int tenancyId;
+  final String nome;
+  final int limiteMinimo;
+  final int limiteMaximo;
+  final bool obrigatorio;
+  final bool permiteRepetirItem;
+  final int ordemExibicao;
+  final bool isActive;
+
+  bool isValidSelection(int selectedCount) {
+    return selectedCount <= limiteMaximo;
+  }
+}

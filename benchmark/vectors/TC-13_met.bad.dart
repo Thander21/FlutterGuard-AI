@@ -4,7 +4,7 @@
 import 'package:flutter/widgets.dart';
 
 class BigForm extends StatelessWidget {
-  const BigForm({
+  BigForm({
     super.key,
     required this.title,
     required String a,

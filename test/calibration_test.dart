@@ -18,10 +18,13 @@ import 'package:test/test.dart';
 /// ctor — pinned, HOLD).
 /// M2 (2026-11-06): re-keyed rules 42 -> 43 (import shift).
 /// TS-34 (2026-11-07): re-keyed rules 43 -> 44 (registry import shift).
+/// R3 residue (2026-11-13): rules pin DISSOLVED (not re-keyed) — MET
+/// v4 exempts the const all-named RuleAnalyzer ctor by design; the
+/// pinned FP is cured. TC-13 pins intact (bad ctor repaired to
+/// non-const, same lines).
 const _ratifiedMetFlags = {
   'benchmark/vectors/TC-13_met.bad.dart:7',
   'benchmark/vectors/TC-13_met.bad.dart:29',
-  'lib/src/cli/rules.dart:44',
 };
 
 /// Ratified unparseable-skip set (SYS-CAL-001 §2): corpus files the
@@ -100,8 +103,12 @@ const _ratifiedSkipped = {'benchmark/vectors/TC-17_syn.bad.dart'};
 /// exiting-branch rule dissolved the idiom pair; ENC/TOK/baseline
 /// growth re-keyed enc 39 -> 59, tok 98 -> 133 and baseline
 /// 169 -> 236; 14 pinned.
+/// R3 residue (2026-11-13): ARCH carve-out growth swapped the arch
+/// guard-idiom partner controller:54 -> banned:97 (same skeleton
+/// family; banned:97 hubs three identical idiom FPs); the
+/// displaced pair dissolved; 13 pinned.
 const _ratifiedLibPairs = {
-  'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/controller_build_guard.dart:54',
+  'lib/src/ast/arch_layer_guard.dart:74~lib/src/ast/banned_symbol_guard.dart:97',
   'lib/src/ast/asset_guard.dart:30~lib/src/ast/env_guard.dart:30',
   'lib/src/ast/banned_symbol_guard.dart:73~lib/src/ast/layer_guard.dart:81',
   'lib/src/ast/banned_symbol_guard.dart:97~lib/src/ast/i18n_guard.dart:67',
@@ -122,7 +129,7 @@ const _ratifiedViewportPairs = {
 
 void main() {
   group('SYS-CAL-001 tripwire', () {
-    test('MET flag set is exactly the ratified 3', () {
+    test('MET flag set is exactly the ratified 2', () {
       final files = _corpusFiles([
         'lib',
         'bin',

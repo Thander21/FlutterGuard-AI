@@ -43,6 +43,13 @@ bool isDataHolderClass(ClassDeclaration node) {
   return true;
 }
 
+/// True for the getters a data holder may carry: value-identity
+/// `hashCode` and the Equatable `props`/`stringify` pair. Shared
+/// with the MET-007 v4 const-named exemption (TS-13 §1), which
+/// keeps flagging every other getter.
+bool isHolderGetter(String name) =>
+    name == 'hashCode' || _equatableGetters.contains(name);
+
 /// True for holder companions: value-identity (`toString`, `==`,
 /// `hashCode`), serialization (`toJson`/`fromJson`/`toMap`/
 /// `fromMap`), `copyWith`, and the Equatable `props`/`stringify`
@@ -52,7 +59,7 @@ bool _isCompanion(MethodDeclaration member) {
   if (member.isOperator) return name == '==';
   if (member.isGetter || member.isSetter) {
     if (!member.isGetter) return false;
-    return name == 'hashCode' || _equatableGetters.contains(name);
+    return isHolderGetter(name);
   }
   return name == 'toString' || _companionMethods.contains(name);
 }

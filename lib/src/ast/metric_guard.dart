@@ -184,7 +184,37 @@ bool _inDataHolder(ConstructorDeclaration node) {
   while (current != null && current is! ClassDeclaration) {
     current = current.parent;
   }
-  return current is ClassDeclaration && isDataHolderClass(current);
+  if (current is! ClassDeclaration) return false;
+  return isDataHolderClass(current) || _isConstNamedValue(node, current);
+}
+
+/// True for a const all-named constructor on a finals-only class
+/// with no derived getters or setters (TS-13 v4, MET-only: the DRY
+/// collector keeps the v3 [isDataHolderClass] test).
+///
+/// Behavior methods don't break this exemption — field entities
+/// carry domain methods (`ComplementGroup.isValidSelection`) — but
+/// getters beyond [isHolderGetter] and every setter still do
+/// (display-deferred doctrine stands: `TableSession` keeps
+/// flagging on its getters).
+bool _isConstNamedValue(ConstructorDeclaration node, ClassDeclaration owner) {
+  if (node.constKeyword == null) return false;
+  final params = node.parameters.parameters;
+  if (params.isEmpty || params.any((p) => !p.isNamed)) return false;
+  for (final member in owner.body.members) {
+    if (member is ConstructorDeclaration) continue;
+    if (member is FieldDeclaration) {
+      if (!member.fields.isFinal && !member.fields.isConst) return false;
+    } else if (member is MethodDeclaration) {
+      if (member.isSetter) return false;
+      if (member.isGetter && !isHolderGetter(member.name.lexeme)) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+  return true;
 }
 
 /// True when [name] starts uppercase (private `_Tile` counts as well).

@@ -72,7 +72,7 @@ class SmallForm extends StatelessWidget {
         final path = '${root.path}/wide.dart';
         File(path).writeAsStringSync('''
 class WideForm extends StatelessWidget {
-  const WideForm({
+  WideForm({
     super.key,
     required this.a,
     required this.b,
@@ -215,7 +215,7 @@ class Point9 {
 }
 
 class Behavior9 {
-  const Behavior9({
+  Behavior9({
     required this.a,
     required this.b,
     required this.c,
@@ -509,6 +509,160 @@ Widget buildErpScreen(BuildContext context) {
       ),
     ),
   );
+}
+''');
+        expect(analyzeMetricFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('exempts const all-named entities with methods (R3)', () {
+      final root = Directory.systemTemp.createTempSync('met_test.');
+      try {
+        final path = '${root.path}/entity.dart';
+        File(path).writeAsStringSync('''
+class ComplementGroup {
+  const new({
+    required this.id,
+    required this.tenancyId,
+    required this.nome,
+    this.limiteMinimo = 0,
+    this.limiteMaximo = 1,
+    this.obrigatorio = false,
+    this.permiteRepetirItem = false,
+    this.ordemExibicao = 0,
+    this.isActive = true,
+  });
+
+  final String id;
+  final int tenancyId;
+  final String nome;
+  final int limiteMinimo;
+  final int limiteMaximo;
+  final bool obrigatorio;
+  final bool permiteRepetirItem;
+  final int ordemExibicao;
+  final bool isActive;
+
+  bool isValidSelection(int selectedCount) {
+    return selectedCount <= limiteMaximo;
+  }
+
+  Map<String, Object?> toJson() => {'id': id};
+}
+''');
+        expect(analyzeMetricFile(path), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('still flags const all-named with getters (R3 partial)', () {
+      final root = Directory.systemTemp.createTempSync('met_test.');
+      try {
+        final path = '${root.path}/session.dart';
+        File(path).writeAsStringSync('''
+class TableSession {
+  const new({
+    required this.id,
+    required this.tenancyId,
+    required this.numeroMesa,
+    this.capacidade = 4,
+    this.status = 0,
+    this.abertaEm,
+    this.garcomNome,
+    this.clienteNome,
+    this.itens = const [],
+  });
+
+  final String id;
+  final int tenancyId;
+  final int numeroMesa;
+  final int capacidade;
+  final int status;
+  final String? abertaEm;
+  final String? garcomNome;
+  final String? clienteNome;
+  final List<String> itens;
+
+  int get itemCount => itens.length;
+}
+''');
+        final violations = analyzeMetricFile(path);
+        expect(violations.map((v) => v.line), [2]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('flags const ctors with positional params (R3)', () {
+      final root = Directory.systemTemp.createTempSync('met_test.');
+      try {
+        final path = '${root.path}/mixed.dart';
+        File(path).writeAsStringSync('''
+class Mixed9 {
+  const Mixed9(
+    this.a, {
+    required this.b,
+    required this.c,
+    required this.d,
+    required this.e,
+    required this.f,
+    required this.g,
+    required this.h,
+    required this.i,
+  });
+
+  final int a;
+  final int b;
+  final int c;
+  final int d;
+  final int e;
+  final int f;
+  final int g;
+  final int h;
+  final int i;
+
+  int sum() => a + b;
+}
+''');
+        final violations = analyzeMetricFile(path);
+        expect(violations.map((v) => v.line), [2]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    test('exempts const all-named widget constructors (R3)', () {
+      final root = Directory.systemTemp.createTempSync('met_test.');
+      try {
+        final path = '${root.path}/widget.dart';
+        File(path).writeAsStringSync('''
+class WideWidget extends StatelessWidget {
+  const WideWidget({
+    super.key,
+    required this.a,
+    required this.b,
+    required this.c,
+    required this.d,
+    required this.e,
+    required this.f,
+    required this.g,
+    required this.h,
+  });
+
+  final String a;
+  final String b;
+  final String c;
+  final String d;
+  final String e;
+  final String f;
+  final String g;
+  final String h;
+
+  @override
+  Widget build(BuildContext context) => Text(a);
 }
 ''');
         expect(analyzeMetricFile(path), isEmpty);

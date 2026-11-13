@@ -10,10 +10,11 @@ ast_nodes:
   - "InstanceCreationExpression"
   - "MethodInvocation[constructor-shaped]"
   - "ConstructorDeclaration"
-invariant: "Widget trees SHOULD nest at most 5 non-scaffold creation levels deep and classic constructors SHOULD declare at most 7 parameters (data-holder constructors exempt — finals-only fields with only value-identity, serialization, copyWith, and Equatable companions); over-budget findings are advisory warnings until SYS-CAL-001 calibrates the thresholds."
+invariant: "Widget trees SHOULD nest at most 5 non-scaffold creation levels deep and classic constructors SHOULD declare at most 7 parameters (exempt: data-holder constructors — finals-only fields with only value-identity, serialization, copyWith, and Equatable companions — and const all-named constructors on finals-only classes without derived getters or setters); over-budget findings are advisory warnings until SYS-CAL-001 calibrates the thresholds."
 fp_limits:
   - "trees nested 5 deep or less"
   - "constructors with 7 parameters or fewer"
+  - "const all-named constructors on finals-only classes without derived getters/setters (methods allowed)"
   - "deep trees outside build()/Widget-returning methods"
   - "scaffold creations (MaterialApp, Scaffold — transparent to depth)"
   - "constructors of data-holder classes (incl. serialization/Equatable companions)"
@@ -76,6 +77,20 @@ corpus exists; the pilot's cited 6-level screen shape is
 verified clean under v2 scaffold transparency (cited
 pattern CLOSED), with a full retune awaiting pilot-3
 counts.
+
+v4 (R3 residue, CAL-004 Q7) exempts const all-named
+constructors even with behavior methods: field entities
+carry domain methods (`ComplementGroup.isValidSelection`),
+and named-heavy call sites stay callable. The exemption is
+per-constructor and MET-only (the DRY collector keeps the
+v3 test): the measured constructor must be `const` with
+only named parameters, every field `final`/`const`, no
+setter, and no getter beyond `hashCode`/`props`/`stringify`.
+Derived getters and setters still break it (display-deferred
+doctrine stands — `TableSession` keeps flagging on its
+getters), as do positional parameters and non-const
+constructors. Widgets are not excluded: a const all-named
+widget constructor is exempt by the same rule.
 
 Spike record (Semantic Ratio 15%, PLAN-02 P1): DROPPED. No parse-only
 node classifier separates business-rule nodes from UI-plumbing nodes —
@@ -168,6 +183,19 @@ creation up through its enclosing function; every creation deeper than
   NOT be flagged (vacuously holder). [eval: unit fixture]
 - 9-parameter `.new` named constructor with companions: MUST
   NOT be flagged (the ERP breaker shape). [eval: unit fixture]
+- 11-parameter `const.new` entity with a domain method
+  (`isValidSelection`): MUST NOT be flagged. [eval: TC-13.good]
+- 10-parameter `const.new` entity with a derived getter:
+  MUST be flagged (advisory — partial fix, display-deferred
+  stands). [eval: unit fixture]
+- 9-parameter const constructor with a positional parameter:
+  MUST be flagged (advisory). [eval: unit fixture]
+- 9-parameter non-const all-named constructor: MUST be flagged
+  (advisory). [eval: TC-13.bad]
+- 9-parameter const all-named widget constructor: MUST NOT be
+  flagged (widgets not excluded). [eval: unit fixture]
+- Wide const constructors on enums: unmeasured (classes only).
+  [unevaluated]
 - 29-field true primary constructor: MUST NOT be flagged
   (unmeasured by design). [eval: unit fixture]
 - 9-parameter finals-only class with a derived display getter:

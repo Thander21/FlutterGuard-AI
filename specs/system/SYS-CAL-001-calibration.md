@@ -758,6 +758,25 @@ SYS-TELE-001 first (canon rule §4).
   CRAP: detector trio measured 3 over budget
   (findDuplication CC=35 cov=0.99 — same known flake
   family; metric/mcp trios 0; tripwire-excluded).
+- Re-ratifications: 2026-11-13 — R3 residue (ARCH carve-out +
+  MET v4, this turn): the ARCH carve-out growth swapped the
+  arch guard-idiom partner `controller:54` → `banned:97`,
+  judged FP (same guard-skeleton family — ctor + `_lineInfo`
+  + violations list + state; `banned:97` hubs three
+  identical idiom FPs) and re-pinned as the swap (the
+  displaced pair dissolved, never re-pinned). MET v4
+  dissolved the `rules:44` pin (not a re-key): the
+  `RuleAnalyzer` ctor is const + all-named, exempt by
+  design — the pinned FP is cured; TC-13 `:7`/`:29`
+  intact (bad vector repaired to non-const, same lines;
+  depth untouched). New units (`_carved`,
+  `_NameUseCollector`, `_isOnHead`, `_isTypeWrapper`,
+  `_isConstNamedValue`, `isHolderGetter`) paired with
+  nothing — twin-clean. 13 lib pairs pinned, 0
+  actionable, HOLD reaffirmed. `bin/`/`tool/` 0 pairs;
+  viewport 1 unchanged; skip set unchanged; corpus at
+  197 files (no new `.dart` files this turn). CRAP:
+  unmeasured this pass (tripwire-excluded).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).
