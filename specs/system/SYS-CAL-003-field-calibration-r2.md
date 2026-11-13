@@ -343,7 +343,7 @@ CatchAllGuard row is owned by R2-2 (generic baseline);
 TestDoubles/SerialTags stay report-marked optional;
 AsyncSafety is Drift-conditional. Every gate ships its
 project-varying surface (symbols, logger, theme location,
-thresholds) as config, never as literals.
+thresholds) as config, never as literals. DISMISSED 2026-11-13 (force-field replacement batch, item D1): AsyncSafety stays unbuilt — Drift-conditional with no field demand (`unawaited_futures` covers part); re-entry = demand from a Drift project.
 
 ## R2-6. Mutation runner end to end on a fiscal rule
 
