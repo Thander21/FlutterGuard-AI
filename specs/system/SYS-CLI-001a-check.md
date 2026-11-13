@@ -292,7 +292,7 @@ F, "summary": {"errors": E, "warnings": W}}).
 
 | Gate | Contents | Budget | Status |
 |------|----------|--------|--------|
-| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017, FG-BAN-018, FG-LOG-019, FG-TOK-020, FG-I18N-021, FG-ENC-022, FG-ORP-023, FG-LYR-024, FG-CC-025, FG-RIV-026 advisory, FG-ARB-027, FG-PII-028, FG-ENV-029, FG-ASSET-030, FG-VER-031, FG-DOC-032, FG-TST-033); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
+| `validate-light` | immediate parse-only AST rules (FG-BLOC-001, FG-RIV-001, FG-ST-001, FG-LIFE-001, FG-ARCH-003, FG-ASYNC-002, FG-LAY-004, FG-ST-005, FG-CTX-006, FG-WID-008, FG-LINT-009, FG-KEY-001r, FG-MET-007 advisory, FG-BUILD-014, FG-IMP-015, FG-FMT-016, FG-SYN-017, FG-BAN-018, FG-LOG-019, FG-TOK-020, FG-I18N-021, FG-ENC-022, FG-ORP-023, FG-LYR-024, FG-CC-025, FG-RIV-026 advisory, FG-ARB-027, FG-PII-028, FG-ENV-029, FG-ASSET-030, FG-VER-031, FG-DOC-032, FG-TST-033, FG-SYNC-034); imports/format/syntax checks live (TS-15/16/17) | ~1–3 s | live |
 | `test` | changed-file unit tests via `dart test` / `flutter test --concurrency=1`; 100% green, no warnings | ~5–15 s | live |
 | `validate` | `dart analyze --fatal-infos` over the module, cross-regression tests, contract integrity; resolved-analysis rules attach here | ~30–60 s | live (analyzer part) |
 | `commit-check` | evidence presence per SYS-TELE-001, no temp files, clean diff | ~2 s | defined here, enforced by the hook in SYS-CLI-001b |

@@ -52,6 +52,7 @@ an item in a future plan — this file is the intake, not the disposition.
 | F-021 | 2026-11-07 | Force-field gap intake (flutterguardai handoff): catch-all counting with baseline — no FG equivalent; owner deferred. | Deferred by owner; re-entry = formal intake decision |
 | F-022 | 2026-11-07 | Force-field gap intake (flutterguardai handoff): named-argument ban (shape/elevation in Dialog) — no FG equivalent; owner deferred. | Deferred by owner; re-entry = formal intake decision |
 | F-023 | 2026-11-07 | Force-field gap intake (flutterguardai handoff): BOM/CRLF check — no FG equivalent; owner deferred. | Deferred by owner; re-entry = formal intake decision |
+| F-024 | 2026-11-07 | TS-34 build (this session): the parked `*Sync` EDD candidate (SPIKE-PERF-010 §2) built as FG-SYNC-034 via the full loop — TS-34 spec, TC-34 pair, SyncJankGuard + registry + recipe embed, `_isMeasured` twin healed into `build_scope.dart`, MET re-key 43→44 (CAL-001 §5); `grade` exit 0 (68 evals), suite 520 + F-018 flake only. | Closes the F-003 parked candidate (its "stays parked" superseded); AUDIT-01 §1.9 reworded + §6 entry per the re-entry rule |
 
 ## Rules
 

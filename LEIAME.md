@@ -6,7 +6,7 @@
 
 *Read in English: [README.md](README.md)*
 
-> **Escopo:** 33 regras implementadas (31 bloqueantes + `FG-MET-007`
+> **Escopo:** 34 regras implementadas (32 bloqueantes + `FG-MET-007`
 > / `FG-RIV-026` consultivas) com comandos CLI `grade` + `check` + `init` + `sandbox`,
 > hook pre-commit, dispatcher de autocura, mutation runner, Tier-1
 > viewport runner (com fallback AST Tier-1-lite), pipeline de
@@ -141,7 +141,7 @@ As 5 ferramentas tipadas (contrato completo: `specs/system/SYS-MCP-001-mcp-serve
 
 | Ferramenta | Argumentos | Propósito |
 |---|---|---|
-| `analyze_ast` | `path` | Roda as 33 regras AST num arquivo ou diretório. `FAILED` = violação capturada. |
+| `analyze_ast` | `path` | Roda as 34 regras AST num arquivo ou diretório. `FAILED` = violação capturada. |
 | `get_canonical_recipe` | `rule_id` | Retorna a receita de correção Before/After (spec §2). Aplique em um turno. |
 | `verify_viewport` | `path` | Vocabulário Tier-1-lite de layout. Degradado: `PASS` nunca afirma tela limpa. |
 | `run_mutation_check` | `source_file`, `test_file` | Julga um teste contra mutantes. `passed=false` = teste complacente. |

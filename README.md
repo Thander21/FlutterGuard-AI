@@ -6,7 +6,7 @@
 
 *Leia em português: [LEIAME.md](LEIAME.md)*
 
-> **Scope:** 33 rules implemented (31 blocking + `FG-MET-007`
+> **Scope:** 34 rules implemented (32 blocking + `FG-MET-007`
 > / `FG-RIV-026` advisory) with `grade` + `check` + `init` + `sandbox` CLI commands,
 > a pre-commit hook, a heal dispatcher, a mutation runner, a
 > Tier-1 viewport runner (with Tier-1-lite AST fallback), a
@@ -140,7 +140,7 @@ The 5 typed tools (full contract: `specs/system/SYS-MCP-001-mcp-server.md`):
 
 | Tool | Arguments | Purpose |
 |---|---|---|
-| `analyze_ast` | `path` | Run all 33 AST rules over a file or directory. `FAILED` = violation caught. |
+| `analyze_ast` | `path` | Run all 34 AST rules over a file or directory. `FAILED` = violation caught. |
 | `get_canonical_recipe` | `rule_id` | Return the Before/After fix recipe (spec §2). Apply in one turn. |
 | `verify_viewport` | `path` | Tier-1-lite layout vocabulary. Degraded: `PASS` never claims rendered-clean. |
 | `run_mutation_check` | `source_file`, `test_file` | Judge a test against mutants. `passed=false` = complacent test. |

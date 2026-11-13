@@ -31,6 +31,7 @@ import '../ast/provider_naming_guard.dart';
 import '../ast/list_viewport_guard.dart';
 import '../ast/riverpod_watch_guard.dart';
 import '../ast/state_mutation_guard.dart';
+import '../ast/sync_jank_guard.dart';
 import '../ast/syntax_guard.dart';
 import '../ast/test_presence_guard.dart';
 import '../ast/theme_token_guard.dart';
@@ -272,6 +273,11 @@ final ruleAnalyzers = <RuleAnalyzer>[
     id: 'FG-TST-033',
     spec: 'specs/TS-33-test-presence-guard.md',
     analyze: analyzeTstFile,
+  ),
+  RuleAnalyzer(
+    id: 'FG-SYNC-034',
+    spec: 'specs/TS-34-sync-jank-guard.md',
+    analyze: analyzeSyncJankFile,
   ),
 ];
 

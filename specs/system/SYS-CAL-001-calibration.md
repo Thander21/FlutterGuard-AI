@@ -739,6 +739,25 @@ SYS-TELE-001 first (canon rule §4).
   doc_counts test — R3 added no `.dart` files). CRAP:
   UNMEASURED this pass (8s coverage timeout under load —
   same F-018 flake class as the 2026-11-06 pass).
+- Re-ratifications: 2026-11-07 — TS-34 (FG-SYNC-034 sync-jank
+  guard) landing: the new guard's measured-build helper
+  surfaced `_isMeasured`~=`_isMeasured` @1.000
+  (async_build:198-215 ~= sync_jank:186-203), judged TP
+  (verbatim 18-line copy — squarely above the 0.95-heal bar,
+  not a guard-idiom FP) and HEALED the same turn:
+  extracted to `lib/src/ast/build_scope.dart`
+  (`isMeasuredBuildScope` + `isWidgetType` + the notifier
+  set), both guards import it — twin dissolved, never
+  pinned. Re-key: MET `rules:43`→`:44` (same pinned
+  config-ctor FP — the registry import-line shift). 13
+  lib pairs pinned (same keys, same FP judgments), 0
+  actionable, HOLD reaffirmed. `bin/`/`tool/` 0 pairs;
+  viewport 1 unchanged; skip set unchanged; corpus at
+  197 files (+5: sync guard, build_scope, sync test, 2
+  TC-34 vectors — all twin-clean and MET-neutral).
+  CRAP: detector trio measured 3 over budget
+  (findDuplication CC=35 cov=0.99 — same known flake
+  family; metric/mcp trios 0; tripwire-excluded).
 - Threshold retunes are new claims: changing 5/7/0.8/10 needs a
   fresh corpus pass meeting the flip bar — fitting to the
   ratified sample is barred (same overfitting rule as §2).

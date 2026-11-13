@@ -17,10 +17,11 @@ import 'package:test/test.dart';
 /// M1 (2026-11-06): +1 FP (`rules.dart:42` declarative config
 /// ctor — pinned, HOLD).
 /// M2 (2026-11-06): re-keyed rules 42 -> 43 (import shift).
+/// TS-34 (2026-11-07): re-keyed rules 43 -> 44 (registry import shift).
 const _ratifiedMetFlags = {
   'benchmark/vectors/TC-13_met.bad.dart:7',
   'benchmark/vectors/TC-13_met.bad.dart:29',
-  'lib/src/cli/rules.dart:43',
+  'lib/src/cli/rules.dart:44',
 };
 
 /// Ratified unparseable-skip set (SYS-CAL-001 §2): corpus files the

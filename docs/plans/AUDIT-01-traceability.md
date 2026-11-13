@@ -91,7 +91,7 @@ only, not spec material) · PROCESS (adopted way of working).
 ### 1.9 ProjectOverview.md
 
 - Problem 1 (controllers/business in build) → BUILT (ST-001,
-  BUILD-014; `*Sync` subset open as PERF-010 candidate).
+  BUILD-014; `*Sync` subset BUILT as FG-SYNC-034, TS-34 — see §6).
 - Problem 2 (state anti-patterns) → BUILT (ST-005, RIV-001,
   BLOC-001, ASYNC-002, LIFE-001); framework-mixing → DEFER
   (needs dependency graph).
@@ -223,8 +223,9 @@ and measurement today; re-entry starts here.
 
 PDV tenancy/fiscal rules; `uml-viewer`-style viz (deferred, not
 never — kept distinct); framework-mixing detection (deferred:
-dependency graph); FG-I18N + FG-YAGNI (deferred with reason:
-PLAN-01); Llama binding (deferred while MCP suffices);
+dependency graph); FG-I18N (built as TS-21) + FG-YAGNI
+(dropped: SPIKE FG-YAGNI-001); Llama binding (deferred while
+MCP suffices);
 curl-pipe install (rejected); hackathon submission artifacts
 (dropped: deadline missed, PLAN-01); Meta study checklists and
 paper/reference lists (not spec material).
@@ -258,3 +259,19 @@ approved, 1 deferred, 2 dropped spikes) plus table-recorded drops
   `_MutantCollector` extended, `<=`/`false` ignore-pins
   flipped to positive cases in `mutation_runner_test.dart`;
   §1.1/§1.10 rows updated (no audit row closes).
+- 2026-11-07 — TS-34 (FG-SYNC-034) built: the `*Sync` EDD
+  candidate (SPIKE-PERF-010 §2) landed through the standard
+  loop (spec → vectors → visitor → test → grade; fresh ID
+  minted, PERF-010 stays consumed); the verbatim
+  `_isMeasured` twin was healed into
+  `lib/src/ast/build_scope.dart` (never pinned) and MET
+  re-keyed `rules:43`→`:44` (SYS-CAL-001 §5). §1.9 row
+  reworded (candidate consumed). Re-audit triggers
+  remaining: VIEW-002, PROF-002.
+- 2026-11-07 — SPIKE FG-YAGNI-001 (fake abstraction) dropped
+  with no surviving candidate: the implements-census needs
+  project-wide references the per-file registry cannot see
+  (same ceiling as framework-mixing), and the collapse
+  remedy is backwards for untested seams (add the test,
+  don't delete the seam). Gives PLAN-01/02's "deferred
+  with reason" its actual reason. §4 row updated.

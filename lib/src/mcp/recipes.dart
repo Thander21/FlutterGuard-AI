@@ -426,6 +426,18 @@ redirect — then delete the orphan.''',
      print(greeting);
    }
 ```''',
+  'FG-SYNC-034': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
+
+```diff
+   onPressed: () async {
+-    final text = File('note.txt').readAsStringSync();
++    final text = await File('note.txt').readAsString();
+     setState(() => _note = text);
+   },
+```
+
+In `build()` scope the same trigger hoists instead: load once in
+`initState` (async) and read the cached value per frame.''',
   'FG-TOK-020': r'''# 2. Canonical Auto-Heal Recipe (Before / After)
 
 ```diff
@@ -503,6 +515,7 @@ const canonicalRecipeSpecs = <String, String>{
   'FG-ST-001': 'specs/TS-03-controller-in-build-guard.md',
   'FG-ST-005': 'specs/TS-08-state-mutation-guard.md',
   'FG-SYN-017': 'specs/TS-17-syntax-guard.md',
+  'FG-SYNC-034': 'specs/TS-34-sync-jank-guard.md',
   'FG-TOK-020': 'specs/TS-20-theme-token-guard.md',
   'FG-TST-033': 'specs/TS-33-test-presence-guard.md',
   'FG-VER-031': 'specs/TS-31-version-guard.md',

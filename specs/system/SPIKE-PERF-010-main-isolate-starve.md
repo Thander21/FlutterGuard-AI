@@ -85,3 +85,7 @@ Emits no `evidence.jsonl`: no gate runs.
   "heavy"): dynamic wins for heaviness — only blocking-ness
   (the I/O subset) is statically decidable, and only that
   subset survives as a candidate.
+- Candidate built (2026-11-07): the `*Sync` subset landed as
+  FG-SYNC-034 (TS-34) through the standard EDD loop — the
+  fresh-ID rule from §2. The general-gate DROP above stands
+  and FG-PERF-010 stays consumed.

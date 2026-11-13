@@ -2,7 +2,7 @@
 
 ## 0.1.0
 
-- 33 AST rules (31 blocking + `FG-MET-007` / `FG-RIV-026` advisory) with golden eval vectors.
+- 34 AST rules (32 blocking + `FG-MET-007` / `FG-RIV-026` advisory) with golden eval vectors.
 - `check` / `grade` / `init` / `sandbox` CLI plus a blocking pre-commit hook.
 - Heal dispatcher with snapshot rollback and diagnostic reports.
 - Mutation runner (chaos gate) over volatile sandboxes.
