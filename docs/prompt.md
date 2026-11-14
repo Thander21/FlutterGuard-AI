@@ -11,13 +11,13 @@ PowerShell no Windows; em macOS/Linux adapte os caminhos.
 ISOLAMENTO (escolha UMA opção; nada é instalado no `<ALVO>`):
 
   Opção A — você JÁ tem um clone do FlutterGuard-AI:
-    git worktree add --detach <FG> bc46a7bc40ba133d5b84acbcf89becf16896556e
+    git worktree add --detach <FG> 7695b0801bd94b73aa12b4893f0edcc17c26b4df
     cd <FG>; dart pub get
 
   Opção B — você NÃO tem o repo (começando do zero):
     git clone https://github.com/Thander21/FlutterGuard-AI.git <FG>
     cd <FG>
-    git checkout bc46a7bc40ba133d5b84acbcf89becf16896556e
+    git checkout 7695b0801bd94b73aa12b4893f0edcc17c26b4df
     dart pub get
 
   Prove o não-poluimento: rode `git status --short` no `<ALVO>`
