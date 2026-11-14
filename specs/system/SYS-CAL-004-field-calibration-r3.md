@@ -2,7 +2,7 @@
 spec_version: "openspec-1.0"
 id: "SYS-CAL-004"
 title: "Field calibration round 3: MVP precision program"
-status: "draft"
+status: "approved"
 kind: "system"
 ---
 
@@ -281,6 +281,13 @@ hold on golden vectors + dogfood as well as field corpora.
   on ERP `2e19d2a` (FOLLOWUP-01 F-026: §5 met except the
   external corpus). Charter stays draft until the external
   corpus lands (Q8).
+- CLOSED 2026-11-13: external corpus landed via the prompt
+  method (Null-Chronicle game, FOLLOWUP-01 F-027 —
+  owner-adjacent, domain-level independence); §5 holds on
+  vectors + dogfood + two field corpora. Remaining
+  follow-ups live in FOLLOWUP-01 (F-028 `.dart_tool`
+  scope, TOK game/palette directions) and the standing
+  re-entry log.
 
 ## 9. Execution Record (flutterguardai, merged 2026-11-07)
 
